@@ -10,7 +10,7 @@ import { BlockIcon } from "../ui/BlockIcon.jsx";
 import { InfoTip } from "../ui/InfoTip.jsx";
 import { BlockFormBody } from "./SharedBlock.jsx";
 
-export const PANEL_LABELS = { block: "Bloco", structure: "Estrutura", page: "Cores" };
+const PANEL_LABELS = { block: "Bloco", structure: "Estrutura", page: "Cores" };
 
 function BlockFields({ block, index, hidden, header }) {
   const { schema } = useEditor();

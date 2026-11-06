@@ -83,7 +83,7 @@ export function getIn(obj, path) {
   return path.reduce((value, key) => (value == null ? value : value[key]), obj);
 }
 
-export function setIn(obj, path, value) {
+function setIn(obj, path, value) {
   if (!path.length) return value;
   const [head, ...rest] = path;
   const copy = Array.isArray(obj) ? obj.slice() : { ...obj };

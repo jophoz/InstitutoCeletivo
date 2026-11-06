@@ -13,8 +13,8 @@ import { Field } from "./Fields.jsx";
 const editUrl = (id) => `pagina.html?bloco=${encodeURIComponent(id)}`;
 
 // Campos que ficam na página (ex.: fundo) e os que vêm do bloco salvo.
-export const localNames = (schema, type) => schema.shareable?.[type] || [];
-export const isShareable = (schema, type) => Object.hasOwn(schema.shareable || {}, type);
+const localNames = (schema, type) => schema.shareable?.[type] || [];
+const isShareable = (schema, type) => Object.hasOwn(schema.shareable || {}, type);
 
 // Exemplo de nome no campo "Nome do bloco salvo", conforme o tipo (ex.: "Autor — Prof. Fulano").
 const nameExample = (schema, type) => `${schema.blocks[type]?.label || "Bloco"} — Prof. Fulano`;

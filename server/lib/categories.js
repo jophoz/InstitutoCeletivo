@@ -11,4 +11,4 @@ function normalizeCategory(value) {
   return { value: value.trim() };
 }
 
-module.exports = { CATEGORIES, normalizeCategory };
+module.exports = { normalizeCategory };

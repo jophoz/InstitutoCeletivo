@@ -89,4 +89,4 @@ async function purgeOld() {
   if (rowCount) console.log(`Resumo: ${rowCount} evento(s) antigo(s) apagado(s).`);
 }
 
-module.exports = { TIME_ZONE, isBot, deviceOf, cleanTag, refHost, productSlug, parseEvent, recordEvent, purgeOld, visitorHash };
+module.exports = { TIME_ZONE, isBot, deviceOf, refHost, parseEvent, recordEvent, purgeOld, visitorHash };

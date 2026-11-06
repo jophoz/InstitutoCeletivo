@@ -77,13 +77,6 @@
     document.title = S.nome + " — " + S.slogan;
     var md = document.querySelector('meta[name="description"]');
     if (md && S.descricao) md.setAttribute("content", S.descricao);
-    // Parte do slogan em laranja no título (site.js: sloganDestaque). Montado sem HTML.
-    var h1 = document.getElementById("t-inicio"), hl = S.sloganDestaque || "";
-    var at = h1 && hl ? (S.slogan || "").indexOf(hl) : -1;
-    if (at >= 0) {
-      h1.textContent = "";
-      h1.append(S.slogan.slice(0, at), el("span", { "class": "hl", text: hl }), S.slogan.slice(at + hl.length));
-    }
   }
 
   // Foto do professor
@@ -378,13 +371,10 @@
     });
   }
 
-  // Sobre: texto em parágrafos, valores em cartões e quem ensina (só aparece com nome preenchido).
-  var aboutText = document.getElementById("sobre-texto"), values = document.getElementById("valores");
+  // Sobre: texto em parágrafos e quem ensina (só aparece com nome preenchido).
+  var aboutText = document.getElementById("sobre-texto");
   var about = S.sobre || {};
   if (aboutText) (about.texto || "").split(/\n\s*\n/).forEach(function (t) { if (t.trim()) aboutText.append(el("p", { text: t.trim() })); });
-  if (values) (about.valores || []).forEach(function (v) {
-    values.append(el("article", { "class": "v-card" }, [el("h3", { text: v.titulo }), el("p", { text: v.texto })]));
-  });
   var teacher = document.getElementById("professor");
   if (teacher && S.professor && S.professor.nome) teacher.hidden = false;
 

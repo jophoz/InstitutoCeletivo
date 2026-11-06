@@ -25,4 +25,4 @@ function normalizeBrandBody(body) {
   return { value: { name, logoId, iconId, isDefault } };
 }
 
-module.exports = { UUID, MAX_NAME, normalizeBrandBody };
+module.exports = { UUID, normalizeBrandBody };

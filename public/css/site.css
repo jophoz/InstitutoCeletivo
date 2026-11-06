@@ -15,6 +15,18 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
     U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
+/* Source Serif 4 (OFL, ver /fonts/source-serif-4/LICENSE.txt): só nos títulos grandes (h1 e h2).
+   Uma serifa firme, de texto de lei e documento oficial, combina com o assunto dos cursos. */
+@font-face {
+  font-family: "Source Serif 4 Variable";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("/fonts/source-serif-4/SourceSerif4Variable-latin.woff2") format("woff2-variations"),
+    url("/fonts/source-serif-4/SourceSerif4Variable-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 
 :root {
   /* Apelidos das cores do tema (mantêm o restante do arquivo legível) */
@@ -26,18 +38,24 @@
   --v-on-navy: var(--color-on-hero);
   --v-on-navy-muted: var(--color-on-hero-muted);
   /* Neutros e formas */
-  --v-soft: #f4f3ef;                 /* cinza quente: faixas claras alternadas */
-  --v-line: #dde3e9;                 /* cinza-azulado: bordas e separadores */
-  --v-radius: 16px;
+  --v-soft: #f1f4f8;                 /* cinza-azulado bem claro: faixas alternadas (mesma família do azul) */
+  --v-line: #d9e0ea;                 /* bordas e separadores */
+  --v-footer: #071226;               /* rodapé: o tom mais escuro da página */
+  /* Cantos: três tamanhos, conforme o tamanho do elemento (pílulas usam 999px). */
+  --v-radius-sm: 8px;                /* selos, etiquetas, itens pequenos */
+  --v-radius-md: 12px;               /* botões, campos, ícones */
+  --v-radius: 16px;                  /* cartões, capas, caixas */
   --v-shadow: 0 1px 2px rgb(7 21 42 / 0.04), 0 8px 24px rgb(7 21 42 / 0.07);
   --v-shadow-hover: 0 2px 4px rgb(7 21 42 / 0.06), 0 18px 40px rgb(7 21 42 / 0.13);
-  /* Laranja para TEXTO em fundo claro: o laranja puro não tem contraste suficiente com o branco. */
-  --v-accent-ink: color-mix(in srgb, var(--color-accent) 58%, #000);
+  /* Laranja para TEXTO em fundo claro: o laranja puro não tem contraste suficiente com o branco.
+     Laranja queimado (5,1:1 no branco, 4,7:1 na faixa cinza), sem puxar para o marrom. */
+  --v-accent-ink: #b4500f;
   /* Cores de texto escolhidas no editor (ver venda.css, "Texto formatado"): versão para fundo claro. */
   --tx-primary: var(--color-hero);
   --tx-green: #15803d;
   --tx-red: #b91c1c;
   --v-font: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --v-font-display: "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
   --v-card: var(--color-bg);         /* fundo dos cartões */
   --v-nav-space: 76px;               /* altura do menu flutuante sobre a primeira seção */
   /* Dourado dos cartões em destaque: degradê da etiqueta, do botão e do selo "Novidade". */
@@ -48,9 +66,11 @@
 /* Modo noturno: as cores de base (azul-ardósia) vêm do theme.css, as mesmas do painel.
    Aqui ficam só os tons próprios do site (faixas, linhas, cartões, sombras). */
 :root[data-theme="dark"] body {
-  --v-soft: #0f1a30;
-  --v-line: #1f2c47;
-  --v-card: #111d35;
+  /* Três degraus bem visíveis: fundo (#0b1424) < faixa alternada < cartão. */
+  --v-soft: #12203a;
+  --v-line: #24385c;
+  --v-card: #192b4b;
+  --v-footer: #070e1b;
   --v-shadow: inset 0 1px 0 rgb(255 255 255 / 0.03), 0 10px 30px rgb(0 0 0 / 0.35);
   --v-shadow-hover: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 18px 40px rgb(0 0 0 / 0.5);
   --v-accent-ink: var(--color-accent);
@@ -91,9 +111,7 @@
 .v-final,
 .v-strip,
 .v-section.is-dark {
-  background:
-    radial-gradient(circle at 8% 100%, color-mix(in srgb, var(--v-cta) 9%, transparent), transparent 38%),
-    radial-gradient(circle at 85% 0%, var(--v-navy-2), var(--v-navy) 62%);
+  background: radial-gradient(circle at 85% 0%, var(--v-navy-2), var(--v-navy) 62%);
 }
 
 /* ---------- Base ---------- */
@@ -115,18 +133,23 @@ main h3 {
   color: var(--color-text);
   text-wrap: balance;
 }
+main h1,
+main h2 {
+  font-family: var(--v-font-display);
+  font-optical-sizing: auto;
+}
 main h1 {
-  font-size: clamp(2.1rem, 5vw, 3.4rem);
-  font-weight: 800;
-  line-height: 1.08;
-  letter-spacing: -0.03em;
+  font-size: clamp(2.3rem, 5.4vw, 3.75rem);
+  font-weight: 650;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
 }
 main h2 {
   margin-bottom: 1rem;
-  font-size: clamp(1.6rem, 3.4vw, 2.4rem);
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.025em;
+  font-size: clamp(1.75rem, 3.6vw, 2.6rem);
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
 }
 main h3 {
   font-size: 1.15rem;
@@ -176,19 +199,15 @@ main p {
   max-width: 780px;
 }
 
-/* Rótulo em caixa alta acima do título, com um traço laranja à esquerda. */
+/* Rótulo curto acima do título (páginas de venda): texto normal em laranja, sem caixa alta. */
 .v-eyebrow {
   display: block;
   width: fit-content;
-  margin: 0 0 0.85rem;
-  padding-left: 2.1rem;
-  font-size: 0.85rem;
-  font-weight: 700;
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+  font-weight: 650;
   line-height: 1.4;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--v-accent-ink);
-  background: linear-gradient(var(--v-cta), var(--v-cta)) left center / 1.5rem 2px no-repeat;
 }
 .v-card.center .v-eyebrow {
   margin-inline: auto;
@@ -200,7 +219,7 @@ main p {
   width: 48px;
   height: 48px;
   padding: 12px;
-  border-radius: 12px;
+  border-radius: var(--v-radius-md);
   color: var(--v-accent-ink);
   background: color-mix(in srgb, var(--v-cta) 14%, transparent);
 }
@@ -210,7 +229,7 @@ main p {
   height: 64px;
   padding: 16px;
   margin: 0 auto 1.25rem;
-  border-radius: 18px;
+  border-radius: var(--v-radius);
 }
 .muted-on-dark {
   display: block;
@@ -225,27 +244,6 @@ main p {
 .v-final {
   position: relative;
   overflow: hidden;
-}
-/* Pontinhos decorativos no lado direito, sumindo em direção ao texto. Valem também para as outras
-   faixas azuis (seções escuras, chamada intermediária e cartão de destaque), para não ficarem chapadas. */
-.banner {
-  position: relative;
-  overflow: hidden;
-}
-.banner > * {
-  position: relative;
-}
-.v-hero::before,
-.v-final::before,
-.v-section.is-dark::before,
-.v-strip::before,
-.banner::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(rgb(255 255 255 / 0.08) 1px, transparent 1.5px) 0 0 / 22px 22px;
-  mask-image: linear-gradient(to left, #000, transparent 55%);
-  pointer-events: none;
 }
 .v-hero > .container,
 .v-final > .container {
@@ -264,8 +262,8 @@ main p {
 }
 @media (min-width: 860px) {
   .v-hero-grid {
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 3.5rem;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
   }
 }
 .lead {
@@ -283,32 +281,23 @@ main p {
   gap: 0.6rem;
   min-height: 56px;
   padding: 0.95rem 2rem;
-  border-radius: 12px;
+  border-radius: var(--v-radius-md);
   background: var(--v-cta);
   color: var(--v-cta-text);
   font-weight: 800;
   font-size: 1.05rem;
   letter-spacing: 0.01em;
   text-decoration: none;
-  box-shadow: 0 12px 28px -10px color-mix(in srgb, var(--v-cta) 75%, transparent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
   transition:
     transform 0.15s,
     box-shadow 0.15s,
     background 0.15s;
 }
-.btn-cta:not(.is-disabled)::after {
-  content: "→";
-  font-weight: 700;
-  transition: transform 0.15s;
-}
 .btn-cta:hover {
   background: var(--v-cta-hover);
   color: var(--v-cta-text);
-  transform: translateY(-2px);
-  box-shadow: 0 18px 36px -10px color-mix(in srgb, var(--v-cta) 85%, transparent);
-}
-.btn-cta:hover::after {
-  transform: translateX(3px);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
 }
 /* Produto sem link de checkout cadastrado (o botão só aparece em faixas escuras). */
 .btn-cta.is-disabled,
@@ -392,13 +381,6 @@ main p {
   border-radius: var(--v-radius);
   background: var(--v-card);
   box-shadow: var(--v-shadow);
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-}
-.v-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--v-shadow-hover);
 }
 .v-card > .ico {
   margin-bottom: 1.1rem;
@@ -445,7 +427,7 @@ main p {
   margin: 1.1rem 0 0;
   padding: 0.75rem 1rem;
   border-left: 3px solid var(--v-cta);
-  border-radius: 0 10px 10px 0;
+  border-radius: 0 var(--v-radius-sm) var(--v-radius-sm) 0;
   background: color-mix(in srgb, var(--v-cta) 10%, transparent);
   color: var(--color-text);
   font-weight: 600;
@@ -457,7 +439,7 @@ main p {
 /* ---------- Rodapé ---------- */
 .site-footer {
   padding: 3rem 0 2.5rem;
-  background: var(--v-navy);
+  background: var(--v-footer);
   color: var(--v-on-navy-muted);
 }
 .site-footer strong {
@@ -557,7 +539,7 @@ body :focus-visible {
     padding: 0.5rem;
     background: var(--v-navy);
     border: 1px solid rgb(255 255 255 / 0.12);
-    border-radius: 20px;
+    border-radius: var(--v-radius);
     box-shadow: 0 20px 40px -16px rgb(0 0 0 / 0.6);
     visibility: hidden;
     opacity: 0;
@@ -691,7 +673,7 @@ main > section > .container {
   flex: none;
   width: 32px;
   height: 32px;
-  border-radius: 9px;
+  border-radius: var(--v-radius-sm);
 }
 /* Logo da empresa do professor (página de vendas com marca própria, ver components.js). */
 .brand-logo {
@@ -805,7 +787,7 @@ html[data-editor] :is(.to-top, .float-buy) {
   min-height: 56px;
   padding: 0.9rem 1.75rem;
   border: 1px solid var(--v-line);
-  border-radius: 12px;
+  border-radius: var(--v-radius-md);
   font-weight: 700;
   color: var(--color-text);
   text-decoration: none;
@@ -826,41 +808,6 @@ html[data-editor] :is(.to-top, .float-buy) {
   gap: 0.75rem 1rem;
 }
 
-/* Título da página inicial: parte do slogan em laranja (site.js: sloganDestaque). */
-.v-hero h1 .hl {
-  color: var(--v-cta);
-}
-
-/* "O que você encontra": selos curtos (ícone + título) abaixo dos botões do título da página inicial. */
-.hero-perks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin: 2rem 0 0;
-  padding: 0;
-  list-style: none;
-}
-.hero-perks li {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.85rem 0.35rem 0.4rem;
-  border: 1px solid rgb(255 255 255 / 0.12);
-  border-radius: 999px;
-  background: rgb(255 255 255 / 0.05);
-  font-size: 0.88rem;
-  font-weight: 600;
-  white-space: nowrap;
-  color: var(--color-text);
-}
-.hero-perks .ico {
-  width: 28px;
-  height: 28px;
-  padding: 6px;
-  border-radius: 999px;
-  color: var(--v-cta);
-}
-
 /* Sem capas para a composição: o texto do título ocupa a largura toda. */
 .v-hero-grid.no-covers {
   grid-template-columns: 1fr;
@@ -872,29 +819,17 @@ html[data-editor] :is(.to-top, .float-buy) {
 .hero-covers {
   position: relative;
   width: 100%;
-  max-width: 560px;
+  max-width: 640px;
   aspect-ratio: 5 / 4;
   margin-inline: auto;
   perspective: 1400px;
   perspective-origin: 50% 40%;
 }
-/* Brilho suave atrás do conjunto. */
-.hero-covers::before {
-  content: "";
-  position: absolute;
-  inset: 8% 4%;
-  border-radius: 50%;
-  background:
-    radial-gradient(closest-side, color-mix(in srgb, var(--v-cta) 28%, transparent), transparent),
-    radial-gradient(closest-side at 70% 30%, rgb(96 165 250 / 0.18), transparent);
-  filter: blur(30px);
-  pointer-events: none;
-}
 .hero-cover {
   position: absolute;
-  width: 70%;
+  width: 76%;
   aspect-ratio: 16 / 9;
-  border-radius: 14px;
+  border-radius: var(--v-radius-md);
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.18);
   background: var(--v-navy-2);
@@ -982,22 +917,53 @@ html[data-editor] :is(.to-top, .float-buy) {
   margin-bottom: 0;
 }
 
-/* Grade de cartões com ícone (diferenciais, valores). */
-.features {
+/* Página inicial: "Como funciona a compra". Etapas em ordem, com o número grande em serifa
+   e um fio no topo de cada uma (sem cartões: é uma sequência, não uma lista de vantagens). */
+.steps {
   display: grid;
-  gap: 1.25rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 2rem 2.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: passo;
 }
-.features .v-card h3 {
+.steps li {
+  counter-increment: passo;
+  padding-top: 1.1rem;
+  border-top: 2px solid var(--v-line);
+}
+.steps li::before {
+  content: counter(passo);
+  display: block;
+  margin-bottom: 0.5rem;
+  font-family: var(--v-font-display);
+  font-size: 3rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--v-accent-ink);
+}
+.steps h3 {
   margin-bottom: 0.4rem;
 }
-.features .v-card p {
+.steps p {
   margin: 0;
+  max-width: 34ch;
+  color: var(--color-muted);
+}
+.steps-help {
+  margin: 2.5rem 0 0;
+  text-align: center;
+  color: var(--color-muted);
+}
+.steps-help a {
+  color: var(--v-accent-ink);
+  font-weight: 600;
 }
 
 /* ---------- Cartões de produto (início e catálogo) ----------
    Caixa sutil (fundo e borda leves); ao passar o mouse (ou com o foco do teclado) ganham um contorno
-   laranja. Os marcados como destaque no painel (.card-featured) têm etiqueta e botão dourados. */
+   laranja. Os marcados como destaque no painel (.card-featured) têm etiqueta e contorno dourados. */
 .grid {
   gap: 1.75rem;
 }
@@ -1029,9 +995,9 @@ html[data-editor] :is(.to-top, .float-buy) {
 .card {
   position: relative;
   padding: 0.6rem;
-  background: color-mix(in srgb, var(--color-text) 3%, transparent);
+  background: var(--v-card);
   border: 1px solid var(--v-line);
-  border-radius: 20px;
+  border-radius: var(--v-radius);
   box-shadow: var(--v-shadow);
   overflow: visible;
   transition:
@@ -1054,9 +1020,8 @@ html[data-editor] :is(.to-top, .float-buy) {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--v-cta) 14%, transparent);
   transform: translateY(-3px);
 }
-/* Destaque: borda em degradê dourado (fundo em duas camadas sobre borda transparente) e brilho. */
-/* Destaque: mesma caixa dos outros cartões (sem brilho em volta); o que marca é a etiqueta
-   "★ Destaque" na capa e o botão "Ver detalhes" dourado. Ao passar o mouse, o contorno é dourado. */
+/* Destaque: mesma caixa e mesmo botão laranja dos outros cartões (laranja = ação, em todo o site).
+   O que marca é a etiqueta dourada "★ Destaque" na capa e o contorno dourado ao passar o mouse. */
 @media (hover: hover) {
   .card-featured:hover {
     border-color: var(--v-gold);
@@ -1066,20 +1031,6 @@ html[data-editor] :is(.to-top, .float-buy) {
 .card-featured:has(:focus-visible) {
   border-color: var(--v-gold);
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--v-gold) 30%, transparent);
-}
-.card-featured .card-link {
-  background: linear-gradient(135deg, var(--v-gold-2), var(--v-gold));
-  color: #2b1d00;
-  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--v-gold) 75%, transparent);
-}
-@media (hover: hover) {
-  .card.card-featured:hover .card-link {
-    background: linear-gradient(135deg, var(--v-gold-2), color-mix(in srgb, var(--v-gold) 85%, #000));
-    box-shadow: 0 14px 28px -10px color-mix(in srgb, var(--v-gold) 85%, transparent);
-  }
-}
-.card-featured .card-link:focus-visible {
-  background: linear-gradient(135deg, var(--v-gold-2), color-mix(in srgb, var(--v-gold) 85%, #000));
 }
 /* Etiqueta "★ Destaque" no canto da capa. */
 .card-flag {
@@ -1104,11 +1055,11 @@ html[data-editor] :is(.to-top, .float-buy) {
   display: block;
   color: #fff; /* letra das capas sem imagem */
   text-decoration: none;
-  border-radius: 14px;
+  border-radius: var(--v-radius-md);
   overflow: hidden;
 }
 .card .cover {
-  border-radius: 14px;
+  border-radius: var(--v-radius-md);
   background: linear-gradient(135deg, var(--v-navy-2), var(--v-navy));
   transition: transform 0.4s ease;
 }
@@ -1127,8 +1078,10 @@ html[data-editor] :is(.to-top, .float-buy) {
 }
 .card-body .eyebrow {
   margin: 0;
-  font-size: 0.85rem;
-  letter-spacing: 0.12em;
+  font-size: 0.92rem;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
   color: var(--v-accent-ink);
 }
 .card-body p {
@@ -1251,29 +1204,22 @@ html[data-editor] :is(.to-top, .float-buy) {
   width: 100%;
   min-height: 48px;
   padding: 0.7rem 1.2rem;
-  border-radius: 12px;
+  border-radius: var(--v-radius-md);
   font-size: 1.05rem;
   background: var(--v-cta);
   color: var(--v-cta-text);
   font-weight: 800;
   text-decoration: none;
   white-space: nowrap;
-  box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--v-cta) 75%, transparent);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
   transition:
     background 0.15s,
     box-shadow 0.15s;
 }
-.card-link::after {
-  content: "→";
-  transition: transform 0.15s;
-}
 @media (hover: hover) {
   .card:hover .card-link {
     background: var(--v-cta-hover);
-    box-shadow: 0 14px 28px -10px color-mix(in srgb, var(--v-cta) 85%, transparent);
-  }
-  .card:hover .card-link::after {
-    transform: translateX(3px);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.18);
   }
 }
 .card-link:focus-visible {
@@ -1337,30 +1283,6 @@ html[data-editor] :is(.to-top, .float-buy) {
   }
 }
 
-/* Página inicial: chamada final centralizada, com a linha de "Dúvidas?" abaixo do botão. */
-.final-cta {
-  max-width: 720px;
-  text-align: center;
-}
-.final-cta .v-eyebrow {
-  margin-inline: auto;
-}
-.final-cta .lead {
-  margin-inline: auto;
-}
-.final-help {
-  margin: 2rem 0 0;
-  padding-top: 1.5rem;
-  border-top: 1px solid var(--v-line);
-  color: var(--color-muted);
-}
-.final-help strong {
-  color: var(--color-text);
-}
-.final-help a {
-  color: var(--v-cta);
-}
-
 /* Busca e filtros do catálogo */
 .filters {
   margin-bottom: 1.25rem;
@@ -1374,7 +1296,7 @@ html[data-editor] :is(.to-top, .float-buy) {
 .filters select {
   border-width: 1px;
   border-color: var(--v-line);
-  border-radius: 10px;
+  border-radius: var(--v-radius-md);
   background: var(--color-bg);
 }
 .filters input:focus,
@@ -1408,7 +1330,7 @@ html[data-editor] :is(.to-top, .float-buy) {
   box-shadow: var(--v-shadow);
 }
 .buy-box .cover {
-  border-radius: 12px;
+  border-radius: var(--v-radius-md);
 }
 .buy-box .btn-cta {
   width: 100%;
@@ -1427,10 +1349,6 @@ html[data-editor] :is(.to-top, .float-buy) {
 .photo {
   background: var(--v-cta);
   color: var(--v-cta-text);
-}
-.center-text {
-  text-align: center;
-  color: var(--color-muted);
 }
 
 /* Contato: um cartão por canal */
@@ -1460,9 +1378,7 @@ html[data-editor] :is(.to-top, .float-buy) {
     transform 0.2s;
 }
 .contact-card strong {
-  font-size: 0.85rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 0.95rem;
   color: var(--v-accent-ink);
 }
 .contact-card span {
@@ -1475,7 +1391,8 @@ html[data-editor] :is(.to-top, .float-buy) {
   transform: translateY(-3px);
 }
 .contact-note {
-  margin: 1.5rem 0 0;
+  max-width: 60ch;
+  margin: 1.5rem auto 0;
   text-align: center;
 }
 
@@ -1494,7 +1411,7 @@ html[data-editor] :is(.to-top, .float-buy) {
 .qa {
   margin-bottom: 0.75rem;
   border: 1px solid var(--v-line);
-  border-radius: 14px;
+  border-radius: var(--v-radius);
   background: var(--v-card);
   box-shadow: var(--v-shadow);
 }

@@ -39,4 +39,4 @@ async function makeVariants(webp, width) {
   return variants;
 }
 
-module.exports = { MAX_BYTES, VARIANT_WIDTHS, detectType, processImage, makeVariants };
+module.exports = { MAX_BYTES, detectType, processImage, makeVariants };
