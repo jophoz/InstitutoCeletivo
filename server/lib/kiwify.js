@@ -191,7 +191,7 @@ async function listSales(account, { start, end }) {
 const forget = (key) => tokens.delete(key);
 
 module.exports = {
-  KiwifyError, isId, getToken, listProducts, getProduct, summarize, toCheckout, toCents, forget,
+  KiwifyError, isId, listProducts, getProduct, summarize, toCheckout, toCents, forget,
   toSale, listSales,
   _setFetch: (fn) => { fetchImpl = fn; tokens.clear(); limiter = createLimiter({ max: 60, windowMs: 60_000, maxKeys: 100 }); }, // só para os testes
 };

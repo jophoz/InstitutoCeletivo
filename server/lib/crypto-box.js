@@ -44,4 +44,4 @@ function decrypt(box, context, key = masterKey()) {
   }
 }
 
-module.exports = { encrypt, decrypt, isConfigured, masterKey };
+module.exports = { encrypt, decrypt, isConfigured };

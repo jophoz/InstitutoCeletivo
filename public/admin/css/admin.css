@@ -254,9 +254,8 @@ dialog.confirm .buttons .btn{flex:1 1 0;padding-inline:1rem;white-space:nowrap}
 .icon-preview{aspect-ratio:1;max-width:8rem}
 .icon-preview img{object-fit:contain;padding:.75rem}
 /* Conta Kiwify (aba Empresas) e vínculo no produto */
-.kiwify-status{margin:0;color:var(--color-muted)}
+.kiwify-status{margin:0 0 .75rem;color:var(--color-muted)}
 .kiwify-status.ok{color:var(--color-focus);font-weight:600}
-.kiwify-status{margin-bottom:.75rem}
 .kiwify-link{margin-bottom:1rem}
 .kiwify-sync{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem;margin:.25rem 0 0}
 .badge-default{color:var(--color-focus);font-size:.75rem;padding:0 .45rem;vertical-align:middle}
@@ -331,13 +330,6 @@ dialog.picker .msg:empty{display:none}
 .shared-actions .media-delete{margin:0 -.35rem 0 0}
 .new-shared{margin-bottom:1.5rem}
 .new-shared .msg:empty{display:none}
-.list-field{margin:0 0 1rem;padding:.75rem 1rem 1rem;border:1px dashed var(--color-border);border-radius:var(--radius)}
-.list-field legend{padding:0 .4rem;font-weight:700}
-.list-items{display:grid;gap:.75rem;margin:0 0 .75rem;padding:0;list-style:none}
-.list-item{padding:.75rem 1rem .25rem;background:var(--color-surface);border-radius:10px}
-.list-item-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.5rem}
-.list-item-fields{display:grid;gap:0 1rem}
-@media (min-width:720px){.list-item-fields{grid-template-columns:repeat(auto-fit,minmax(12rem,1fr))}}
 .badge{display:inline-block;padding:.1rem .6rem;font-weight:700;color:var(--color-warning);border:1px solid currentColor;border-radius:999px}
 
 /* Miniatura clicável (abre o visualizador). Botão sem aparência de botão; a lupa indica o zoom. */
@@ -427,7 +419,7 @@ dialog.viewer:has(.viewer-edit:not([hidden])) img{max-height:calc(100dvh - 20rem
 .list-field{margin:0 0 1rem;padding:.75rem 1rem 1rem;border:1px solid var(--color-border);border-radius:10px;background:var(--color-surface)}
 .list-field legend{padding:0 .4rem;font-weight:700}
 .list-item{margin-bottom:.75rem;padding:.5rem .75rem .25rem;border:1px solid var(--color-border);border-radius:8px;background:var(--color-bg)}
-.list-item-head{display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.5rem}
+.list-item-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.5rem}
 .list-item .field{margin-bottom:.6rem}
 
 /* Campo de imagem */

@@ -717,5 +717,5 @@ function defaultSections() {
 
 module.exports = {
   ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, SHAREABLE,
-  validateSections, validBlocks, mediaIds, defaultSections, validateSharedData, sharedIds, sharedFields,
+  validateSections, validBlocks, mediaIds, defaultSections, validateSharedData, sharedIds,
 };

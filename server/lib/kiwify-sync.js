@@ -110,4 +110,4 @@ function startAutoSync() {
   setInterval(run, SYNC_EVERY_MS).unref();
 }
 
-module.exports = { loadAccount, requireAccount, fetchCheckout, fetchOffer, syncProduct, syncAll, startAutoSync, errorText };
+module.exports = { loadAccount, requireAccount, fetchCheckout, fetchOffer, syncProduct, startAutoSync, errorText };

@@ -1,5 +1,4 @@
 const express = require("express");
-const path = require("path");
 const healthRoutes = require("./routes/health.routes");
 const productRoutes = require("./routes/product.routes");
 const adminProductRoutes = require("./routes/admin-product.routes");
