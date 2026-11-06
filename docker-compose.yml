@@ -2,6 +2,10 @@
 #   docker compose up --build   -> usa também docker-compose.override.yml (modo desenvolvimento)
 #   docker compose -f docker-compose.yml up --build   -> modo "produção local", sem o override
 
+# Nome fixo do projeto: sem isso o Compose usa o nome da pasta, e renomear a pasta faria ele
+# criar volumes novos (banco vazio) e brigar com os containers antigos.
+name: projetovitrinecursos
+
 x-app-build: &app-build
   context: .
   dockerfile: Dockerfile

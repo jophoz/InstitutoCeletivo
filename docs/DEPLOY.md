@@ -110,8 +110,9 @@ No Registro.br, abra o domínio, depois **DNS → Editar zona** e crie:
 
 ```bash
 cd /srv/vitrine
-git clone https://github.com/JpMunhozOliveira/ProjetoVitrineCursos.git .
+git clone https://github.com/jophoz/InstitutoCeletivo.git .
 ```
+(O nome da pasta não importa: o `docker-compose.yml` fixa o nome do projeto em `projetovitrinecursos`, então os volumes e containers têm sempre o mesmo nome.)
 (Se o repositório virar privado, cadastre no GitHub uma *deploy key* somente leitura com uma chave SSH gerada no servidor e use o endereço `git@github.com:...`.)
 
 ## 6. Configurar o `.env`
