@@ -33,7 +33,7 @@ h2{font-size:clamp(1.4rem,3.5vw,2rem)}
 .btn-disabled{background:var(--color-surface);border-color:var(--color-border);color:var(--color-muted);cursor:not-allowed}
 .btn-disabled:hover{background:var(--color-surface);border-color:var(--color-border)}
 
-.eyebrow{font-weight:700;color:var(--color-primary);text-transform:uppercase;letter-spacing:.06em;font-size:.85rem}
+.eyebrow{font-weight:700;color:var(--color-primary);font-size:.92rem}
 
 .grid{display:grid;gap:1.5rem;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
 .card{display:flex;flex-direction:column;background:var(--color-bg);border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden}

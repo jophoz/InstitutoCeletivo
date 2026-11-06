@@ -77,13 +77,6 @@
     document.title = S.nome + " — " + S.slogan;
     var md = document.querySelector('meta[name="description"]');
     if (md && S.descricao) md.setAttribute("content", S.descricao);
-    // Parte do slogan em laranja no título (site.js: sloganDestaque). Montado sem HTML.
-    var h1 = document.getElementById("t-inicio"), hl = S.sloganDestaque || "";
-    var at = h1 && hl ? (S.slogan || "").indexOf(hl) : -1;
-    if (at >= 0) {
-      h1.textContent = "";
-      h1.append(S.slogan.slice(0, at), el("span", { "class": "hl", text: hl }), S.slogan.slice(at + hl.length));
-    }
   }
 
   // Foto do professor

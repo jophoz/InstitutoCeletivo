@@ -3,30 +3,28 @@
    fica em site.css, carregado antes deste arquivo. */
 
 /* ---------- Ícones dos blocos ----------
-   Maiores que no resto do site e em laranja sólido: degradê na cor de destaque com o desenho em
-   branco (a cor de texto sobre o laranja do tema), com um leve brilho em cima e sombra laranja. */
+   Discretos: desenho em laranja sobre um fundo laranja bem suave, com contorno fino. O laranja
+   cheio fica só para os botões de compra, que assim continuam sendo o que mais chama o olho. */
 .venda .ico {
-  width: 56px;
-  height: 56px;
-  padding: 14px;
-  border-radius: 16px;
-  color: var(--v-cta-text);
-  background: linear-gradient(145deg, color-mix(in srgb, var(--v-cta) 78%, #fff), var(--v-cta) 50%, var(--v-cta-hover));
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.28),
-    0 10px 22px -10px color-mix(in srgb, var(--v-cta) 85%, transparent);
+  width: 52px;
+  height: 52px;
+  padding: 13px;
+  border-radius: var(--v-radius-md);
+  color: var(--v-accent-ink);
+  background: color-mix(in srgb, var(--v-cta) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--v-cta) 30%, transparent);
 }
 .venda .ico.big {
-  width: 72px;
-  height: 72px;
-  padding: 18px;
-  border-radius: 20px;
+  width: 68px;
+  height: 68px;
+  padding: 17px;
+  border-radius: var(--v-radius);
 }
 
 /* ---------- Abertura: título forte, números em destaque e visual flexível ---------- */
 .venda .v-hero :is(h1, h2) {
-  font-size: clamp(2.3rem, 5.2vw, 3.8rem);
-  line-height: 1.04;
+  font-size: clamp(2.2rem, 4.6vw, 3.3rem);
+  line-height: 1.08;
 }
 .venda .v-hero .btn-cta {
   min-height: 60px;
@@ -91,7 +89,7 @@
   overflow: hidden;
   background: #0b1424;
   border: 1px solid rgb(255 255 255 / 0.16);
-  border-radius: 14px;
+  border-radius: var(--v-radius);
   box-shadow:
     0 0 0 6px rgb(255 255 255 / 0.04),
     0 34px 70px -24px rgb(0 0 0 / 0.75);
@@ -308,7 +306,7 @@
   aspect-ratio: 16 / 9;
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 18px;
+  border-radius: var(--v-radius);
   box-shadow: 0 30px 60px -24px rgb(0 0 0 / 0.75);
 }
 .v-hero .v-video .v-media {
@@ -411,7 +409,7 @@
   margin: 0;
   overflow: hidden;
   border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 16px;
+  border-radius: var(--v-radius);
   box-shadow: 0 22px 44px -22px rgb(0 0 0 / 0.75);
 }
 .mosaic-img {
@@ -530,7 +528,7 @@
 }
 /* Imagem do produto na abertura: "objeto" com sombra (drop-shadow respeita fundos transparentes). */
 .v-hero .v-media {
-  border-radius: 14px;
+  border-radius: var(--v-radius);
   filter: drop-shadow(0 28px 40px rgb(0 0 0 / 0.45));
 }
 /* Oferta final: duas colunas — texto, benefícios e credibilidade à esquerda; cartão de compra à
@@ -568,19 +566,18 @@
 }
 .offer-benefits .ico,
 .buy-guarantee .ico {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
   padding: 11px;
-  border-radius: 12px;
 }
 /* Cartões pequenos de texto: credibilidade (à esquerda) e garantia (no cartão de compra). */
 .offer-proof,
 .buy-guarantee {
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* ícone alinhado ao título, mesmo com texto longo */
   gap: 0.9rem;
   padding: 1rem 1.2rem;
-  border-radius: 14px;
+  border-radius: var(--v-radius);
 }
 .offer-proof {
   max-width: 34rem;
@@ -609,7 +606,7 @@
   flex-direction: column;
   gap: 1.25rem;
   padding: clamp(1.5rem, 3.5vw, 2.25rem);
-  background: linear-gradient(180deg, color-mix(in srgb, var(--v-navy-2) 90%, #fff), var(--v-navy-2));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--v-navy-2) 80%, var(--v-navy)), color-mix(in srgb, var(--v-navy-2) 45%, var(--v-navy)));
   border: 1px solid rgb(255 255 255 / 0.14);
   border-radius: 24px;
   box-shadow:
@@ -746,13 +743,6 @@
   border: 1px solid var(--v-line);
   border-radius: var(--v-radius);
   box-shadow: var(--v-shadow);
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-}
-.grid8 li:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--v-shadow-hover);
 }
 .grid8 li > * {
   grid-column: 1 / -1;
@@ -856,7 +846,6 @@
   background: var(--v-cta);
   color: var(--v-cta-text);
   font-weight: 800;
-  box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--v-cta) 70%, transparent);
 }
 
 /* Autor */
@@ -882,7 +871,7 @@
   width: 100%;
   aspect-ratio: 6/7;
   object-fit: cover;
-  border-radius: 24px;
+  border-radius: var(--v-radius);
   box-shadow: var(--v-shadow-hover);
 }
 .is-dark .author-photo {
@@ -910,19 +899,11 @@
   background: var(--v-card);
   box-shadow: var(--v-shadow);
   font-weight: 700;
-  transition:
-    transform 0.2s,
-    box-shadow 0.2s;
-}
-.who li:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--v-shadow-hover);
 }
 .who .ico {
   width: 48px;
   height: 48px;
   padding: 12px;
-  border-radius: 14px;
 }
 
 /* Destaque: cartão escuro dentro da seção */
@@ -932,9 +913,7 @@
   align-items: center;
   padding: clamp(2rem, 4vw, 3rem);
   border-radius: 24px;
-  background:
-    radial-gradient(circle at 0% 100%, color-mix(in srgb, var(--v-cta) 12%, transparent), transparent 45%),
-    radial-gradient(circle at 100% 0%, var(--v-navy-2), var(--v-navy) 70%);
+  background: radial-gradient(circle at 100% 0%, var(--v-navy-2), var(--v-navy) 70%);
   box-shadow: 0 24px 50px -24px rgb(7 21 42 / 0.55);
 }
 .banner p {
@@ -955,7 +934,7 @@
 .faq {
   margin-bottom: 0.75rem;
   border: 1px solid var(--v-line);
-  border-radius: 14px;
+  border-radius: var(--v-radius);
   background: var(--v-card);
   box-shadow: var(--v-shadow);
   transition: border-color 0.2s;
@@ -1049,7 +1028,7 @@
   position: absolute;
   top: -0.6rem;
   left: -0.1rem;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--v-font-display);
   font-size: 3.4rem;
   line-height: 1;
   color: var(--v-cta);
@@ -1101,9 +1080,9 @@
   font-weight: 600;
 }
 .seals .ico {
-  width: 60px;
-  height: 60px;
-  padding: 15px;
+  width: 56px;
+  height: 56px;
+  padding: 14px;
   border-radius: 50%;
 }
 
@@ -1414,7 +1393,7 @@
   display: block;
   width: 100%;
   height: auto;
-  border-radius: 20px;
+  border-radius: var(--v-radius);
   box-shadow: var(--v-shadow-hover);
 }
 
@@ -1560,10 +1539,7 @@
   .track {
     scroll-behavior: auto;
   }
-  .btn-cta:hover,
-  .v-card:hover,
-  .grid8 li:hover,
-  .who li:hover {
+  .btn-cta:hover {
     transform: none;
   }
   .reveal {

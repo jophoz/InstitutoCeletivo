@@ -7,8 +7,6 @@
 window.SITE = {
   nome: "Instituto Celetivo",
   slogan: "Conhecimento para seus próximos passos",
-  // Parte do slogan que fica em laranja no título da página inicial ("" = sem destaque).
-  sloganDestaque: "próximos passos",
   descricao:
     "Explore cursos e materiais digitais de diferentes áreas para desenvolver habilidades, aprofundar conhecimentos e ampliar suas oportunidades pessoais e profissionais.",
 
