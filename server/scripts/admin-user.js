@@ -4,6 +4,7 @@
 const readline = require("node:readline/promises");
 const pool = require("../config/database");
 const { hashPassword } = require("../lib/security");
+const { normalizeEmail, checkPassword } = require("../lib/admin-users");
 
 function askHidden(prompt) {
   return new Promise((resolve) => {
@@ -44,8 +45,7 @@ async function main() {
     email = await rl.question("E-mail do administrador: ");
     rl.close();
   }
-  email = email.trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) throw new Error("E-mail inválido.");
+  email = normalizeEmail(email);
 
   let password;
   if (fromStdin) password = await readStdinLine();
@@ -53,7 +53,7 @@ async function main() {
     password = await askHidden("Senha (mínimo 12 caracteres): ");
     if (password !== (await askHidden("Repita a senha: "))) throw new Error("As senhas não conferem.");
   }
-  if (password.length < 12 || password.length > 128) throw new Error("A senha deve ter entre 12 e 128 caracteres.");
+  checkPassword(password);
 
   const { rows } = await pool.query(
     `INSERT INTO admin_users (email, password_hash) VALUES ($1, $2)

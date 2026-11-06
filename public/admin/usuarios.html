@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Usuários — Painel administrativo</title>
+  <link rel="icon" type="image/png" href="/assets/favicon/favicon.png">
+  <link rel="stylesheet" href="../css/theme.css">
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="../js/theme.js"></script>
+  <script src="js/common.js" defer></script>
+  <script src="js/usuarios.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <div class="admin-top">
+      <header class="admin-bar">
+        <div class="admin-id">
+          <strong>Painel administrativo</strong>
+          <span id="who" class="muted small"></span>
+        </div>
+        <div class="admin-actions">
+          <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
+          <button id="logout" class="btn btn-outline btn-sm" type="button">Sair</button>
+        </div>
+      </header>
+      <nav class="admin-nav" aria-label="Seções do painel">
+        <a href="./">Resumo</a>
+        <a href="produtos.html">Produtos</a>
+        <a href="imagens.html">Imagens</a>
+        <a href="blocos.html">Blocos salvos</a>
+        <a href="empresas.html">Empresas</a>
+        <a href="backup.html">Backup</a>
+        <a href="usuarios.html" aria-current="page">Usuários</a>
+      </nav>
+    </div>
+    <main class="section">
+      <div class="page-head">
+        <div class="title-row">
+          <h1>Usuários</h1>
+          <span class="info-pop">
+            <button class="info-btn" type="button" aria-label="Sobre esta página" aria-describedby="page-info" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button>
+            <span id="page-info" class="info-text" role="tooltip">Pessoas que podem entrar neste painel. Todas têm acesso total: só adicione quem precisa mexer no site.</span>
+          </span>
+        </div>
+      </div>
+      <p id="msg" class="msg" role="status" aria-live="polite">Carregando…</p>
+
+      <div class="table-wrap">
+        <table class="list" id="users" hidden>
+          <thead><tr><th scope="col">E-mail</th><th scope="col">Criado em</th><th scope="col">Último acesso</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <form id="add-form" class="panel-fieldset users-form" novalidate>
+        <h2>Adicionar administrador</h2>
+        <div class="field">
+          <label for="add-email">E-mail</label>
+          <input id="add-email" type="email" maxlength="254" autocomplete="off" required>
+        </div>
+        <div class="field">
+          <label for="add-password">Senha inicial</label>
+          <input id="add-password" type="password" minlength="12" maxlength="128" autocomplete="new-password" aria-describedby="add-password-help" required>
+          <p id="add-password-help" class="hint">Mínimo de 12 caracteres. Passe a senha para a pessoa por um canal seguro; ela pode trocá-la depois nesta aba.</p>
+        </div>
+        <div class="field">
+          <label for="add-password2">Repita a senha inicial</label>
+          <input id="add-password2" type="password" maxlength="128" autocomplete="new-password" required>
+        </div>
+        <div class="field">
+          <label for="add-current">Sua senha atual</label>
+          <input id="add-current" type="password" maxlength="256" autocomplete="current-password" aria-describedby="add-current-help" required>
+          <p id="add-current-help" class="hint">Confirma que é você mesmo quem está dando o acesso.</p>
+        </div>
+        <p id="add-msg" class="msg" role="status" aria-live="polite"></p>
+        <p><button class="btn" type="submit">Adicionar</button></p>
+      </form>
+
+      <form id="password-form" class="panel-fieldset users-form" novalidate>
+        <h2>Trocar minha senha</h2>
+        <div class="field">
+          <label for="pw-current">Senha atual</label>
+          <input id="pw-current" type="password" maxlength="256" autocomplete="current-password" required>
+        </div>
+        <div class="field">
+          <label for="pw-new">Nova senha</label>
+          <input id="pw-new" type="password" minlength="12" maxlength="128" autocomplete="new-password" aria-describedby="pw-new-help" required>
+          <p id="pw-new-help" class="hint">Mínimo de 12 caracteres. Os outros computadores onde você estiver logado saem do painel.</p>
+        </div>
+        <div class="field">
+          <label for="pw-new2">Repita a nova senha</label>
+          <input id="pw-new2" type="password" maxlength="128" autocomplete="new-password" required>
+        </div>
+        <p id="pw-msg" class="msg" role="status" aria-live="polite"></p>
+        <p><button class="btn" type="submit">Trocar senha</button></p>
+      </form>
+    </main>
+  </div>
+</body>
+</html>

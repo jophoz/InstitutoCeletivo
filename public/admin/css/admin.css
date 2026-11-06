@@ -532,3 +532,5 @@ table.dash-list td,table.dash-list th{font-variant-numeric:tabular-nums}
 .dash-bar-value{font-variant-numeric:tabular-nums;color:var(--color-muted);font-size:.9rem;text-align:right}
 .backup-progress{display:block;width:100%;height:.75rem;margin-top:.5rem}
 #summary-list{margin:.25rem 0 .75rem}
+.users-form{max-width:32rem;margin-top:1.5rem}
+.users-form h2{margin:0 0 1rem;font-size:1.15rem}

@@ -8,6 +8,7 @@ const adminSharedBlockRoutes = require("./routes/admin-shared-block.routes");
 const adminBrandRoutes = require("./routes/admin-brand.routes");
 const adminDashboardRoutes = require("./routes/admin-dashboard.routes");
 const adminBackupRoutes = require("./routes/admin-backup.routes");
+const adminUserRoutes = require("./routes/admin-user.routes");
 const trackRoutes = require("./routes/track.routes");
 const storage = require("./lib/storage");
 const assets = require("./lib/assets");
@@ -81,6 +82,7 @@ app.use("/api/admin/shared-blocks", adminSharedBlockRoutes);
 app.use("/api/admin/brands", adminBrandRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/backup", adminBackupRoutes);
+app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/track", trackRoutes); // visitas e cliques do site (aba Resumo), sem cookies
 app.get("/api/admin/sales-blocks", requireAdmin, getBlockSchema);
 
