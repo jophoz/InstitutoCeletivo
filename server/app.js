@@ -7,6 +7,7 @@ const adminMediaRoutes = require("./routes/admin-media.routes");
 const adminSharedBlockRoutes = require("./routes/admin-shared-block.routes");
 const adminBrandRoutes = require("./routes/admin-brand.routes");
 const adminDashboardRoutes = require("./routes/admin-dashboard.routes");
+const adminBackupRoutes = require("./routes/admin-backup.routes");
 const trackRoutes = require("./routes/track.routes");
 const storage = require("./lib/storage");
 const assets = require("./lib/assets");
@@ -30,7 +31,10 @@ if (process.env.TRUST_PROXY) {
   app.set("trust proxy", Number.isInteger(hops) ? hops : process.env.TRUST_PROXY); // ou lista de IPs/sub-redes
 }
 
-app.use(express.json({ limit: "300kb" })); // páginas de vendas com muitos blocos passam de 100 KB
+// Páginas de vendas com muitos blocos passam de 100 KB. A importação de backup tem limite próprio
+// (routes/admin-backup.routes.js) e por isso pula este.
+const jsonBody = express.json({ limit: "300kb" });
+app.use((req, res, next) => (req.path === "/api/admin/backup/content" ? next() : jsonBody(req, res, next)));
 
 // Cabeçalhos básicos de todas as respostas; o painel e as páginas de vendas reforçam abaixo.
 // A CSP vale também para as páginas estáticas do site (catálogo, produto...): só recursos do
@@ -76,6 +80,7 @@ app.use("/api/admin/media", adminMediaRoutes);
 app.use("/api/admin/shared-blocks", adminSharedBlockRoutes);
 app.use("/api/admin/brands", adminBrandRoutes);
 app.use("/api/admin/dashboard", adminDashboardRoutes);
+app.use("/api/admin/backup", adminBackupRoutes);
 app.use("/api/track", trackRoutes); // visitas e cliques do site (aba Resumo), sem cookies
 app.get("/api/admin/sales-blocks", requireAdmin, getBlockSchema);
 

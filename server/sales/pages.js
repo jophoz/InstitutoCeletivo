@@ -215,4 +215,4 @@ async function loadForRender({ slug, productId, version }) {
   return { ...data, media };
 }
 
-module.exports = { PageInputError, savePage, publishPage, getPage, loadForRender, loadDraftForRender };
+module.exports = { PageInputError, savePage, publishPage, getPage, loadForRender, loadDraftForRender, syncPageMedia };

@@ -35,6 +35,15 @@ function normalizeBody(body, { creating }) {
   return { value: { name, type: body.type, data: body.data } };
 }
 
+// Regrava a lista de imagens usadas pelo bloco salvo (também usada pela importação de backup).
+async function syncSharedBlockMedia(client, id, type, data) {
+  await client.query("DELETE FROM shared_block_media WHERE shared_block_id = $1", [id]);
+  const ids = mediaIds([{ type, ...data }]);
+  if (ids.length) {
+    await client.query("INSERT INTO shared_block_media (shared_block_id, media_id) SELECT $1, unnest($2::uuid[])", [id, ids]);
+  }
+}
+
 // Grava o bloco (fn faz o INSERT/UPDATE e devolve o id) e as imagens que ele usa, numa transação:
 // o banco recusa excluir uma imagem usada por um bloco salvo (ex.: foto do Autor). Devolve o id,
 // ou null se a imagem escolhida não existe mais.
@@ -44,11 +53,7 @@ async function saveWithMedia(type, data, fn) {
   try {
     await client.query("BEGIN");
     const id = await fn(client);
-    await client.query("DELETE FROM shared_block_media WHERE shared_block_id = $1", [id]);
-    const ids = mediaIds([{ type, ...data }]);
-    if (ids.length) {
-      await client.query("INSERT INTO shared_block_media (shared_block_id, media_id) SELECT $1, unnest($2::uuid[])", [id, ids]);
-    }
+    await syncSharedBlockMedia(client, id, type, data);
     await client.query("COMMIT");
     return id;
   } catch (error) {
@@ -160,4 +165,4 @@ async function deleteSharedBlock(req, res) {
   });
 }
 
-module.exports = { listSharedBlocks, getSharedBlock, previewSharedBlock, createSharedBlock, updateSharedBlock, deleteSharedBlock };
+module.exports = { listSharedBlocks, getSharedBlock, previewSharedBlock, createSharedBlock, updateSharedBlock, deleteSharedBlock, syncSharedBlockMedia };

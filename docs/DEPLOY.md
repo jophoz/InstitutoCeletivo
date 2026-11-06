@@ -181,6 +181,23 @@ Atenção:
 - **O administrador vem junto:** pule a etapa 8 e entre no painel com o mesmo login do PC.
 - **Vem tudo o que está no banco do PC**, inclusive visitas e cliques de teste no Resumo. Se preferir começar limpo, não restaure: crie o administrador (etapa 8) e cadastre o conteúdo direto no painel do servidor.
 
+## 7.2. Levar o conteúdo pelo painel (sem acesso ao servidor)
+
+Quem não tem acesso ao terminal do servidor (ou o site já está no ar com outro conteúdo) usa a aba **Backup** do painel:
+
+1. No painel do **PC**: Backup → **Baixar backup**. Vem um arquivo `backup-site-….json` com produtos, páginas de vendas (rascunho e publicada), blocos salvos, empresas e imagens.
+2. No painel do **site no ar**: Backup → **Escolher arquivo de backup** → confira o resumo → **Importar neste site**.
+3. Se usar a Kiwify, conecte as contas de novo em **Empresas** (as chaves não vão no arquivo).
+
+Como funciona:
+- **Mescla, não substitui:** cada item do arquivo é criado ou atualizado (pelo mesmo ID); o que existe só no site de destino continua lá. Importar o mesmo arquivo de novo não duplica nada.
+- **Não vão no arquivo:** usuários do painel, contas Kiwify, visitas e vendas do Resumo, e os textos fixos do site (`public/data/site.js`, que vão pelo código).
+- **Os dois sites precisam estar na mesma versão do código** (mesmas migrations); senão a importação é recusada. Atualize o servidor antes (etapa 11).
+- As imagens são enviadas uma a uma, então nenhum limite de tamanho do servidor atrapalha. Se alguma falhar, nada do conteúdo é gravado; basta importar de novo.
+- Um produto do arquivo com o mesmo endereço (slug) de **outro** produto do site de destino cancela a importação, com aviso.
+
+A mesma aba serve de **cópia de segurança** do site no ar: baixe um backup de tempos em tempos e guarde fora do servidor (complementa a etapa 10, que precisa de acesso ao servidor).
+
 ## 8. Criar o administrador do painel
 
 ```bash
@@ -227,6 +244,7 @@ Os backups com mais de 14 dias são apagados sozinhos.
 
 **10.3. Ter uma cópia FORA do servidor.** Se o servidor for perdido, os backups dentro dele vão junto. Escolha ao menos uma opção:
 - ative os **snapshots/backups automáticos** do provedor (a Hostinger oferece no painel);
+- baixe pelo painel (aba **Backup**, ver 7.2) — não precisa de acesso ao servidor;
 - de tempos em tempos, baixe para o seu PC (PowerShell):
   ```powershell
   scp deploy@IP_DO_SERVIDOR:/srv/vitrine/backups/*.dump deploy@IP_DO_SERVIDOR:/srv/vitrine/backups/*.tar.gz .

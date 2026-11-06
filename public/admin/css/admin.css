@@ -530,3 +530,5 @@ table.dash-list td,table.dash-list th{font-variant-numeric:tabular-nums}
 .dash-bar-track{height:10px;border-radius:999px;background:var(--color-surface)}
 .dash-bar{display:block;height:100%;border-radius:999px;background:var(--color-primary)}
 .dash-bar-value{font-variant-numeric:tabular-nums;color:var(--color-muted);font-size:.9rem;text-align:right}
+.backup-progress{display:block;width:100%;height:.75rem;margin-top:.5rem}
+#summary-list{margin:.25rem 0 .75rem}

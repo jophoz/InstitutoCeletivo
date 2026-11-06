@@ -19,6 +19,7 @@
       headers["Content-Type"] = "application/json";
       body = JSON.stringify(opts.body);
     }
+    if (opts.headers) Object.assign(headers, opts.headers); // opts.headers: cabeçalhos extras
     if (method !== "GET" && csrf) headers["X-CSRF-Token"] = csrf;
     var res = await fetch("/api/admin" + path, {
       method: method, headers: headers, credentials: "same-origin", body: body
