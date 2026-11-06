@@ -371,13 +371,10 @@
     });
   }
 
-  // Sobre: texto em parágrafos, valores em cartões e quem ensina (só aparece com nome preenchido).
-  var aboutText = document.getElementById("sobre-texto"), values = document.getElementById("valores");
+  // Sobre: texto em parágrafos e quem ensina (só aparece com nome preenchido).
+  var aboutText = document.getElementById("sobre-texto");
   var about = S.sobre || {};
   if (aboutText) (about.texto || "").split(/\n\s*\n/).forEach(function (t) { if (t.trim()) aboutText.append(el("p", { text: t.trim() })); });
-  if (values) (about.valores || []).forEach(function (v) {
-    values.append(el("article", { "class": "v-card" }, [el("h3", { text: v.titulo }), el("p", { text: v.texto })]));
-  });
   var teacher = document.getElementById("professor");
   if (teacher && S.professor && S.professor.nome) teacher.hidden = false;
 

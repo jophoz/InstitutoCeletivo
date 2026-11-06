@@ -6,29 +6,20 @@
    ========================================================== */
 window.SITE = {
   nome: "Instituto Celetivo",
-  slogan: "Conhecimento para seus próximos passos",
+  slogan: "Cursos e manuais para usar no trabalho",
   descricao:
-    "Explore cursos e materiais digitais de diferentes áreas para desenvolver habilidades, aprofundar conhecimentos e ampliar suas oportunidades pessoais e profissionais.",
+    "Videoaulas, manuais em PDF e guias de consulta, com o conteúdo de cada um descrito antes da compra. O pagamento é feito pela Kiwify e o acesso chega por e-mail.",
 
   // Página Sobre (texto separado em parágrafos por linha em branco: \n\n)
   sobre: {
-    subtitulo: "Conhecimento que abre caminhos, aprendizado para diferentes áreas.",
-    titulo: "Cursos e conteúdos para aprender, evoluir e colocar em prática",
+    subtitulo: "Cursos e materiais digitais reunidos em um só lugar.",
+    titulo: "O que é o Instituto Celetivo",
+    // REVISAR: prazos e regras resumidos de duvidas.html.
     texto:
-      "O Instituto Celetivo é uma plataforma de cursos e materiais de estudo voltada a pessoas que desejam adquirir novos conhecimentos, desenvolver habilidades e se preparar para os desafios do dia a dia.\n\nReunimos conteúdos de diferentes áreas, com foco em oferecer aprendizado acessível, organizado e útil, seja para quem busca aprimoramento profissional, deseja explorar novos assuntos ou quer ampliar suas oportunidades.",
-    valoresTitulo: "Aprendizado pensado para você",
-    valores: [
-      { titulo: "Conteúdo acessível", texto: "Explicações claras e organizadas para facilitar a compreensão dos assuntos." },
-      { titulo: "Conhecimento aplicável", texto: "Cursos que buscam conectar teoria e prática, ajudando você a utilizar o que aprendeu em situações reais." },
-      { titulo: "Diversidade de temas", texto: "Conteúdos de diferentes áreas para atender a distintos interesses, objetivos e momentos da sua trajetória." },
-      { titulo: "Aprenda no seu ritmo", texto: "Estude de acordo com sua disponibilidade e avance conforme seus objetivos." },
-    ],
-    proposito:
-      "Acreditamos que o conhecimento é uma ferramenta para abrir oportunidades, desenvolver talentos e transformar possibilidades em conquistas. Por isso, buscamos oferecer conteúdos que contribuam para o crescimento pessoal e profissional de cada aluno.",
+      "O Instituto Celetivo reúne cursos, manuais e guias em formato digital. Cada material tem uma página com o que ele traz, quem o produziu, o formato e o preço.\n\nA compra é feita pela Kiwify, com Pix, cartão ou boleto. O acesso chega no e-mail usado no pagamento, e você tem 7 dias para pedir o reembolso se o material não for o que esperava.",
     chamada: {
-      destaque: "Encontre seu próximo curso e comece a aprender hoje!",
-      texto:
-        "Descubra novos assuntos, desenvolva habilidades e encontre conteúdos alinhados aos seus objetivos. Explore nosso catálogo e dê o próximo passo na sua jornada de aprendizado.",
+      destaque: "Veja os cursos e materiais disponíveis.",
+      texto: "No catálogo você busca por tema e filtra por tipo de material.",
     },
   },
 
@@ -43,7 +34,6 @@ window.SITE = {
   contato: {
     email: "celetivo.cursos@gmail.com",
     whatsapp: "", // somente dígitos com DDI/DDD, ex.: "5511999999999"
-    horario: "Respondemos em dias úteis.", // REVISAR
     redes: [
       { nome: "Instagram", url: "" }, // ex.: "https://instagram.com/perfil"
       { nome: "YouTube", url: "" },
