@@ -44,3 +44,4 @@ backups/
 
 # Editor React compilado (gerado pelo Vite a partir de editor/)
 public/admin/editor/
+docs/IDEIAS-MELHORIAS.md
