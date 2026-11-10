@@ -24,6 +24,8 @@ const IMAGE_SIZES = {
   "feature-img": "(min-width: 1100px) 520px, (min-width: 860px) 46vw, calc(100vw - 2rem)",
   "v-logo": "200px",
   "quote-photo": "52px",
+  "bonus-img": "(min-width: 900px) 320px, (min-width: 600px) 45vw, calc(100vw - 4rem)",
+  "seal-img": "200px",
 };
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -63,6 +65,14 @@ const pad2 = (n) => String(n).padStart(2, "0");
 
 const svg = (name, cls = "ico") => html`<svg class="${cls}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
 const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive ? "check" : "x"}"/></svg>`;
+
+// Nota em estrelas de um depoimento (4 ou 5 de 5): as que valem levam .is-on.
+const stars = (n) => html`<p class="stars" role="img" aria-label="${n} de 5 estrelas">${[1, 2, 3, 4, 5].map((i) => svg("star", i <= n ? "star is-on" : "star"))}</p>`;
+
+// Caixas do cronômetro grande (bloco Contagem regressiva): venda.js preenche os números.
+const COUNT_UNITS = [["d", "dias"], ["h", "horas"], ["m", "min"], ["s", "seg"]];
+const countBoxes = (hidden) => html`<div class="v-count-boxes" data-count-boxes aria-hidden="true"${hidden ? html` hidden` : null}>${COUNT_UNITS.map(([unit, label]) =>
+  html`<span class="v-count-box"><strong data-unit="${unit}">00</strong><small>${label}</small></span>`)}</div>`;
 
 // Sprite com os ícones dos blocos (desenhos definidos em blocks.js, compartilhados com o editor)
 // e os das redes sociais (#i-net-instagram, ...).
@@ -362,18 +372,23 @@ const RENDERERS = {
     const Title = ctx.firstHero() ? "h1" : "h2"; // só um <h1> por página
     const title = b.title || ctx.product.title;
     const titleField = ctx.field("title", b.title, { fallback: true });
+    // Centralizada: uma coluna só, com a imagem entre o título e a chamada.
+    const center = b.layout === "center";
     return html`<section class="v-hero"${ctx.mark()}>
-  <div class="container v-hero-grid${media ? "" : " no-media"}">
+  <div class="container v-hero-grid${center ? " is-center" : media ? "" : " no-media"}">
     <div>
       ${ctx.img(b.logo, "v-logo", { priority: true, path: "logo", optional: true })}
       ${ctx.eyebrow(b)}
       ${Title === "h1" ? html`<h1${titleField}>${title}</h1>` : html`<h2${titleField}>${title}</h2>`}
+      ${center && media}
       ${ctx.show(b.lead) && html`<p class="lead"${ctx.field("lead", b.lead)}>${b.lead}</p>`}
+      ${(b.bullets.length > 0 || ctx.live) && html`<ul class="v-bullets">${b.bullets.map((x, i) => html`<li${ctx.item("bullets", i)}>${ctx.icon(`bullets.${i}.icon`, x.icon)}${ctx.text(`bullets.${i}.text`, x.text)}${ctx.remove("bullets", i)}</li>`)}${ctx.addItem("bullets", b.bullets)}</ul>`}
       ${(b.stats.length > 0 || ctx.live) && html`<ul class="v-stats" aria-label="Números do produto">${b.stats.map((x, i) => html`<li${ctx.item("stats", i)}><strong${ctx.field(`stats.${i}.value`, x.value)}>${x.value}</strong> <span${ctx.field(`stats.${i}.label`, x.label)}>${x.label}</span>${ctx.remove("stats", i)}</li>`)}${ctx.addItem("stats", b.stats)}</ul>`}
       ${(b.badges.length > 0 || ctx.live) && html`<ul class="badges" aria-label="Resumo do material">${b.badges.map((x, i) => html`<li${ctx.item("badges", i)}>${ctx.show(x.strong) && html`<strong${ctx.field(`badges.${i}.strong`, x.strong)}>${x.strong}</strong>`} ${ctx.text(`badges.${i}.text`, x.text)}${ctx.remove("badges", i)}</li>`)}${ctx.addItem("badges", b.badges)}</ul>`}
       <div class="offer">${ctx.price(b.price_label, "price_label")}${ctx.cta(b.cta_label, "Comprar agora", "cta_label")}</div>
+      ${ctx.show(b.note) && html`<p class="cta-note"${ctx.field("note", b.note)}>${b.note}</p>`}
     </div>
-    ${media}
+    ${!center && media}
   </div>
 </section>`;
   },
@@ -453,16 +468,20 @@ const RENDERERS = {
     const photo = ctx.img(b.photo, "author-photo", { path: "photo" });
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container author${photo ? "" : " no-media"}">
   ${photo}
-  <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}</div>
+  <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}${b.show_cta && html`<p class="author-cta">${ctx.cta(b.cta_label, "Quero começar agora", "cta_label")}</p>`}</div>
 </div></section>`;
   },
 
   audience(b, ctx) {
     if (!b.items.length && !ctx.live) return null;
     const id = ctx.headingId();
+    const cards = b.items.some((x) => x.description);
+    const body = (x, i) => (ctx.show(x.description)
+      ? html`<div class="who-text"><strong${ctx.field(`items.${i}.text`, x.text)}>${x.text}</strong><span class="who-desc"${ctx.field(`items.${i}.description`, x.description)}>${x.description}</span></div>`
+      : ctx.text(`items.${i}.text`, x.text));
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <ul class="who${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
+  <ul class="who${cols(b)}${cards ? " is-cards" : ""}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${body(x, i)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
 </div></section>`;
   },
 
@@ -495,7 +514,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <div class="quotes">${items.map(([x, i]) => html`<figure class="v-quote"${ctx.item("items", i)}>${ctx.remove("items", i)}
+  <div class="quotes">${items.map(([x, i]) => html`<figure class="v-quote"${ctx.item("items", i)}>${ctx.remove("items", i)}${x.stars !== "none" && stars(Number(x.stars))}
     <blockquote>${ctx.paras(`items.${i}.quote`, x.quote)}</blockquote>
     <figcaption>${ctx.img(x.photo, "quote-photo", { path: `items.${i}.photo`, optional: true })}<span>${ctx.show(x.name) && html`<strong${ctx.field(`items.${i}.name`, x.name)}>${x.name}</strong>`}${ctx.show(x.role) && html`<span class="muted"${ctx.field(`items.${i}.role`, x.role)}>${x.role}</span>`}</span></figcaption>
   </figure>`)}${ctx.addItem("items", b.items, "div")}</div>
@@ -512,12 +531,14 @@ const RENDERERS = {
 </div></section>`;
   },
 
+  // Garantia: com o selo (imagem), ele fica à esquerda e o texto à direita; sem selo, tudo centralizado.
   guarantee(b, ctx) {
     const id = ctx.headingId();
+    const hasSeal = !!ctx.product.media.get(b.image);
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center">${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="v-card center${hasSeal ? " has-seal" : ""}">${ctx.img(b.image, "seal-img", { path: "image", optional: true })}<div class="guarantee-body">${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}${ctx.paras("text", b.text)}
     ${(b.items.length > 0 || ctx.live) && html`<ul class="seals">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
-  </div>
+  </div></div>
 </div></section>`;
   },
 
@@ -587,6 +608,57 @@ const RENDERERS = {
 </div></section>`;
   },
 
+  // Faixa de urgência: texto curto e o cronômetro da oferta. Só existe com oferta ativa no cadastro
+  // do produto (nada de "só hoje" sem prazo de verdade); no editor aparece sempre, marcada como oculta.
+  urgency(b, ctx) {
+    const active = ctx.product.offer.active;
+    if (!active && !ctx.live) return null;
+    return html`<section class="v-urgent" aria-label="Oferta por tempo limitado"${ctx.mark({ hidden: !active })}><div class="container v-urgent-row">
+  ${svg("bolt", "v-urgent-ico")}<p class="v-urgent-text"${ctx.field("text", b.text, { fallback: true })}>${b.text || "Oferta especial por tempo limitado"}</p>${ctx.timer()}
+</div></section>`;
+  },
+
+  // Contagem regressiva: cronômetro grande até o fim da oferta, com o botão de compra. Sem
+  // JavaScript fica a data por extenso; venda.js troca pelas caixas (dias, horas, min, seg).
+  countdown(b, ctx) {
+    const ends = ctx.product.offer.ends_at;
+    if (!ends && !ctx.live) return null;
+    const id = ctx.headingId();
+    return html`<section class="v-countdown" aria-labelledby="${id}"${ctx.mark({ hidden: !ends })}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Oferta por tempo limitado"}</h2>
+  ${ctx.show(b.text) && html`<p class="v-countdown-text"${ctx.field("text", b.text)}>${b.text}</p>`}
+  ${ends
+    ? html`<div class="v-count" data-count-ends="${ends}" data-now="${new Date(ctx.product.now).toISOString()}"><p class="v-count-date">Oferta válida até ${formatEnd(ends)}</p>${countBoxes(true)}</div>`
+    : html`<div class="v-count">${countBoxes(false)}</div>`}
+  ${ctx.cta(b.cta_label, "Quero aproveitar", "cta_label")}
+</div></section>`;
+  },
+
+  // Bônus: cartões numerados com imagem, nome, descrição e o valor que sai de graça.
+  bonus(b, ctx) {
+    if (!b.items.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="bonus-grid" data-count="${b.items.length}">${b.items.map((x, i) => html`<article class="bonus-card"${ctx.item("items", i)}><p class="v-tag">Bônus #${i + 1}</p>${ctx.img(x.image, "bonus-img", { path: `items.${i}.image`, optional: true })}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.value) && html`<p class="bonus-value">Valor: <s${ctx.field(`items.${i}.value`, x.value)}>${x.value}</s> <strong>Grátis</strong></p>`}${ctx.remove("items", i)}</article>`)}${ctx.addItem("items", b.items, "div")}</div>
+</div></section>`;
+  },
+
+  // Comparativo em tabela: uma linha por critério, a alternativa (✗) e o produto (✓) lado a lado.
+  // No celular cada linha vira um cartão: o critério em cima e as duas colunas embaixo (CSS).
+  table(b, ctx) {
+    if (!b.rows.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    const cell = (path, value, positive, extra = null) => html`<td class="${positive ? "yes" : "no"}"><span class="v-compare-cell">${mark(positive)}<span${ctx.field(path, value)}>${value}</span></span>${extra}</td>`;
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.rows.length })}><div class="container">
+  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="v-compare-wrap"><table class="v-compare" aria-labelledby="${id}">
+    <thead><tr><td></td><th scope="col" class="no"${ctx.field("left_title", b.left_title)}>${b.left_title}</th><th scope="col" class="yes"${ctx.field("right_title", b.right_title)}>${b.right_title}</th></tr></thead>
+    <tbody>${b.rows.map((x, i) => html`<tr${ctx.item("rows", i)}><th scope="row"${ctx.field(`rows.${i}.label`, x.label)}>${x.label}</th>${cell(`rows.${i}.left`, x.left, false)}${cell(`rows.${i}.right`, x.right, true, ctx.remove("rows", i))}</tr>`)}</tbody>
+  </table></div>${ctx.addItem("rows", b.rows, "div")}
+</div></section>`;
+  },
+
   // Redes sociais: botões em pílula centralizados. Página pública: só as redes com link.
   social(b, ctx) {
     const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || x.url);
@@ -606,6 +678,8 @@ const HIDDEN_REASON = {
   author: "preencha o nome do autor",
   social: "coloque o link de pelo menos uma rede",
   demo: "adicione uma imagem em pelo menos uma aba",
+  urgency: "cadastre uma oferta no produto",
+  countdown: "cadastre uma oferta com prazo no produto",
 };
 
 // Cores da página: só inclui a folha de estilo quando não é a paleta padrão (que já está no venda.css).
