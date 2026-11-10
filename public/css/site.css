@@ -57,7 +57,7 @@
   --v-font: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   --v-font-display: "Source Serif 4 Variable", "Source Serif 4", Georgia, "Times New Roman", serif;
   --v-card: var(--color-bg);         /* fundo dos cartões */
-  --v-nav-space: 76px;               /* altura do menu flutuante sobre a primeira seção */
+  --v-nav-space: 60px;               /* altura da barra do menu, que fica sobre a primeira seção */
   /* Dourado dos cartões em destaque: degradê da etiqueta, do botão e do selo "Novidade". */
   --v-gold: #d4a017;
   --v-gold-2: #f6d77a;
@@ -471,36 +471,43 @@ main p {
   }
 }
 
-/* ---------- Menu flutuante ----------
-   O cabeçalho do site (public/js/components.js) vira uma "pílula" de vidro azul-marinho que flutua
-   sobre a página e acompanha a rolagem. A primeira seção ganha espaço em cima para não ficar coberta. */
+/* ---------- Barra do menu ----------
+   O cabeçalho do site (public/js/components.js) é uma barra reta, de ponta a ponta, presa no topo:
+   azul-marinho translúcido com desfoque, sobre a primeira seção (que ganha espaço em cima para não
+   ficar coberta). Nas páginas de venda leva só a marca e o botão de compra (.is-sales). */
 body .site-header {
   top: 0;
   z-index: 40;
   margin-bottom: calc(-1 * var(--v-nav-space));
-  padding-top: 0.75rem;
-  background: none;
-  border: 0;
-  pointer-events: none; /* só a pílula recebe cliques; o resto da faixa deixa passar */
-}
-body .header-row {
-  position: relative;
-  min-height: 58px;
-  padding: 0 0.6rem 0 1.4rem;
-  pointer-events: auto;
-  background: color-mix(in srgb, var(--v-navy) 78%, transparent);
+  background: color-mix(in srgb, var(--v-navy) 80%, transparent);
   backdrop-filter: blur(14px) saturate(1.4);
-  border: 1px solid rgb(255 255 255 / 0.12);
-  border-radius: 999px;
-  box-shadow: 0 12px 32px -14px rgb(0 0 0 / 0.55);
+  border: 0;
+  border-bottom: 1px solid rgb(255 255 255 / 0.1);
   transition:
     background 0.25s,
     box-shadow 0.25s;
 }
-/* Depois de rolar (classe posta por main.js), a pílula fica mais opaca para não misturar com o conteúdo. */
-body .site-header.is-scrolled .header-row {
-  background: color-mix(in srgb, var(--v-navy) 92%, transparent);
-  box-shadow: 0 16px 40px -14px rgb(0 0 0 / 0.6);
+body .header-row {
+  position: relative;
+  min-height: var(--v-nav-space);
+}
+/* Depois de rolar (classe posta por main.js), a barra fica mais opaca para não misturar com o conteúdo. */
+body .site-header.is-scrolled {
+  background: color-mix(in srgb, var(--v-navy) 95%, transparent);
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.55);
+}
+/* Página de venda: botão de compra compacto à direita da marca (posto por components.js). */
+.btn-cta.header-buy {
+  min-height: 40px;
+  padding: 0.45rem 1.15rem;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  border-radius: var(--v-radius-sm);
+}
+.is-sales .brand {
+  min-width: 0;
 }
 body .brand {
   color: var(--v-on-navy);
@@ -508,7 +515,7 @@ body .brand {
 }
 body .nav a {
   color: var(--v-on-navy-muted);
-  border-radius: 999px;
+  border-radius: var(--v-radius-sm);
 }
 body .nav a:hover,
 body .nav a[aria-current="page"] {
@@ -519,7 +526,7 @@ body .theme-btn,
 body .menu-btn {
   color: var(--v-on-navy);
   border-color: rgb(255 255 255 / 0.2);
-  border-radius: 999px;
+  border-radius: var(--v-radius-sm);
 }
 body .theme-btn:hover,
 body .menu-btn:hover {
@@ -528,23 +535,23 @@ body .menu-btn:hover {
 body :focus-visible {
   outline-color: var(--v-cta);
 }
-/* Celular: o menu aberto vira um painel arredondado logo abaixo da pílula, que desce com um fade
+/* Celular: o menu aberto vira um painel colado embaixo da barra, que desce com um fade
    e os itens entram um a um. Fechado, fica invisível (visibility tira os links da ordem do Tab). */
 @media (max-width: 719px) {
   .js body .nav {
     display: block;
-    top: calc(100% + 0.5rem);
-    left: 0;
-    right: 0;
-    padding: 0.5rem;
+    top: 100%;
+    left: -1rem; /* de ponta a ponta: o .container tem 1rem de margem de cada lado */
+    right: -1rem;
+    padding: 0.5rem 1rem 0.75rem;
     background: var(--v-navy);
-    border: 1px solid rgb(255 255 255 / 0.12);
-    border-radius: var(--v-radius);
+    border: 0;
+    border-bottom: 1px solid rgb(255 255 255 / 0.12);
+    border-radius: 0 0 var(--v-radius) var(--v-radius);
     box-shadow: 0 20px 40px -16px rgb(0 0 0 / 0.6);
     visibility: hidden;
     opacity: 0;
-    transform: translateY(-10px) scale(0.97);
-    transform-origin: top right;
+    transform: translateY(-10px);
     transition:
       opacity 0.2s ease,
       transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
@@ -621,15 +628,15 @@ body .menu-btn[aria-expanded="true"] span {
 body .menu-btn[aria-expanded="true"]::after {
   transform: translateY(-6px) rotate(-45deg);
 }
-/* Links internos (ex.: #oferta) param abaixo da pílula do menu, sem título ou cartão cobertos. */
+/* Links internos (ex.: #oferta) param abaixo da barra do menu, sem título ou cartão cobertos. */
 html {
   scroll-padding-top: calc(var(--v-nav-space) + 1rem);
 }
-/* A primeira seção começa abaixo da pílula. */
+/* A primeira seção começa abaixo da barra. */
 main > section:first-child {
   padding-top: calc(var(--v-nav-space) + clamp(2rem, 4.5vw, 3.5rem));
 }
-/* Pré-visualização do rascunho: a pílula fica abaixo da faixa amarela de aviso. */
+/* Pré-visualização do rascunho: a barra fica abaixo da faixa amarela de aviso. */
 body .preview-banner ~ .site-header {
   top: 2.6rem;
 }
@@ -739,41 +746,11 @@ main > section > .container {
   width: 22px;
   height: 22px;
 }
-/* "Acessar agora" (páginas de vendas): pílula laranja à esquerda do "voltar ao topo", na mesma
-   altura; aparece junto com ele e some quando um botão de compra da página está na tela (main.js). */
-.btn-cta.float-buy {
-  position: fixed;
-  right: calc(max(16px, env(safe-area-inset-right)) + 58px);
-  bottom: max(16px, env(safe-area-inset-bottom));
-  z-index: 30;
-  min-height: 48px;
-  padding: 0 1.3rem;
-  font-size: 0.98rem;
-  border-radius: 999px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(12px);
-  transition:
-    opacity 0.25s,
-    transform 0.25s,
-    visibility 0.25s,
-    background 0.15s;
-}
-.btn-cta.float-buy.is-visible {
-  opacity: 1;
-  visibility: visible;
-  transform: none;
-}
-.btn-cta.float-buy.is-visible:hover {
-  transform: translateY(-2px);
-}
-html[data-editor] :is(.to-top, .float-buy) {
+html[data-editor] .to-top {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {
-  .to-top,
-  .btn-cta.float-buy,
-  .btn-cta.float-buy.is-visible:hover {
+  .to-top {
     transform: none;
     transition: opacity 0.01s, visibility 0.01s;
   }

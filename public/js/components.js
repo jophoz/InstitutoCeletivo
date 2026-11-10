@@ -55,11 +55,34 @@
 
   mount("site-header", HEADER);
 
-  // Página de vendas: menu enxuto (sem "Início") para manter a pessoa na oferta;
-  // ficam Catálogo, Sobre e Contato.
-  if (document.body.dataset.page === "venda") {
-    var home = document.querySelector('#nav a[href="/index.html"]');
-    if (home) home.parentNode.remove();
+  // Página de vendas: a barra leva só a marca e o botão de compra, para manter a pessoa na oferta.
+  // Saem os links, o botão de modo noturno (a página segue a preferência do aparelho) e o link da
+  // marca para a página inicial. Os links do site continuam no rodapé.
+  var sales = document.body.dataset.page === "venda";
+  if (sales) {
+    var bar = document.querySelector(".site-header");
+    bar.classList.add("is-sales");
+    var actions = bar.querySelector(".header-actions");
+    actions.textContent = "";
+    var oldBrand = bar.querySelector(".brand"), plain = document.createElement("span");
+    plain.className = "brand";
+    while (oldBrand.firstChild) plain.appendChild(oldBrand.firstChild);
+    oldBrand.replaceWith(plain);
+    // O link é o dos botões de compra da página (o servidor já põe o da oferta, se houver). Leva a
+    // classe btn-cta: o clique é contado e a origem (UTM) vai junto para a Kiwify (track.js).
+    var checkout = document.querySelector("main a.btn-cta[href]");
+    if (checkout) {
+      var buy = document.createElement("a"), note = document.createElement("span");
+      buy.className = "btn-cta header-buy";
+      buy.href = checkout.getAttribute("href");
+      buy.target = "_blank";
+      buy.rel = "noopener noreferrer";
+      buy.textContent = "Comprar agora";
+      note.className = "sr-only";
+      note.textContent = " (abre o pagamento em nova aba)";
+      buy.appendChild(note);
+      actions.appendChild(buy);
+    }
   }
   mount("site-footer", FOOTER);
 
@@ -70,8 +93,8 @@
       mark.src = brand.logo;
       mark.className = "brand-logo";
       if (brand.width && brand.height) { mark.width = brand.width; mark.height = brand.height; }
-      // Só logo, sem nome: o logo é o nome do link.
-      mark.alt = brand.name ? "" : brand.alt || "Início";
+      // Só logo, sem nome: o logo é o nome da marca (e do link, fora da página de vendas).
+      mark.alt = brand.name ? "" : brand.alt || (sales ? "" : "Início");
     }
     if (brand.name) {
       label.removeAttribute("data-site"); // main.js não troca pelo nome do site
