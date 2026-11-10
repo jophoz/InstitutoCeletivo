@@ -265,6 +265,7 @@
     ".v-section .v-eyebrow", ".v-section h2", ".v-section .v-intro", ".v-card", ".grid8 > li", ".who > li", ".v-quote",
     ".faq", ".seals > li", ".banner", ".author-photo", ".carousel", ".v-strip-row", ".link-list > li",
     ".offer-main > *", ".buy-card", ".v-steps > li", ".module-panels", ".demo", ".feature-row",
+    ".bonus-card", ".v-compare-wrap", ".v-countdown h2", ".v-count",
   ].join(",");
   // O cartão de compra (preço e botão) entra sem esperar a cascata dos outros itens.
   var NO_DELAY = ".buy-card";
@@ -310,16 +311,19 @@
   });
 })();
 
-// Cronômetro da oferta (<p class="offer-timer" data-ends-at>, ver server/sales/render.js).
+// Cronômetro da oferta (<p class="offer-timer" data-ends-at> e o cronômetro grande do bloco
+// Contagem regressiva, <div class="v-count" data-count-ends>; ver server/sales/render.js).
 // O servidor decide se a oferta vale; aqui só a contagem. data-now (horário do servidor) corrige o
 // relógio do aparelho. No fim do prazo a página recarrega uma vez e já vem com o preço normal.
 (function () {
   "use strict";
   var timers = [].slice.call(document.querySelectorAll(".offer-timer[data-ends-at]"));
-  if (!timers.length) return;
+  // Cronômetro grande (bloco Contagem regressiva): caixas de dias, horas, minutos e segundos.
+  var big = [].slice.call(document.querySelectorAll(".v-count[data-count-ends]"));
+  if (!timers.length && !big.length) return;
   var editing = document.documentElement.hasAttribute("data-editor");
-  var first = timers[0];
-  var ends = Date.parse(first.getAttribute("data-ends-at"));
+  var first = timers[0] || big[0];
+  var ends = Date.parse(first.getAttribute(timers[0] ? "data-ends-at" : "data-count-ends"));
   var serverNow = Date.parse(first.getAttribute("data-now"));
   var skew = Number.isFinite(serverNow) ? serverNow - Date.now() : 0;
   if (!Number.isFinite(ends)) return;
@@ -330,6 +334,14 @@
     return c;
   });
   var pad = function (n) { return String(n).padStart(2, "0"); };
+  // Com JavaScript, as caixas aparecem e a data por extenso fica só para leitores de tela.
+  var boxes = big.map(function (root) {
+    var date = root.querySelector(".v-count-date"), wrap = root.querySelector("[data-count-boxes]");
+    if (date) date.classList.add("sr-only");
+    wrap.hidden = false;
+    var unit = function (u) { return wrap.querySelector('[data-unit="' + u + '"]'); };
+    return { d: unit("d"), h: unit("h"), m: unit("m"), s: unit("s") };
+  });
   var interval;
 
   function tick() {
@@ -338,6 +350,12 @@
     var text = (days ? days + (days === 1 ? " dia " : " dias ") : "") +
       pad(Math.floor(rest / 3600)) + ":" + pad(Math.floor(rest % 3600 / 60)) + ":" + pad(rest % 60);
     counts.forEach(function (c) { c.textContent = "Termina em " + text; });
+    boxes.forEach(function (b) {
+      b.d.textContent = pad(days);
+      b.h.textContent = pad(Math.floor(rest / 3600));
+      b.m.textContent = pad(Math.floor(rest % 3600 / 60));
+      b.s.textContent = pad(rest % 60);
+    });
     if (left > 0) return;
     clearInterval(interval);
     counts.forEach(function (c) { c.textContent = "Oferta encerrada"; });

@@ -64,7 +64,7 @@
         <div class="field">
           <label for="add-password">Senha inicial</label>
           <input id="add-password" type="password" minlength="12" maxlength="128" autocomplete="new-password" aria-describedby="add-password-help" required>
-          <p id="add-password-help" class="hint">Mínimo de 12 caracteres. Passe a senha para a pessoa por um canal seguro; ela pode trocá-la depois nesta aba.</p>
+          <p id="add-password-help" class="hint">Mínimo de 12 caracteres. Passe a senha para a pessoa por um canal seguro; ela pode trocá-la depois nesta aba, no botão "Trocar senha" ao lado do próprio e-mail.</p>
         </div>
         <div class="field">
           <label for="add-password2">Repita a senha inicial</label>
@@ -79,25 +79,47 @@
         <p><button class="btn" type="submit">Adicionar</button></p>
       </form>
 
-      <form id="password-form" class="panel-fieldset users-form" novalidate>
-        <h2>Trocar minha senha</h2>
-        <div class="field">
-          <label for="pw-current">Senha atual</label>
-          <input id="pw-current" type="password" maxlength="256" autocomplete="current-password" required>
-        </div>
-        <div class="field">
-          <label for="pw-new">Nova senha</label>
-          <input id="pw-new" type="password" minlength="12" maxlength="128" autocomplete="new-password" aria-describedby="pw-new-help" required>
-          <p id="pw-new-help" class="hint">Mínimo de 12 caracteres. Os outros computadores onde você estiver logado saem do painel.</p>
-        </div>
-        <div class="field">
-          <label for="pw-new2">Repita a nova senha</label>
-          <input id="pw-new2" type="password" maxlength="128" autocomplete="new-password" required>
-        </div>
-        <p id="pw-msg" class="msg" role="status" aria-live="polite"></p>
-        <p><button class="btn" type="submit">Trocar senha</button></p>
-      </form>
     </main>
   </div>
+
+  <dialog id="password-dialog" class="confirm password-dialog" aria-labelledby="pw-title">
+    <form id="password-form" novalidate>
+      <h2 id="pw-title">Trocar minha senha</h2>
+      <div class="field">
+        <label for="pw-current">Senha atual</label>
+        <input id="pw-current" type="password" maxlength="256" autocomplete="current-password" required>
+      </div>
+      <div class="field">
+        <label for="pw-new">Nova senha</label>
+        <input id="pw-new" type="password" minlength="12" maxlength="128" autocomplete="new-password" aria-describedby="pw-new-help" required>
+        <p id="pw-new-help" class="hint">Mínimo de 12 caracteres. Os outros computadores onde você estiver logado saem do painel.</p>
+      </div>
+      <div class="field">
+        <label for="pw-new2">Repita a nova senha</label>
+        <input id="pw-new2" type="password" maxlength="128" autocomplete="new-password" required>
+      </div>
+      <p id="pw-msg" class="msg" role="status" aria-live="polite"></p>
+      <div class="buttons">
+        <button id="pw-cancel" class="btn btn-outline" type="button">Cancelar</button>
+        <button class="btn" type="submit">Trocar senha</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="remove-dialog" class="confirm password-dialog" aria-labelledby="rm-title">
+    <form id="remove-form" novalidate>
+      <h2 id="rm-title">Remover meu acesso?</h2>
+      <p>Você sai do painel na hora e não consegue mais entrar. Para voltar, outro administrador precisará adicionar você de novo.</p>
+      <div class="field">
+        <label for="rm-current">Sua senha atual</label>
+        <input id="rm-current" type="password" maxlength="256" autocomplete="current-password" required>
+      </div>
+      <p id="rm-msg" class="msg" role="status" aria-live="polite"></p>
+      <div class="buttons">
+        <button id="rm-cancel" class="btn btn-outline" type="button">Cancelar</button>
+        <button class="btn btn-danger" type="submit">Remover meu acesso</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

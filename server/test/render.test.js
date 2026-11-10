@@ -102,7 +102,7 @@ test("bloco que não aparece vira aviso selecionável no editor, e some na pági
   const live = render(sections, "live");
   assert.match(live, /data-block="1" data-hidden/);
   assert.match(live, /data-block="2" data-hidden/);
-  assert.match(live, /Autor<\/strong> — não aparece na página: preencha o nome do autor/);
+  assert.match(live, /Autor \/ Quem somos<\/strong> — não aparece na página: preencha o nome do autor/);
   assert.ok(!render(sections, true).includes('data-block="1"'));
 });
 
@@ -252,7 +252,7 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
 
 test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
   const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
-  assert.deepEqual(types.sort(), ["audience", "checklist", "comparison", "curriculum", "demo", "faq", "gallery", "guarantee", "social", "testimonials", "topics"]);
+  assert.deepEqual(types.sort(), ["audience", "bonus", "checklist", "comparison", "curriculum", "demo", "faq", "gallery", "guarantee", "social", "table", "testimonials", "topics"]);
   const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
   assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
@@ -611,4 +611,110 @@ test("abertura em vídeo: YouTube e Vimeo tocam na página; outros sites abrem e
   // Sem link: só a capa na página pública; no editor, o play aparece desativado.
   assert.ok(!hero("").includes("v-play"));
   assert.match(render([{ type: "hero", title: "T", visual: "video" }], "live"), /<span class="v-play is-empty"/);
+});
+
+/* ---------- Blocos do modelo de página de vendas (urgência, contagem, bônus, tabela) ---------- */
+const NOW = Date.parse("2026-11-10T12:00:00Z");
+const withOffer = (sections, { ends = "2026-11-12T02:59:00Z", preview = false } = {}) => renderSalesPage({
+  ...product(sections), price_cents: 19700, offer_price_cents: 9700,
+  offer_checkout_url: "https://pay.example.com/promo", offer_ends_at: ends,
+}, { baseUrl: "http://localhost", preview, now: NOW });
+
+test("faixa de urgência: só com oferta ativa; leva o cronômetro quando a oferta tem prazo", () => {
+  const sections = [{ type: "urgency", text: "Só esta semana" }];
+  assert.ok(!render(sections, false).includes("v-urgent"), "sem oferta, não aparece");
+  const page = withOffer(sections);
+  assert.match(page, /<section class="v-urgent"[^>]*>.*?<p class="v-urgent-text">Só esta semana<\/p><p class="offer-timer" data-ends-at="2026-11-12T02:59:00\.000Z"/s);
+  assert.ok(!withOffer(sections, { ends: null }).includes("offer-timer"), "oferta sem prazo: só o texto");
+  assert.match(withOffer(sections, { ends: null }), /v-urgent-text">Só esta semana/);
+  // No editor aparece sempre (para editar o texto), marcada como oculta enquanto não há oferta.
+  assert.match(render(sections, "live"), /<section class="v-urgent"[^>]* data-block="0" data-hidden>/);
+  assert.match(withOffer(sections, { preview: "live" }), /<section class="v-urgent"[^>]* data-block="0">/);
+});
+
+test("contagem regressiva: usa o prazo da oferta; sem prazo não aparece", () => {
+  const sections = [{ type: "countdown", title: "Aproveite", text: "Depois volta ao normal.", cta_label: "Quero" }];
+  assert.ok(!render(sections, false).includes("v-countdown"));
+  assert.ok(!withOffer(sections, { ends: null }).includes("v-countdown"));
+  const page = withOffer(sections);
+  assert.match(page, /<div class="v-count" data-count-ends="2026-11-12T02:59:00\.000Z" data-now="2026-11-10T12:00:00\.000Z"><p class="v-count-date">Oferta válida até 11\/11 às 23:59<\/p>/);
+  assert.equal((page.match(/class="v-count-box"/g) || []).length, 4);
+  assert.match(page, /data-count-boxes aria-hidden="true" hidden>/, "as caixas só aparecem com JavaScript");
+  assert.match(page, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/promo"/, "o botão leva ao link da oferta");
+  const live = render(sections, "live");
+  assert.match(live, /<section class="v-countdown"[^>]* data-block="0" data-hidden>/);
+  assert.match(live, /data-count-boxes aria-hidden="true">/, "no editor as caixas aparecem zeradas");
+});
+
+test("bônus: cartões numerados com imagem, nome, descrição e valor riscado", () => {
+  const a = IMG(7);
+  const page = withMedia([{ type: "bonus", title: "Você também recebe", items: [
+    { image: a, title: "Planilha", text: "Para organizar.", value: "R$ 27" }, { title: "Checklist", text: "Passo a passo." }] }], [a]);
+  assert.match(page, /<div class="bonus-grid" data-count="2"><article class="bonus-card"><p class="v-tag">Bônus #1<\/p><img class="bonus-img"[^>]*><h3>Planilha<\/h3><p>Para organizar\.<\/p><p class="bonus-value">Valor: <s>R\$ 27<\/s> <strong>Grátis<\/strong><\/p><\/article>/);
+  assert.match(page, /<p class="v-tag">Bônus #2<\/p><h3>Checklist<\/h3><p>Passo a passo\.<\/p><\/article>/, "sem valor e sem imagem: só nome e descrição");
+  assert.ok(!render([{ type: "bonus", title: "T", items: [] }], false).includes("bonus-grid"));
+});
+
+test("comparativo em tabela: uma linha por critério, com ✗ e ✓", () => {
+  const sections = [{ type: "table", title: "Compare", left_title: "Outros", right_title: "Este curso",
+    rows: [{ label: "Suporte", left: "Demorado", right: "Em 24 horas" }] }];
+  const page = render(sections, false);
+  assert.match(page, /<thead><tr><td><\/td><th scope="col" class="no">Outros<\/th><th scope="col" class="yes">Este curso<\/th><\/tr><\/thead>/);
+  assert.match(page, /<tr><th scope="row">Suporte<\/th><td class="no"><span class="v-compare-cell"><svg aria-hidden="true"><use href="#i-x"\/><\/svg><span>Demorado<\/span><\/span><\/td><td class="yes"><span class="v-compare-cell"><svg aria-hidden="true"><use href="#i-check"\/><\/svg><span>Em 24 horas<\/span><\/span><\/td><\/tr>/);
+  assert.ok(!render([{ type: "table", title: "T", rows: [] }], false).includes("v-compare"));
+});
+
+test("abertura: lista de pontos com ícone, aviso abaixo do botão e disposição centralizada", () => {
+  const a = IMG(8);
+  const block = { type: "hero", title: "T", lead: "L", image: a, bullets: [{ icon: "checkcircle", text: "Ponto" }], note: "Acesso na hora" };
+  const split = withMedia([block], [a]);
+  assert.match(split, /<ul class="v-bullets"><li><svg class="ico" aria-hidden="true"><use href="#i-checkcircle"\/><\/svg>Ponto<\/li><\/ul>/);
+  assert.match(split, /<p class="cta-note">Acesso na hora<\/p>\s*<\/div>\s*<figure class="v-visual">/, "lado a lado: a imagem é a 2ª coluna");
+  const center = withMedia([{ ...block, layout: "center" }], [a]);
+  assert.match(center, /<div class="container v-hero-grid is-center">/);
+  assert.match(center, /<\/h1>\s*<figure class="v-visual">.*?<\/figure>\s*<p class="lead">L<\/p>/s, "centralizada: a imagem vem entre o título e a chamada");
+  const plain = render([{ type: "hero", title: "T" }], false);
+  assert.ok(!/v-bullets|cta-note|is-center/.test(plain));
+});
+
+test("público: com descrição o perfil vira cartão; sem descrição, a lista de antes", () => {
+  const cards = render([{ type: "audience", title: "T", items: [{ icon: "user", text: "Iniciante", description: "Quer começar do zero." }] }], false);
+  assert.match(cards, /<ul class="who is-cards"><li><svg[^>]*><use href="#i-user"\/><\/svg><div class="who-text"><strong>Iniciante<\/strong><span class="who-desc">Quer começar do zero\.<\/span><\/div><\/li><\/ul>/);
+  assert.match(render([{ type: "audience", title: "T", items: [{ icon: "user", text: "A" }] }], false), /<ul class="who"><li><svg[^>]*><use href="#i-user"\/><\/svg>A<\/li><\/ul>/);
+});
+
+test("autor: botão de compra opcional, com o link do produto", () => {
+  const on = render([{ type: "author", name: "Instituto", show_cta: true, cta_label: "Quero conhecer" }], false);
+  assert.match(on, /<p class="author-cta"><a class="btn-cta" href="https:\/\/pay\.example\.com\/x"[^>]*>Quero conhecer/);
+  assert.ok(!render([{ type: "author", name: "Instituto" }], false).includes("author-cta"));
+});
+
+test("garantia: selo à esquerda e texto longo; sem selo, o cartão centralizado de antes", () => {
+  const a = IMG(9);
+  const page = withMedia([{ type: "guarantee", title: "7 dias", image: a, text: "Peça o reembolso.\n\nSem perguntas." }], [a]);
+  assert.match(page, /<div class="v-card center has-seal"><img class="seal-img"[^>]*><div class="guarantee-body"><h2 id="t-1">7 dias<\/h2><p>Peça o reembolso\.<\/p><p>Sem perguntas\.<\/p>/);
+  const plain = render([{ type: "guarantee", title: "7 dias" }], false);
+  assert.match(plain, /<div class="v-card center"><div class="guarantee-body"><h2/);
+  assert.ok(!plain.includes("seal-img"));
+});
+
+test("depoimentos: estrelas só quando escolhidas, com a nota em texto para leitores de tela", () => {
+  const page = render([{ type: "testimonials", title: "T", items: [{ quote: "Ótimo", name: "Ana", stars: "4" }, { quote: "Bom", name: "Rui" }] }], false);
+  assert.equal((page.match(/class="stars"/g) || []).length, 1);
+  assert.match(page, /<p class="stars" role="img" aria-label="4 de 5 estrelas">/);
+  assert.equal((page.match(/class="star is-on"/g) || []).length, 4);
+});
+
+test("blocos de antes do modelo de página de vendas continuam válidos, sem as peças novas", () => {
+  const old = [
+    { type: "hero", title: "T", lead: "L", badges: [], stats: [], visual: "image", image: null },
+    { type: "audience", title: "P", items: [{ icon: "user", text: "A" }], columns: "auto", background: "auto" },
+    { type: "author", name: "Ana", role: "", bio: "", photo: null, links: [] },
+    { type: "guarantee", title: "G", intro: "", items: [{ icon: "lock", text: "Seguro" }] },
+    { type: "testimonials", title: "D", items: [{ quote: "Q", name: "N", role: "", photo: null }] },
+  ];
+  assert.equal(validateSections(old).error, undefined);
+  const page = render(old, false);
+  assert.ok(!/v-bullets|cta-note|is-center|is-cards|who-desc|author-cta|has-seal|class="stars"/.test(page));
+  assert.equal((page.match(/<section/g) || []).length, 5);
 });

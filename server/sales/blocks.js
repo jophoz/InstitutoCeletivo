@@ -233,9 +233,13 @@ const BLOCKS = {
       eyebrow: eyebrow(),
       title: text("Título", 200, { help: "Vazio = usa o título do produto." }),
       lead: textarea("Chamada", 600),
+      layout: choice("Disposição", { split: "Texto e imagem lado a lado", center: "Centralizada (imagem entre o título e a chamada)" }, "split",
+        { help: "Centralizada: tudo numa coluna só, no meio da página, com a imagem logo abaixo do título." }),
+      bullets: list("Lista de pontos (com ícone)", 5, { icon: icon(), text: text("Texto", 100) }, "ponto"),
       badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }, "selo"),
       price_label: text("Texto acima do preço", 40, { placeholder: "Por apenas" }),
       cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora" }),
+      note: text("Aviso abaixo do botão", 120, { help: "Opcional. Ex.: Você recebe o acesso na hora, no seu e-mail." }),
       stats: list("Números em destaque", 4, {
         value: text("Número", 12, { help: "Ex.: 6, 18h, 1 ano." }), label: text("Texto", 30, { help: "Ex.: módulos, de aula, de acesso." }),
       }, "número"),
@@ -338,8 +342,8 @@ const BLOCKS = {
     },
   },
   author: {
-    label: "Autor",
-    help: "Quem criou o produto.",
+    label: "Autor / Quem somos",
+    help: "Quem criou o produto: uma pessoa ou a instituição (Quem somos). Pode levar o botão de compra.",
     fields: {
       photo: image("Foto", { size: "600 × 700 px" }),
       eyebrow: eyebrow(),
@@ -350,6 +354,8 @@ const BLOCKS = {
         label: text("Texto do botão", 40),
         url: url("Endereço", { help: "O ícone do botão é escolhido pelo endereço (LinkedIn, Lattes, Instagram…)." }),
       }, "link"),
+      show_cta: bool("Mostrar o botão de compra"),
+      cta_label: text("Texto do botão", 60, { placeholder: "Quero começar agora" }),
       background: background(),
     },
   },
@@ -360,7 +366,10 @@ const BLOCKS = {
       eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
-      items: list("Perfis", 8, { icon: icon(), text: text("Texto", 60) }, "perfil"),
+      items: list("Perfis", 8, {
+        icon: icon(), text: text("Texto", 60),
+        description: text("Descrição (opcional)", 160, { help: "Uma frase sobre o perfil. Com descrição, o perfil vira um cartão." }),
+      }, "perfil"),
       columns: columns(),
       background: background(),
     },
@@ -397,6 +406,8 @@ const BLOCKS = {
         name: text("Nome", 80),
         role: text("Profissão / cidade (opcional)", 80),
         photo: image("Foto (opcional)", { size: "200 × 200 px", tip: "quadrada" }),
+        stars: choice("Estrelas", { none: "Sem estrelas", 5: "5 estrelas", 4: "4 estrelas" }, "none",
+          { help: "Use a nota que a pessoa realmente deu." }),
       }, "depoimento"),
       background: background(),
     },
@@ -414,11 +425,13 @@ const BLOCKS = {
   },
   guarantee: {
     label: "Garantia",
-    help: "Faixa de confiança: selos de compra segura, suporte e condições.",
+    help: "Faixa de confiança: selo de garantia, texto com as condições e selos de compra segura.",
     fields: {
+      image: image("Selo de garantia (opcional)", { size: "400 × 400 px", tip: "PNG com fundo transparente" }),
       eyebrow: eyebrow(),
       title: text("Título", 120),
       intro: intro(),
+      text: textarea("Texto da garantia", 800, { help: "Opcional. Explique o prazo e como pedir o reembolso." }),
       items: list("Selos", 4, { icon: icon(), text: text("Texto", 80) }, "selo"),
       background: background(),
     },
@@ -499,6 +512,55 @@ const BLOCKS = {
         text: textarea("Texto", 800),
         bullets: textarea("Lista (um item por linha)", 600),
         image: image("Imagem", { size: "1200 × 900 px" }),
+      }, "linha"),
+      background: background(),
+    },
+  },
+  urgency: {
+    label: "Faixa de urgência",
+    help: "Faixa fina e chamativa, normalmente no topo da página, com o cronômetro da oferta. Só aparece enquanto há oferta ativa no cadastro do produto.",
+    fields: {
+      text: text("Texto", 80, { placeholder: "Oferta especial por tempo limitado" }),
+    },
+  },
+  countdown: {
+    label: "Contagem regressiva",
+    help: "Seção com o cronômetro grande (dias, horas, minutos e segundos) e o botão de compra. Usa o prazo da oferta cadastrada no produto; sem oferta com prazo, não aparece.",
+    fields: {
+      title: text("Título", 120),
+      text: text("Texto", 200),
+      cta_label: text("Texto do botão", 60, { placeholder: "Quero aproveitar" }),
+    },
+  },
+  bonus: {
+    label: "Bônus",
+    help: "Cartões numerados (Bônus #1, #2…) com imagem, nome, descrição e o valor que a pessoa leva de graça.",
+    fields: {
+      eyebrow: eyebrow(),
+      title: text("Título da seção", 120),
+      intro: intro(),
+      items: list("Bônus", 6, {
+        image: image("Imagem", { size: "800 × 600 px", tip: "PNG com fundo transparente fica melhor" }),
+        title: text("Nome do bônus", 80),
+        text: textarea("Descrição", 300),
+        value: text("Valor (opcional)", 30, { help: "Ex.: R$ 27. Aparece riscado, seguido de \"Grátis\"." }),
+      }, "bônus"),
+      background: background(),
+    },
+  },
+  table: {
+    label: "Comparativo em tabela",
+    help: "Tabela critério a critério: a alternativa comum (✗) de um lado e o seu produto (✓) do outro.",
+    fields: {
+      eyebrow: eyebrow(),
+      title: text("Título da seção", 120),
+      intro: intro(),
+      left_title: text("Título da coluna ✗", 60),
+      right_title: text("Título da coluna ✓", 60),
+      rows: list("Linhas", 8, {
+        label: text("Critério", 40, { help: "Ex.: Atendimento, Preço, Suporte." }),
+        left: text("Coluna ✗", 160),
+        right: text("Coluna ✓", 160),
       }, "linha"),
       background: background(),
     },
@@ -667,38 +729,52 @@ function mediaIds(sections) {
   return [...ids];
 }
 
-// Modelo padrão de uma página nova: a estrutura do Manual, com textos de orientação.
+// Modelo padrão de uma página nova: a sequência de uma página de vendas (urgência, abertura,
+// conteúdo, bônus, garantia, oferta), com textos de orientação.
 function defaultSections() {
   return [
+    { type: "urgency", text: "Oferta especial por tempo limitado" },
     { type: "hero", eyebrow: "Material profissional", lead: "Uma frase que resume a transformação que o produto entrega.",
+      bullets: [{ icon: "checkcircle", text: "Primeiro resultado que a pessoa alcança" },
+        { icon: "checkcircle", text: "Segundo resultado que a pessoa alcança" },
+        { icon: "checkcircle", text: "Terceiro resultado que a pessoa alcança" }],
       badges: [{ strong: "PDF", text: "Prático" }, { strong: "Acesso", text: "Imediato" }],
       stats: [{ value: "6", label: "módulos" }, { value: "18h", label: "de aula" }, { value: "1 ano", label: "de acesso" }],
-      price_label: "Por apenas", cta_label: "Comprar agora" },
+      price_label: "Por apenas", cta_label: "Comprar agora", note: "Você recebe o acesso na hora, no seu e-mail." },
+    { type: "gallery", eyebrow: "Por dentro", title: "Conheça por dentro", images: [] },
     { type: "benefits", title: "Benefícios", items: [
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
       { icon: "doc", title: "Segundo benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" }] },
-    { type: "topics", eyebrow: "Metodologia", title: "Como você vai aprender", layout: "timeline", items: [
+    { type: "countdown", title: "Aproveite o preço promocional por tempo limitado", text: "Depois do prazo, o preço volta ao normal.", cta_label: "Quero aproveitar" },
+    { type: "audience", title: "Ideal para você que deseja", items: [
+      { icon: "target", text: "Primeiro perfil", description: "Uma frase sobre o que essa pessoa busca." },
+      { icon: "user", text: "Segundo perfil", description: "Uma frase sobre o que essa pessoa busca." },
+      { icon: "rocket", text: "Terceiro perfil", description: "Uma frase sobre o que essa pessoa busca." }] },
+    { type: "topics", eyebrow: "Passo a passo", title: "Como você vai aprender", layout: "timeline", items: [
       { icon: "video", title: "Assista", text: "Aulas curtas e objetivas, organizadas por módulos." },
       { icon: "doc", title: "Estude o material", text: "Manual em PDF para estudo e consulta." },
       { icon: "eye", title: "Visualize", text: "Fluxogramas que mostram o processo de forma visual." },
       { icon: "target", title: "Aplique", text: "Casos práticos para usar no dia a dia." }] },
-    { type: "gallery", eyebrow: "Por dentro", title: "Conheça por dentro", images: [] },
     { type: "demo", eyebrow: "Demonstração", title: "Veja o que você recebe", items: [
       { label: "Manual", caption: "Uma página do manual." }, { label: "Aula", caption: "Um trecho de aula." }] },
     { type: "feature", items: [
       { eyebrow: "Na prática", title: "Um diferencial do produto", text: "Explique o diferencial em poucas frases.", bullets: "Primeiro ponto\nSegundo ponto" },
       { eyebrow: "Para consultar", title: "Outro diferencial", text: "Explique o diferencial em poucas frases.", bullets: "" }] },
-    { type: "cta", title: "Pronto para começar? O acesso é imediato.", cta_label: "Quero garantir" },
     { type: "curriculum", eyebrow: "Conteúdo", title: "O que você vai estudar", items: [
       { title: "Módulo de introdução", meta: "3 aulas", topics: "Primeiro tópico\nSegundo tópico" },
       { title: "Segundo módulo", meta: "4 aulas", topics: "Primeiro tópico\nSegundo tópico" }] },
+    { type: "cta", title: "Pronto para começar? O acesso é imediato.", cta_label: "Quero garantir" },
+    { type: "bonus", eyebrow: "E não para por aí", title: "Você também vai receber", items: [
+      { title: "Nome do primeiro bônus", text: "Explique o que é e por que ajuda.", value: "" },
+      { title: "Nome do segundo bônus", text: "Explique o que é e por que ajuda.", value: "" }] },
     { type: "checklist", icon: "shield", title: "Conteúdo focado no que importa", items: [
       { text: "O que o produto não é", positive: false }, { text: "O que o produto entrega", positive: true }] },
-    { type: "comparison", eyebrow: "Diferenciais", title: "Por que este material", left_title: "Alternativa comum",
-      left_items: [{ text: "Ponto fraco da alternativa" }], right_title: "Este produto",
-      right_items: [{ text: "Ponto forte do produto" }] },
+    { type: "table", eyebrow: "Diferenciais", title: "Por que este material", left_title: "Alternativa comum", right_title: "Este produto",
+      rows: [{ label: "Primeiro critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" },
+        { label: "Segundo critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" }] },
     { type: "author", eyebrow: "Quem ensina", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },
-    { type: "audience", title: "Para quem é este material?", items: [{ icon: "user", text: "Perfil 1" }] },
+    { type: "guarantee", title: "Garantia de 7 dias", text: "Se por qualquer motivo você achar que o material não é para você, é só pedir o reembolso dentro do prazo.",
+      items: [{ icon: "lock", text: "Pagamento seguro" }, { icon: "refresh", text: "Reembolso sem burocracia" }] },
     { type: "faq", eyebrow: "Dúvidas", title: "Dúvidas mais frequentes", items: [
       { question: "Em que formato recebo o produto?", answer: "Explique o formato e como acessar." },
       { question: "Tem garantia?", answer: "Explique a política de garantia." }] },

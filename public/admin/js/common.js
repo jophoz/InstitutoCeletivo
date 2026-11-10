@@ -388,6 +388,10 @@
     curriculum: "M4 4h16v5H4zM4 11h16v5H4zM17 6.5h.01M17 13.5h.01M4 20h10",   // módulos empilhados
     demo: "M3 7h18v13H3zM3 7l2-3h5l2 3M8 13l3 2.5L16 11",                      // aba com imagem
     feature: "M3 4h8v7H3zM14 5h7M14 8h5M13 14h8v7h-8zM3 15h7M3 18h5",          // texto e imagem alternados
+    urgency: "M3 5h18v5H3zM13 3l-3 5h4l-3 5M5 15h14M7 19h10",                  // faixa de topo com raio
+    countdown: "M3 7h4v10H3zM10 7h4v10h-4zM17 7h4v10h-4zM8.5 10.5h.01M8.5 13.5h.01M15.5 10.5h.01M15.5 13.5h.01", // caixas do cronômetro
+    bonus: "M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0", // presente
+    table: "M3 4h18v16H3zM3 9h18M3 14.5h18M9 4v16M15 4v16",                   // tabela
     _fallback: "M4 4h16v16H4zM8 9h8M8 13h8M8 17h5"
   };
   function blockIcon(type, className) {

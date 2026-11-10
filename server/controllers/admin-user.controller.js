@@ -1,11 +1,11 @@
-// Aba Usuários do painel: listar, adicionar e remover administradores e trocar a própria senha.
+// Aba Usuários do painel: listar e adicionar administradores, trocar a própria senha e remover
+// o próprio acesso. Nenhum administrador remove outro (de propósito: não existe rota com id).
 // O primeiro administrador continua sendo criado pelo script (scripts/admin-user.js), que também
 // recupera o acesso se todos esquecerem a senha.
 const pool = require("../config/database");
 const sec = require("../lib/security");
 const { AdminUserInputError, normalizeEmail, checkPassword } = require("../lib/admin-users");
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 // Senha atual errada: mesmo limite do login (5 erros em 15 min por usuário).
 const WINDOW = 15 * 60 * 1000;
 const wrongPassword = sec.createLimiter({ max: 5, windowMs: WINDOW });
@@ -58,34 +58,6 @@ async function createUser(req, res) {
   return res.status(201).json({ data: { ...rows[0], is_me: false } });
 }
 
-// DELETE /api/admin/users/:id. Apagar o usuário apaga as sessões dele (ON DELETE CASCADE).
-async function deleteUser(req, res) {
-  const id = String(req.params.id).toLowerCase();
-  if (!UUID.test(id)) return res.status(404).json({ error: "Administrador não encontrado." });
-  if (id === req.admin.userId) {
-    return res.status(400).json({ error: "Você não pode remover o próprio acesso. Peça a outro administrador." });
-  }
-  // Trava todos os administradores antes de contar: se dois removerem um ao outro ao mesmo tempo,
-  // o segundo espera o primeiro terminar e vê a contagem já atualizada (nunca sobram zero).
-  const client = await pool.connect();
-  let broken; // ROLLBACK falhou (conexão caiu): o cliente é descartado em vez de voltar ao pool
-  try {
-    await client.query("BEGIN");
-    const { rows } = await client.query("SELECT id FROM admin_users FOR UPDATE");
-    let result;
-    if (!rows.some((u) => u.id === id)) result = { status: 404, error: "Administrador não encontrado." };
-    else if (rows.length < 2) result = { status: 409, error: "Este é o único administrador; o painel ficaria sem acesso." };
-    else await client.query("DELETE FROM admin_users WHERE id = $1", [id]);
-    await client.query("COMMIT");
-    return result ? res.status(result.status).json({ error: result.error }) : res.status(204).end();
-  } catch (error) {
-    await client.query("ROLLBACK").catch((rollbackError) => { broken = rollbackError; });
-    throw error;
-  } finally {
-    client.release(broken);
-  }
-}
-
 // POST /api/admin/users/me/password { currentPassword, newPassword }
 // Encerra as outras sessões da pessoa (ex.: um computador esquecido logado); a atual continua.
 async function changeOwnPassword(req, res) {
@@ -106,4 +78,31 @@ async function changeOwnPassword(req, res) {
   return res.status(204).end();
 }
 
-module.exports = { listUsers, createUser, deleteUser, changeOwnPassword };
+// POST /api/admin/users/me/remove { currentPassword }
+// A pessoa remove o próprio acesso (as sessões dela somem junto: ON DELETE CASCADE).
+async function removeOwnAccess(req, res) {
+  if (!req.admin.userId) return res.status(400).json({ error: "Entre no painel com e-mail e senha para remover o seu acesso." });
+  const denied = await confirmCurrentPassword(req, (req.body || {}).currentPassword);
+  if (denied) return res.status(denied.status).json({ error: denied.error });
+
+  // Trava todos os administradores antes de contar: se os dois últimos saírem ao mesmo tempo,
+  // o segundo espera o primeiro terminar e vê a contagem já atualizada (nunca sobram zero).
+  const client = await pool.connect();
+  let broken; // ROLLBACK falhou (conexão caiu): o cliente é descartado em vez de voltar ao pool
+  try {
+    await client.query("BEGIN");
+    const { rows } = await client.query("SELECT id FROM admin_users FOR UPDATE");
+    const last = rows.length < 2;
+    if (!last) await client.query("DELETE FROM admin_users WHERE id = $1", [req.admin.userId]);
+    await client.query("COMMIT");
+    if (last) return res.status(409).json({ error: "Você é o único administrador; o painel ficaria sem acesso. Adicione outra pessoa antes de sair." });
+    return res.status(204).end();
+  } catch (error) {
+    await client.query("ROLLBACK").catch((rollbackError) => { broken = rollbackError; });
+    throw error;
+  } finally {
+    client.release(broken);
+  }
+}
+
+module.exports = { listUsers, createUser, changeOwnPassword, removeOwnAccess };
