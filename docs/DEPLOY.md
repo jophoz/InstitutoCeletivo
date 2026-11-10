@@ -203,7 +203,7 @@ A mesma aba serve de **cópia de segurança** do site no ar: baixe um backup de 
 ```bash
 docker compose run --rm app node scripts/admin-user.js seu@email.com
 ```
-O script pede a senha (mínimo 12 caracteres). Ele só é necessário para o **primeiro** administrador: os próximos são adicionados e removidos no próprio painel, na aba **Usuários**, onde cada um também troca a própria senha.
+O script pede a senha (mínimo 12 caracteres). Ele só é necessário para o **primeiro** administrador: os próximos são adicionados no próprio painel, na aba **Usuários**, onde cada um também troca a própria senha (botão **Trocar senha** ao lado do próprio e-mail). Um administrador não consegue tirar o acesso de outro: cada um só remove o próprio acesso (botão **Remover meu acesso**, que pede a senha atual e não deixa o último administrador sair). Para remover outra pessoa, apague a linha dela na tabela `admin_users` direto no banco.
 
 O script continua servindo para recuperar o acesso, se todos esquecerem a senha: rode o mesmo comando com um e-mail existente para definir uma senha nova (as sessões abertas dele são encerradas).
 

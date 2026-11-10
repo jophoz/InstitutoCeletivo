@@ -534,3 +534,6 @@ table.dash-list td,table.dash-list th{font-variant-numeric:tabular-nums}
 #summary-list{margin:.25rem 0 .75rem}
 .users-form{max-width:32rem;margin-top:1.5rem}
 .users-form h2{margin:0 0 1rem;font-size:1.15rem}
+dialog.password-dialog{width:min(28rem,calc(100% - 2rem))}
+dialog.password-dialog h2{margin:0 0 1rem}
+dialog.password-dialog .msg:empty{display:none}
