@@ -67,7 +67,8 @@ const svg = (name, cls = "ico") => html`<svg class="${cls}" aria-hidden="true"><
 const mark = (positive) => html`<svg aria-hidden="true"><use href="#i-${positive ? "check" : "x"}"/></svg>`;
 
 // Nota em estrelas de um depoimento (4 ou 5 de 5): as que valem levam .is-on.
-const stars = (n) => html`<p class="stars" role="img" aria-label="${n} de 5 estrelas">${[1, 2, 3, 4, 5].map((i) => svg("star", i <= n ? "star is-on" : "star"))}</p>`;
+const stars = (n) => html`<p class="stars" role="img" aria-label="${n} de 5 estrelas">${[1, 2, 3, 4, 5].map((i) =>
+  html`<svg class="star${i <= n ? " is-on" : ""}" viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS.star.d}"/></svg>`)}</p>`;
 
 // Caixas do cronômetro grande (bloco Contagem regressiva): venda.js preenche os números.
 const COUNT_UNITS = [["d", "dias"], ["h", "horas"], ["m", "min"], ["s", "seg"]];
@@ -703,7 +704,7 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer, now };
   const ctx = createContext(data, { live });
   // Blocos inválidos são ignorados um a um; index (posição original) liga a seção ao bloco do editor.
-  const body = validBlocks(data.sections).map(({ block, index }) => {
+  const rendered = validBlocks(data.sections).map(({ block, index }) => {
     // Bloco que vem de um bloco salvo: no editor é desenhado como na página pública (sem textos
     // editáveis), com a etiqueta data-shared; o conteúdo se edita na aba "Blocos salvos".
     const shared = data.shared?.get(index);
@@ -715,16 +716,21 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
       : null);
     ctx.type = block.type;
     const section = RENDERERS[block.type](richFields(block, BLOCKS[block.type].fields), ctx);
+    if (section) return { type: block.type, section };
     // No editor, um bloco que não aparece na página vira um aviso selecionável (senão ficaria inalcançável).
-    if (!section && live) {
+    if (live) {
       const reason = shared ? `o bloco salvo “${shared.name}” está vazio (preencha na aba Blocos salvos)`
         : HIDDEN_REASON[block.type] || "preencha o conteúdo principal do bloco";
-      return html`<section class="editor-hidden-block" data-block="${index}" data-hidden><div class="container">
+      return { type: null, section: html`<section class="editor-hidden-block" data-block="${index}" data-hidden><div class="container">
   <p><strong>${BLOCKS[block.type].label}</strong> — não aparece na página: ${reason}.</p>
-</div></section>`;
+</div></section>` };
     }
-    return section;
+    return null;
   }).filter(Boolean);
+  // A faixa de urgência, quando é o primeiro bloco da página, fica acima do menu (fora do <main>):
+  // o menu flutua sobre a primeira seção, e cobriria uma faixa fina.
+  const topBar = rendered[0]?.type === "urgency" ? rendered.shift().section : null;
+  const body = rendered.map((x) => x.section);
 
   const title = data.title;
   const description = data.short_description || ""; // o resumo do produto (tela Editar produto)
@@ -771,6 +777,7 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
 <body data-page="venda">
   ${preview === true && html`<div class="preview-banner" role="status"><strong>Pré-visualização do rascunho salvo.</strong> ${data.published_at && data.status === "published" ? "O público vê a última versão publicada; publique no editor para levar estas alterações ao ar." : "Esta página ainda não está visível para o público."}</div>`}
   ${SPRITE}
+  ${topBar}
   <div id="site-header"${brandAttrs(data)}></div>
   <main id="conteudo" class="venda">
 ${body}

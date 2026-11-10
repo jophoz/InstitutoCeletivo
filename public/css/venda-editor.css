@@ -547,3 +547,33 @@ html[data-editor] {
 .eo-swatch-none {
   color: var(--color-muted);
 }
+
+/* ---------- Blocos do modelo de página de vendas ---------- */
+/* Espaços de imagem vazia: bônus (4:3) e selo de garantia (quadrado). */
+.img-slot.bonus-img {
+  aspect-ratio: 4 / 3;
+  max-height: none;
+}
+.img-slot.seal-img {
+  width: 170px;
+  aspect-ratio: 1;
+  margin: 0 auto 1.25rem;
+  font-size: 0.85rem;
+}
+/* Tabela comparativa: o × da linha fica dentro da última célula (uma <tr> não aceita botão). */
+.is-editor-preview .v-compare td:last-child {
+  position: relative;
+}
+.v-compare td > .item-remove {
+  top: 6px;
+  right: 6px;
+}
+[data-item]:hover > td > .item-remove,
+[data-item]:focus-within > td > .item-remove {
+  opacity: 1;
+  transform: none;
+}
+/* Faixa de urgência e contagem sem oferta no produto: aparecem esmaecidas, só para editar o texto. */
+.is-editor-preview :is(.v-urgent, .v-countdown)[data-hidden] {
+  opacity: 0.55;
+}

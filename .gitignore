@@ -45,3 +45,6 @@ backups/
 # Editor React compilado (gerado pelo Vite a partir de editor/)
 public/admin/editor/
 docs/IDEIAS-MELHORIAS.md
+
+# Material de referência do workshop (modelos do Elementor, conteúdo pago: não versionar)
+referencias/
