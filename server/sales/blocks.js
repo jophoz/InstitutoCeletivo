@@ -318,9 +318,9 @@ const BLOCKS = {
   author: {
     label: "Autor / Quem somos",
     help: "Quem criou o produto: uma pessoa ou a instituição (Quem somos). Pode levar o botão de compra.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
       photo: image("Foto", { size: "600 × 700 px" }),
-      eyebrow: eyebrow(),
       name: text("Nome", 120),
       role: text("Especialidade / cargo", 160),
       bio: textarea("Biografia", 1500),
@@ -372,8 +372,8 @@ const BLOCKS = {
   testimonials: {
     label: "Depoimentos",
     help: "O que clientes dizem do produto. Use só depoimentos reais. Depoimentos sem texto não aparecem.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
-      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Depoimentos", 9, {
@@ -390,8 +390,8 @@ const BLOCKS = {
   faq: {
     label: "Perguntas frequentes",
     help: "Funciona sem JavaScript (cada pergunta abre e fecha).",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
-      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Perguntas", 20, { question: text("Pergunta", 200), answer: textarea("Resposta", 1500) }, "pergunta"),
@@ -401,9 +401,9 @@ const BLOCKS = {
   guarantee: {
     label: "Garantia",
     help: "Faixa de confiança: selo de garantia, texto com as condições e selos de compra segura.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
       image: image("Selo de garantia (opcional)", { size: "400 × 400 px", tip: "PNG com fundo transparente" }),
-      eyebrow: eyebrow(),
       title: text("Título", 120),
       intro: intro(),
       text: textarea("Texto da garantia", 800, { help: "Opcional. Explique o prazo e como pedir o reembolso." }),
@@ -414,8 +414,8 @@ const BLOCKS = {
   social: {
     label: "Redes sociais",
     help: "Botões com os links das suas redes. Só aparecem as redes com link; sem nenhuma, o bloco não aparece na página.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
-      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Redes", 9, {
@@ -501,8 +501,8 @@ const BLOCKS = {
   bonus: {
     label: "Bônus",
     help: "Cartões numerados (Bônus #1, #2…) com imagem, nome, descrição e o valor que a pessoa leva de graça.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
-      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Bônus", 6, {
@@ -783,16 +783,16 @@ function defaultSections() {
       { title: "Módulo de introdução", callout: "3 aulas", text: "Primeiro tópico\nSegundo tópico" },
       { title: "Segundo módulo", callout: "4 aulas", text: "Primeiro tópico\nSegundo tópico" }] },
     { type: "cta", title: "Pronto para começar? O acesso é imediato.", cta_label: "Quero garantir" },
-    { type: "bonus", eyebrow: "E não para por aí", title: "Você também vai receber", items: [
+    { type: "bonus", title: "Você também vai receber", items: [
       { title: "Nome do primeiro bônus", text: "Explique o que é e por que ajuda.", value: "" },
       { title: "Nome do segundo bônus", text: "Explique o que é e por que ajuda.", value: "" }] },
     { type: "compare", style: "table", title: "Por que este material", left_title: "Alternativa comum", right_title: "Este produto",
       rows: [{ label: "Primeiro critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" },
         { label: "Segundo critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" }] },
-    { type: "author", eyebrow: "Quem ensina", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },
+    { type: "author", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },
     { type: "guarantee", title: "Garantia de 7 dias", text: "Se por qualquer motivo você achar que o material não é para você, é só pedir o reembolso dentro do prazo.",
       items: [{ icon: "lock", text: "Pagamento seguro" }, { icon: "refresh", text: "Reembolso sem burocracia" }] },
-    { type: "faq", eyebrow: "Dúvidas", title: "Dúvidas mais frequentes", items: [
+    { type: "faq", title: "Dúvidas mais frequentes", items: [
       { question: "Em que formato recebo o produto?", answer: "Explique o formato e como acessar." },
       { question: "Tem garantia?", answer: "Explique a política de garantia." }] },
     { type: "offer", eyebrow: "Oferta", title: "Garanta agora o seu acesso",

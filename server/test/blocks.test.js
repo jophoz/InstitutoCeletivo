@@ -12,7 +12,7 @@ test("aceita o modelo padrão inteiro", () => {
 
 test("preenche campos ausentes com valores padrão", () => {
   const { sections } = validateSections([{ type: "faq" }]);
-  assert.deepEqual(sections[0], { type: "faq", eyebrow: "", title: "", intro: "", items: [], background: "auto" });
+  assert.deepEqual(sections[0], { type: "faq", title: "", intro: "", items: [], background: "auto" });
 });
 
 test("recusa tipo desconhecido, inclusive nomes herdados de Object", () => {
@@ -73,13 +73,22 @@ test("fundo da seção: aceita só as opções, e vazio vira automático", () =>
 test("blocos salvos antes do visual novo (sem rótulo nem fundo) continuam válidos", () => {
   const { sections, error } = validateSections([{ type: "author", name: "Ana", role: "", bio: "", photo: null }]);
   assert.equal(error, undefined);
-  assert.equal(sections[0].eyebrow, "");
   assert.equal(sections[0].background, "auto");
 });
 
 test("abertura, oferta e chamada são sempre escuras (sem escolha de fundo)", () => {
   for (const type of ["hero", "offer", "cta"]) assert.ok(!BLOCKS[type].fields.background, type);
   assert.match(validateSections([{ type: "cta", background: "dark" }]).error, /não suportado/);
+});
+
+test("rótulo só na Abertura e na Oferta final; nos outros blocos, o de páginas antigas é descartado", () => {
+  const withEyebrow = Object.keys(BLOCKS).filter((t) => BLOCKS[t].fields.eyebrow);
+  assert.deepEqual(withEyebrow.sort(), ["hero", "offer"]);
+  for (const type of ["author", "testimonials", "faq", "guarantee", "social", "bonus"]) {
+    const { sections, error } = validateSections([{ type, eyebrow: "Antigo" }]);
+    assert.equal(error, undefined, type);
+    assert.ok(!("eyebrow" in sections[0]), type);
+  }
 });
 
 test("chamada intermediária: só título e botão; o rótulo de páginas antigas é descartado", () => {

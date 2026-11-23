@@ -431,7 +431,7 @@ const RENDERERS = {
     const photo = ctx.img(b.photo, "author-photo", { path: "photo" });
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container author${photo ? "" : " no-media"}">
   ${photo}
-  <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}${b.show_cta && html`<p class="author-cta">${ctx.cta(b.cta_label, "Quero começar agora", "cta_label")}</p>`}</div>
+  <div><h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}${b.show_cta && html`<p class="author-cta">${ctx.cta(b.cta_label, "Quero começar agora", "cta_label")}</p>`}</div>
 </div></section>`;
   },
 
@@ -473,7 +473,7 @@ const RENDERERS = {
     if (!items.length && !ctx.live) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   <div class="quotes">${items.map(([x, i]) => html`<figure class="v-quote"${ctx.item("items", i)}>${ctx.remove("items", i)}${x.stars !== "none" && stars(Number(x.stars))}
     <blockquote>${ctx.paras(`items.${i}.quote`, x.quote)}</blockquote>
     <figcaption>${ctx.img(x.photo, "quote-photo", { path: `items.${i}.photo`, optional: true })}<span>${ctx.show(x.name) && html`<strong${ctx.field(`items.${i}.name`, x.name)}>${x.name}</strong>`}${ctx.show(x.role) && html`<span class="muted"${ctx.field(`items.${i}.role`, x.role)}>${x.role}</span>`}</span></figcaption>
@@ -486,7 +486,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     // No editor as respostas ficam abertas, para serem editáveis.
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container narrow">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   ${b.items.map((x, i) => html`<details class="faq"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary>${ctx.text(`items.${i}.question`, x.question)}</summary>${ctx.paras(`items.${i}.answer`, x.answer)}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}
 </div></section>`;
   },
@@ -496,7 +496,7 @@ const RENDERERS = {
     const id = ctx.headingId();
     const hasSeal = !!ctx.product.media.get(b.image);
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center${hasSeal ? " has-seal" : ""}">${ctx.img(b.image, "seal-img", { path: "image", optional: true })}<div class="guarantee-body">${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}${ctx.paras("text", b.text)}
+  <div class="v-card center${hasSeal ? " has-seal" : ""}">${ctx.img(b.image, "seal-img", { path: "image", optional: true })}<div class="guarantee-body"><h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}${ctx.paras("text", b.text)}
     ${(b.items.length > 0 || ctx.live) && html`<ul class="seals">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
   </div></div>
 </div></section>`;
@@ -542,7 +542,7 @@ const RENDERERS = {
     if (!b.items.length && !ctx.live) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   <div class="bonus-grid" data-count="${b.items.length}">${b.items.map((x, i) => html`<article class="bonus-card"${ctx.item("items", i)}><p class="v-tag">Bônus #${i + 1}</p>${ctx.img(x.image, "bonus-img", { path: `items.${i}.image`, optional: true })}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.value) && html`<p class="bonus-value">Valor: <s${ctx.field(`items.${i}.value`, x.value)}>${x.value}</s> <strong>Grátis</strong></p>`}${ctx.remove("items", i)}</article>`)}${ctx.addItem("items", b.items, "div")}</div>
 </div></section>`;
   },
@@ -558,7 +558,7 @@ const RENDERERS = {
     if (!items.length && !ctx.live) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.some((x) => x.url) })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Acompanhe nas redes"}</h2>${ctx.intro(b)}
+  <h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Acompanhe nas redes"}</h2>${ctx.intro(b)}
   <ul class="link-list social-links">${items.map(([x, i]) => linkItem(ctx, "items", i, x, { icon: `net-${x.network}`, label: NETWORKS[x.network].label }))}${ctx.addItem("items", b.items)}</ul>
 </div></section>`;
   },

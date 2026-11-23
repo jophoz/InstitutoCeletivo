@@ -164,9 +164,10 @@ test("fundo: automático alterna claro e cinza; o autor é escuro; a escolha do 
 });
 
 test("rótulo acima do título: só aparece preenchido na página pública; no editor, editável", () => {
-  assert.match(render([{ type: "faq", eyebrow: "Dúvidas", title: "T", items: [{ question: "Q" }] }], false), /<p class="v-eyebrow">Dúvidas<\/p><h2/);
-  assert.ok(!render([{ type: "faq", eyebrow: "", title: "T", items: [{ question: "Q" }] }], false).includes("v-eyebrow"));
-  assert.match(render([{ type: "faq", eyebrow: "", title: "T", items: [{ question: "Q" }] }], "live"),
+  assert.match(render([{ type: "offer", eyebrow: "Oferta", title: "T" }], false), /<p class="v-eyebrow">Oferta<\/p>\s*<h2/);
+  assert.ok(!render([{ type: "offer", eyebrow: "", title: "T" }], false).includes("v-eyebrow"));
+  assert.ok(!render([{ type: "faq", eyebrow: "Rótulo antigo", title: "T", items: [{ question: "Q" }] }], false).includes("Rótulo antigo")); // o FAQ não tem mais rótulo
+  assert.match(render([{ type: "offer", eyebrow: "", title: "T" }], "live"),
     /<p class="v-eyebrow" data-field="eyebrow" data-empty data-placeholder="Rótulo acima do título"><\/p>/);
 });
 
