@@ -196,3 +196,11 @@ test("qualquer tipo de bloco pode ser salvo; só o fundo fica em cada página", 
   assert.equal(validateSharedData("hero", { title: "Curso", badges: [{ strong: "PDF", text: "Prático" }] }).error, undefined);
   assert.deepEqual(validateSections([{ type: "hero", shared: SHARED_ID }]).sections[0], { type: "hero", shared: SHARED_ID });
 });
+
+test("seção de compra: a página precisa de uma Oferta final (própria ou de bloco salvo)", () => {
+  const { hasOffer } = require("../sales/blocks");
+  assert.ok(hasOffer(defaultSections()));
+  assert.ok(hasOffer([{ type: "offer", shared: SHARED_ID }]));
+  assert.ok(!hasOffer([{ type: "hero" }, { type: "cta" }]));
+  assert.ok(!hasOffer(undefined));
+});

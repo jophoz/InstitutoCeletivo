@@ -227,32 +227,40 @@ const columns = () => choice("Colunas (no computador)", { auto: "Automático", t
 const BLOCKS = {
   hero: {
     label: "Abertura",
-    help: "Primeira dobra da página: título, chamada, selos, preço e botão de compra. Preço e link de checkout vêm do cadastro do produto.",
+    help: "Primeira dobra da página: rótulo, título, subtítulo, imagem ou vídeo e o botão que leva à seção de compra (Oferta final).",
+    // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
+    // "lista.campo": o campo saiu de cada item da lista.
+    removed: ["logo", "badges", "price_label", "stats", "image_label", "extra_images.label"],
+    // canvasOnly: textos editados só direto na página (não aparecem nos painéis Bloco e Estrutura).
     fields: {
-      logo: image("Logotipo (opcional)", { size: "400 × 120 px", tip: "PNG com fundo transparente" }),
-      eyebrow: eyebrow(),
-      title: text("Título", 200, { help: "Vazio = usa o título do produto." }),
-      lead: textarea("Chamada", 600),
-      layout: choice("Disposição", { split: "Texto e imagem lado a lado", center: "Centralizada (imagem entre o título e a chamada)" }, "split",
-        { help: "Centralizada: tudo numa coluna só, no meio da página, com a imagem logo abaixo do título." }),
-      bullets: list("Lista de pontos (com ícone)", 5, { icon: icon(), text: text("Texto", 100) }, "ponto"),
-      badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }, "selo"),
-      price_label: text("Texto acima do preço", 40, { placeholder: "Por apenas" }),
-      cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora" }),
-      note: text("Aviso abaixo do botão", 120, { help: "Opcional. Ex.: Você recebe o acesso na hora, no seu e-mail." }),
-      stats: list("Números em destaque", 4, {
-        value: text("Número", 12, { help: "Ex.: 6, 18h, 1 ano." }), label: text("Texto", 30, { help: "Ex.: módulos, de aula, de acesso." }),
-      }, "número"),
+      eyebrow: { ...eyebrow(), canvasOnly: true },
+      title: text("Título", 200, { canvasOnly: true }),
+      lead: textarea("Subtítulo", 600, { canvasOnly: true }),
+      layout: choice("Disposição", {
+        center: "Opção 1: tudo centralizado",
+        split: "Opção 2: texto à esquerda, imagem à direita",
+      }, "split", {
+        help: "Opção 1: rótulo, título, subtítulo, imagem, parágrafo, lista e botão numa coluna só, no meio da página. Opção 2: os textos e o botão à esquerda, a imagem ou o vídeo à direita.",
+        // Miniatura de cada disposição no editor (SVG 48×32, traço), como no estilo do visual.
+        previews: {
+          center: "M19 3h10M11 7h26M14 10.5h20M15 14h18v8H15zM17 25h14M20 28h8",
+          split: "M3 6h7M3 10h18M3 13.5h15M3 17h17M3 21h18M3 25h10M27 5h18v22H27z",
+        },
+      }),
+      text: textarea("Parágrafo", 600, { canvasOnly: true }),
+      bullets: list("Lista de pontos (com ícone)", 5, { icon: icon(), text: text("Texto", 100) }, "ponto", { canvasOnly: true }),
+      cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora", canvasOnly: true }),
+      note: text("Texto abaixo do botão", 120, { canvasOnly: true }),
       visual: choice("Estilo do visual", {
         image: "Imagem única",
         book: "Livro / manual 3D",
         stack: "Composição 3D (várias imagens)",
         mosaic: "Mosaico (várias imagens)",
         screen: "Tela (moldura de janela)",
-        devices: "Notebook e celular",
+        devices: "Notebook, tablet e celular",
         video: "Vídeo (play)",
       }, "image", {
-        help: "Livro: a imagem principal vira a capa de um livro em 3D. Composição e mosaico: a principal e as imagens extras. Tela: a principal numa janela (telas de software). Notebook e celular: a principal no notebook e a 1ª imagem extra no celular. Vídeo: a principal como capa, com o botão de play do vídeo de apresentação.",
+        help: "Livro: a imagem principal vira a capa de um livro em 3D. Composição e mosaico: a principal e as imagens extras. Tela: a principal numa janela (telas de software). Notebook, tablet e celular: a principal no notebook, a 1ª imagem extra no celular e a 2ª no tablet (os dois são opcionais). Vídeo: a principal como capa, com o botão de play do vídeo de apresentação.",
         // Miniatura de cada estilo no editor (SVG 48×32, traço): as opções viram cartões.
         previews: {
           image: "M10 5h28v22H10zM10 22l8-7 6 6 4-4 10 9M31 11h.01",
@@ -260,18 +268,16 @@ const BLOCKS = {
           stack: "M6 11h14v18H6zM17 7h14v18H17zM29 3h13v17H29z",
           mosaic: "M6 4h17v11H6zM25 4h17v11H25zM6 17h17v11H6zM25 17h17v11H25z",
           screen: "M5 4h38v24H5zM5 9h38M9 6.5h.01M12 6.5h.01M15 6.5h.01",
-          devices: "M5 5h28v18H5zM1 26h36M36 11h9v18h-9zM39.5 26h2",
+          devices: "M12 4h24v16H12zM8 22h32M2 13h11v16H2zM37 12h8v17h-8z",
           video: "M5 4h38v24H5zM21 10l9 6-9 6z",
         },
       }),
       image: image("Imagem principal", { size: "1200 × 900 px", tip: "PNG com fundo transparente fica melhor" }),
-      image_label: text("Etiqueta da imagem principal", 30, { help: "Opcional. Ex.: Manual em PDF." }),
       // showIf: o editor só mostra o campo quando o estilo usa ele (o valor fica guardado igual).
       video_url: url("Vídeo de apresentação (YouTube ou Vimeo)", { help: "Ex.: youtube.com/watch?v=… ou vimeo.com/…",
         showIf: { field: "visual", in: ["video"] } }),
-      extra_images: list("Imagens extras (composição, celular, mosaico)", 3, {
+      extra_images: list("Imagens extras (composição, mosaico, celular e tablet)", 3, {
         image: image("Imagem", { size: "900 × 1200 px", tip: "capa, página do manual ou fluxograma" }),
-        label: text("Etiqueta", 30, { help: "Opcional. Ex.: Fluxogramas." }),
       }, "imagem", { showIf: { field: "visual", in: ["stack", "mosaic", "devices"] } }),
     },
   },
@@ -667,6 +673,24 @@ function validateFields(input, fields, where) {
   return out;
 }
 
+// Tira os campos que o tipo de bloco já teve e não tem mais (BLOCKS[type].removed): páginas e
+// blocos salvos antigos continuam válidos, sem o campo que saiu.
+function dropRemoved(type, fields) {
+  const removed = BLOCKS[type].removed;
+  if (!removed || !isObject(fields)) return fields;
+  const out = Object.fromEntries(Object.entries(fields).filter(([name]) => !removed.includes(name)));
+  for (const path of removed.filter((r) => r.includes("."))) {
+    const [list, name] = path.split(".");
+    if (!Array.isArray(out[list])) continue;
+    out[list] = out[list].map((item) => {
+      if (!isObject(item)) return item;
+      const { [name]: _gone, ...rest } = item;
+      return rest;
+    });
+  }
+  return out;
+}
+
 // Referência a um bloco salvo: só o ID e os campos locais (o conteúdo não pode vir junto).
 function validateSharedRef({ type, shared, ...fields }, where) {
   if (!has(SHAREABLE, type)) throw new ValidationError(`${where}: este tipo de bloco não pode ser um bloco salvo.`);
@@ -678,7 +702,7 @@ function validateSharedRef({ type, shared, ...fields }, where) {
 function validateSharedData(type, data) {
   try {
     if (!has(SHAREABLE, type)) throw new ValidationError("Tipo de bloco inválido.");
-    return { data: validateFields(data ?? {}, sharedFields(type), BLOCKS[type].label) };
+    return { data: validateFields(dropRemoved(type, data ?? {}), sharedFields(type), BLOCKS[type].label) };
   } catch (error) {
     if (error instanceof ValidationError) return { error: error.message };
     throw error;
@@ -698,7 +722,7 @@ function validateSections(sections) {
       const { type, ...fields } = block;
       const where = `Bloco ${i + 1} (${BLOCKS[type].label})`;
       if (Object.hasOwn(block, "shared")) return validateSharedRef(block, where);
-      return { type, ...validateFields(fields, BLOCKS[type].fields, where) };
+      return { type, ...validateFields(dropRemoved(type, fields), BLOCKS[type].fields, where) };
     });
     return { sections: out };
   } catch (error) {
@@ -706,6 +730,10 @@ function validateSections(sections) {
     throw error;
   }
 }
+
+// Seção de compra (bloco "Oferta final", próprio ou de um bloco salvo): o botão da abertura leva
+// até ela, então toda página salva precisa de uma.
+const hasOffer = (sections) => Array.isArray(sections) && sections.some((b) => isObject(b) && b.type === "offer");
 
 // Blocos já gravados, validados UM A UM: um bloco inválido (ex.: dado antigo, de antes de uma
 // mudança no esquema) é descartado sozinho, em vez de invalidar a página inteira. Cada item
@@ -738,9 +766,7 @@ function defaultSections() {
       bullets: [{ icon: "checkcircle", text: "Primeiro resultado que a pessoa alcança" },
         { icon: "checkcircle", text: "Segundo resultado que a pessoa alcança" },
         { icon: "checkcircle", text: "Terceiro resultado que a pessoa alcança" }],
-      badges: [{ strong: "PDF", text: "Prático" }, { strong: "Acesso", text: "Imediato" }],
-      stats: [{ value: "6", label: "módulos" }, { value: "18h", label: "de aula" }, { value: "1 ano", label: "de acesso" }],
-      price_label: "Por apenas", cta_label: "Comprar agora", note: "Você recebe o acesso na hora, no seu e-mail." },
+      cta_label: "Comprar agora", note: "Você recebe o acesso na hora, no seu e-mail." },
     { type: "gallery", eyebrow: "Por dentro", title: "Conheça por dentro", images: [] },
     { type: "benefits", title: "Benefícios", items: [
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
@@ -793,5 +819,5 @@ function defaultSections() {
 
 module.exports = {
   ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, SHAREABLE,
-  validateSections, validBlocks, mediaIds, defaultSections, validateSharedData, sharedIds,
+  validateSections, validBlocks, mediaIds, defaultSections, validateSharedData, sharedIds, hasOffer,
 };

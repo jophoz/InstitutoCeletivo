@@ -21,7 +21,7 @@
   border-radius: var(--v-radius);
 }
 
-/* ---------- Abertura: título forte, números em destaque e visual flexível ---------- */
+/* ---------- Abertura: título forte e visual flexível ---------- */
 .venda .v-hero :is(h1, h2) {
   font-size: clamp(2.2rem, 4.6vw, 3.3rem);
   line-height: 1.08;
@@ -31,58 +31,10 @@
   padding: 1rem 2.25rem;
   font-size: 1.1rem;
 }
-/* Números em destaque (ex.: 6 módulos · 18h de aula · 1 ano de acesso): grandes, em linha. */
-.v-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 0;
-  margin: 0 0 1.75rem;
-  padding: 0;
-  list-style: none;
-}
-.v-stats li {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0 clamp(1rem, 2.5vw, 1.75rem);
-  border-left: 1px solid var(--v-line);
-}
-.v-stats li:first-child {
-  padding-left: 0;
-  border-left: 0;
-}
-.v-stats strong {
-  font-size: clamp(2rem, 4.2vw, 2.75rem);
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.035em;
-  font-variant-numeric: tabular-nums;
-  color: var(--v-cta);
-}
-.v-stats li > span {
-  font-size: 0.92rem;
-  font-weight: 500;
-  color: var(--color-muted);
-}
-/* Visual: imagem com etiqueta ("chip") flutuante. */
+/* Visual da abertura. */
 .v-visual {
   position: relative;
   margin: 0;
-}
-.v-chip {
-  position: absolute;
-  z-index: 2;
-  left: -0.75rem;
-  bottom: 1.5rem;
-  padding: 0.45rem 0.95rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  line-height: 1.2;
-  color: var(--v-cta-text);
-  background: var(--v-cta);
-  border-radius: 999px;
-  box-shadow: 0 12px 24px -8px rgb(0 0 0 / 0.55);
 }
 /* Tela: a imagem dentro de uma janela com a barra de três pontos (telas de software). */
 .v-screen {
@@ -119,10 +71,6 @@
   border-radius: 0;
   filter: none;
 }
-.v-screen .v-chip {
-  left: 1rem;
-  bottom: 1rem;
-}
 /* Composição 3D: as peças da página inicial (.hero-covers), com as imagens na proporção delas
    (manuais em pé, fluxogramas deitados) e posições próprias para até 4 imagens. */
 .v-visual-wrap {
@@ -149,10 +97,6 @@
 .v-stack[data-count="1"] .hero-cover:nth-child(1) { left: 18%; top: 6%; width: 64%; }
 .v-stack[data-count="2"] .hero-cover:nth-child(1) { left: 6%; top: 22%; }
 .v-stack[data-count="2"] .hero-cover:nth-child(2) { left: 40%; top: 4%; }
-.hero-cover .v-chip {
-  left: 0.6rem;
-  bottom: 0.6rem;
-}
 
 /* Livro / manual 3D: a capa em perspectiva, com lombada escura à esquerda e o bloco de folhas
    à direita (listras finas). A sombra no chão dá o apoio. */
@@ -220,18 +164,15 @@
     transform: rotateY(-14deg) rotateX(2deg);
   }
 }
-.v-book .v-chip {
-  left: 8%;
-  bottom: 3.5rem;
-}
 
-/* Notebook e celular: a imagem principal na tela do notebook e a 1ª extra num celular à frente,
-   no canto inferior direito. */
+/* Notebook, tablet e celular: a imagem principal na tela do notebook; o celular (1ª extra) e o
+   tablet (2ª extra) ficam nas laterais, à frente, só encostando na tela (o espaço lateral do
+   .v-devices encolhe o notebook para eles não cobrirem a imagem principal). */
 .v-devices {
   padding-bottom: 1.5rem;
 }
 .v-devices.has-phone {
-  padding-right: 9%;
+  padding-right: 13%;
 }
 .v-laptop-screen {
   position: relative;
@@ -273,13 +214,13 @@
   right: 0;
   bottom: 0;
   z-index: 2;
-  width: 27%;
+  width: 17%;
   aspect-ratio: 9 / 19;
   overflow: hidden;
-  padding: 5px;
+  padding: 4px;
   background: #0b0f17;
   border: 1px solid rgb(255 255 255 / 0.2);
-  border-radius: 24px;
+  border-radius: 18px;
   box-shadow: -10px 24px 44px -12px rgb(0 0 0 / 0.75);
 }
 .phone-img {
@@ -288,16 +229,33 @@
   height: 100%;
   object-fit: cover;
   object-position: top;
-  border-radius: 19px;
+  border-radius: 14px;
 }
-.v-phone .v-chip {
-  left: 50%;
-  bottom: 0.6rem;
-  translate: -50% 0;
-  white-space: nowrap;
+/* Tablet (2ª imagem extra): à frente do notebook, no canto inferior esquerdo. */
+.v-devices.has-tablet {
+  padding-left: 18%;
 }
-.v-devices > .v-chip {
-  bottom: 3rem;
+.v-tablet {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 25%;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  padding: 7px;
+  background: #0b0f17;
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 20px;
+  box-shadow: 10px 24px 44px -12px rgb(0 0 0 / 0.75);
+}
+.tablet-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 13px;
 }
 
 /* Vídeo: capa 16:9 com o botão de play laranja no centro; o clique troca pela reprodução
@@ -371,10 +329,6 @@
     box-shadow: 0 0 0 22px transparent;
   }
 }
-.v-video .v-chip {
-  left: 1rem;
-  bottom: 1rem;
-}
 .v-video.is-playing::after {
   content: none;
 }
@@ -424,10 +378,6 @@
     transform: scale(1.04);
   }
 }
-.v-tile .v-chip {
-  left: 0.6rem;
-  bottom: 0.6rem;
-}
 @media (max-width: 859px) {
   .v-book-3d {
     width: min(62%, 300px);
@@ -449,32 +399,7 @@
   }
 }
 
-/* ---------- Abertura e oferta final: peças próprias ---------- */
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  list-style: none;
-  padding: 0;
-  margin: 0 0 2rem;
-}
-.badges li {
-  padding: 0.45rem 1rem;
-  font-size: 0.95rem;
-  background: rgb(255 255 255 / 0.06);
-  border: 1px solid rgb(255 255 255 / 0.14);
-  border-radius: 999px;
-}
-.badges strong {
-  font-weight: 800;
-  color: var(--v-cta);
-}
-.offer {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1.25rem 2rem;
-}
+/* ---------- Abertura e oferta final: preço ---------- */
 .price-big {
   margin: 0;
   font-size: clamp(2.2rem, 6vw, 3.2rem);
@@ -1518,32 +1443,11 @@
 }
 
 
-/* ---------- Animações ao rolar ----------
-   public/js/venda.js põe .reveal nos elementos fora da tela e .is-in quando eles aparecem.
-   Sem JavaScript, com "menos movimento" ou dentro do editor, nada fica escondido. */
-.reveal {
-  opacity: 0;
-  transform: translateY(18px);
-}
-/* A transição fica só na entrada: esconder é instantâneo (sem o elemento "sumir" ao carregar). */
-.reveal.is-in {
-  opacity: 1;
-  transform: none;
-  transition:
-    opacity 0.5s cubic-bezier(0.2, 0.7, 0.2, 1),
-    transform 0.5s cubic-bezier(0.2, 0.7, 0.2, 1);
-  transition-delay: var(--reveal-delay, 0ms);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .track {
     scroll-behavior: auto;
   }
   .btn-cta:hover {
-    transform: none;
-  }
-  .reveal {
-    opacity: 1;
     transform: none;
   }
   .module-panels.is-ready .module-panel:not([hidden]),
@@ -1555,14 +1459,6 @@
 }
 
 /* ---------- Peças das páginas geradas pelo painel ---------- */
-.v-logo {
-  display: block;
-  width: auto;
-  max-width: 200px;
-  max-height: 56px;
-  margin-bottom: 1.75rem;
-  object-fit: contain;
-}
 .v-media {
   width: 100%;
   height: auto;
@@ -1750,6 +1646,19 @@
   font-size: 0.92rem;
   color: var(--color-muted);
 }
+/* Abertura: parágrafo (abaixo do subtítulo ou, centralizada, da imagem) e o botão que leva à oferta. */
+.v-hero-para {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+/* Respiro entre o parágrafo e a lista de pontos (no editor, os <p> ficam dentro de um <div>). */
+.v-hero-text :is(.v-hero-para, [data-field="text"]) + .v-bullets {
+  margin-top: 2.25rem;
+}
+.v-hero-cta {
+  margin: 0.5rem 0 0;
+}
 
 /* ---------- Abertura: lista de pontos e disposição centralizada ---------- */
 .v-bullets {
@@ -1783,18 +1692,15 @@
   justify-content: center;
   text-align: center;
 }
-.v-hero-grid.is-center :is(.v-logo, .v-eyebrow, .lead, .v-bullets) {
+.v-hero-grid.is-center :is(.v-eyebrow, .lead, .v-hero-para, .v-bullets) {
   margin-inline: auto;
 }
+.v-hero-grid.is-center .v-hero-para {
+  max-width: 720px;
+}
+/* A lista fica no meio, como um bloco; os itens continuam alinhados à esquerda (ícone + texto). */
 .v-hero-grid.is-center .v-bullets {
   width: fit-content;
-}
-.v-hero-grid.is-center :is(.v-stats, .badges, .offer) {
-  justify-content: center;
-}
-.v-hero-grid.is-center .offer {
-  flex-direction: column;
-  gap: 1.25rem;
 }
 .v-hero-grid.is-center :is(.v-visual, .v-visual-wrap) {
   max-width: 560px;

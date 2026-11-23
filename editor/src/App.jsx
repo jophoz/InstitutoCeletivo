@@ -10,7 +10,7 @@
 //                inserir/mover/remover blocos nem cores; "Salvar" muda todas as páginas que o usam.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
-import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText } from "./state/document.js";
+import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText, canRemoveBlock, ensureRequired } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
 import { PRODUCT_STATUS, sizeHint } from "./labels.js";
 import { TopBar, SharedTopBar, ToolDock, PublishBadge, SharedBadge, publishState } from "./components/EditorHeader.jsx";
@@ -142,7 +142,7 @@ export default function App({ productId, sharedId }) {
         document.title = `Página de vendas: ${product.title} — Painel administrativo`;
         if (saved) {
           dispatch({ type: "load", doc: {
-            sections: withKeys(saved.sections, schema),
+            sections: withKeys(ensureRequired(saved.sections, schema), schema),
             theme: resolveTheme(saved.theme, schema),
           } });
         }
@@ -211,7 +211,8 @@ export default function App({ productId, sharedId }) {
       select(copy._key, "canvas");
       reveal.current = { index: index + 1, edit: false };
     },
-    remove: (index) => !isShared && removeBlock(index),
+    canRemove: (index) => !isShared && canRemoveBlock(sections, index),
+    remove: (index) => canvas.canRemove(index) && removeBlock(index),
     configure(index) {
       select(sections[index]._key, "canvas");
       setPanel("block");
@@ -351,7 +352,7 @@ export default function App({ productId, sharedId }) {
   }
 
   function start(fromTemplate) {
-    const initial = withKeys(fromTemplate ? structuredClone(schema.defaultSections) : [], schema);
+    const initial = withKeys(fromTemplate ? structuredClone(schema.defaultSections) : ensureRequired([], schema), schema);
     dispatch({ type: "start", doc: { sections: initial, theme: resolveTheme(null, schema) } });
     if (initial[0]) { setOpen(new Set([initial[0]._key])); select(initial[0]._key, "canvas"); }
     setMessage(fromTemplate

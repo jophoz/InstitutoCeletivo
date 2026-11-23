@@ -255,60 +255,6 @@
     });
   }
   if (!reduce && !editing) [].forEach.call(document.querySelectorAll("details.faq"), accordion);
-
-  // Animações ao rolar: títulos, cartões e itens surgem suavemente ao entrar na tela.
-  // Fora quando a pessoa pede menos movimento e dentro do editor do painel (<html data-editor>),
-  // onde a página é redesenhada a cada mudança e nada pode ficar escondido.
-  if (reduce || !("IntersectionObserver" in window) || editing) return;
-
-  var SELECTOR = [
-    ".v-section .v-eyebrow", ".v-section h2", ".v-section .v-intro", ".v-card", ".grid8 > li", ".who > li", ".v-quote",
-    ".faq", ".seals > li", ".banner", ".author-photo", ".carousel", ".v-strip-row", ".link-list > li",
-    ".offer-main > *", ".buy-card", ".v-steps > li", ".module-panels", ".demo", ".feature-row",
-    ".bonus-card", ".v-compare-wrap", ".v-countdown h2", ".v-count",
-  ].join(",");
-  // O cartão de compra (preço e botão) entra sem esperar a cascata dos outros itens.
-  var NO_DELAY = ".buy-card";
-  var STEP = 70, MAX_STEPS = 4;
-
-  // Entra quando o topo do item passa de 90% da altura da tela, qualquer que seja a altura dele
-  // (threshold 0: um bloco alto não fica vazio esperando uma fração dele aparecer).
-  // Cascata só entre os itens que entram JUNTOS, em ordem de posição (de cima para baixo, da
-  // esquerda para a direita): uma grade que aparece inteira entra em sequência; um item que
-  // entra sozinho ao rolar aparece na hora, sem atraso.
-  var observer = new IntersectionObserver(function (entries) {
-    var arriving = entries.filter(function (entry) { return entry.isIntersecting; });
-    arriving.sort(function (a, b) {
-      return a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left;
-    });
-    var step = 0;
-    arriving.forEach(function (entry) {
-      var el = entry.target;
-      observer.unobserve(el);
-      var delay = el.matches(NO_DELAY) ? 0 : Math.min(step++, MAX_STEPS) * STEP;
-      if (delay) el.style.setProperty("--reveal-delay", delay + "ms");
-      el.classList.add("is-in");
-    });
-  }, { rootMargin: "0px 0px -10% 0px", threshold: 0 });
-
-  // Terminada a entrada, a classe sai: os cartões voltam à própria transição (efeito ao passar o mouse).
-  function done(event) {
-    var el = event.currentTarget;
-    if (event.target !== el || !el.classList.contains("is-in")) return;
-    el.classList.remove("reveal", "is-in");
-    el.style.removeProperty("--reveal-delay");
-    el.removeEventListener("transitionend", done);
-  }
-
-  var fold = window.innerHeight;
-  [].forEach.call(document.querySelectorAll(SELECTOR), function (el) {
-    // O que já aparece ao abrir a página não é animado (não atrasa a primeira dobra).
-    if (el.getBoundingClientRect().top < fold) return;
-    if (el.parentElement && el.parentElement.closest(SELECTOR)) return; // já entra junto com o cartão em volta
-    el.classList.add("reveal");
-    el.addEventListener("transitionend", done);
-    observer.observe(el);
-  });
 })();
 
 // Cronômetro da oferta (<p class="offer-timer" data-ends-at> e o cronômetro grande do bloco

@@ -2,7 +2,7 @@
 // Rodar: npm test (node --test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { withKeys, stripKeys, duplicateBlock, reducer, newBlock, hasText, emptyValue } from "../src/state/document.js";
+import { withKeys, stripKeys, duplicateBlock, reducer, newBlock, hasText, emptyValue, canRemoveBlock, ensureRequired } from "../src/state/document.js";
 import { historyReducer, initialHistory } from "../src/state/history.js";
 
 // Esquema mínimo, no mesmo formato que /api/admin/sales-blocks devolve.
@@ -106,4 +106,14 @@ test("campo de link (url): começa vazio, e um item só com endereço não conta
   assert.deepEqual(item, { label: "", url: "" });
   assert.equal(hasText({ label: "", url: "https://x.com" }, fields), false);
   assert.equal(hasText({ label: "LinkedIn", url: "" }, fields), true);
+});
+
+test("seção de compra: a única Oferta final não sai; página sem ela ganha a do modelo", () => {
+  const one = [{ type: "hero" }, { type: "offer" }];
+  assert.equal(canRemoveBlock(one, 0), true);
+  assert.equal(canRemoveBlock(one, 1), false);
+  assert.equal(canRemoveBlock([...one, { type: "offer" }], 1), true);
+  const schema = { defaultSections: [{ type: "hero" }, { type: "offer", title: "Modelo" }] };
+  assert.deepEqual(ensureRequired([{ type: "hero" }], schema), [{ type: "hero" }, { type: "offer", title: "Modelo" }]);
+  assert.equal(ensureRequired(one, schema), one);
 });

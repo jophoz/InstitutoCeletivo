@@ -78,6 +78,22 @@ export function duplicateBlock(block, schema) {
   return withKeys([stripKeys(block)], schema)[0];
 }
 
+/* ---------- Seção de compra obrigatória ---------- */
+// O botão da abertura leva à seção de compra (bloco "Oferta final"): a página precisa de uma.
+const REQUIRED_TYPE = "offer";
+export const REQUIRED_HINT = "A abertura leva a este bloco: a página precisa dele.";
+
+// Pode remover o bloco desta posição? Não, se for a única Oferta final da página.
+export function canRemoveBlock(sections, index) {
+  return sections[index]?.type !== REQUIRED_TYPE || sections.filter((b) => b.type === REQUIRED_TYPE).length > 1;
+}
+
+// Página sem Oferta final (salva antes da regra): ganha a do modelo padrão no fim.
+export function ensureRequired(sections, schema) {
+  if (sections.some((b) => b.type === REQUIRED_TYPE)) return sections;
+  return [...sections, structuredClone(schema.defaultSections.find((b) => b.type === REQUIRED_TYPE))];
+}
+
 /* ---------- Alterações por "caminho" (ex.: ["sections", 2, "items", 0, "question"]) ---------- */
 export function getIn(obj, path) {
   return path.reduce((value, key) => (value == null ? value : value[key]), obj);

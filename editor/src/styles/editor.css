@@ -426,6 +426,30 @@ dialog.picker.icon-menu::backdrop { background: rgb(0 0 0 / .08); }
   line-height: 1.2;
   text-align: center;
 }
+/* Com miniatura, a amostra de cor (quadradinho) não se aplica. */
+.choice-field.has-previews .choice-option::before {
+  content: none;
+}
+/* Cartão escolhido: borda, fundo e um ✓ no canto, para não haver dúvida de qual está valendo. */
+.choice-field.has-previews .choice-option:has(input:checked) {
+  font-weight: 700;
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+.choice-field.has-previews .choice-option:has(input:checked)::after {
+  content: "✓";
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: .7rem;
+  font-weight: 800;
+  color: var(--color-on-primary);
+  background: var(--color-primary);
+  border-radius: 50%;
+}
 .choice-preview {
   width: 48px;
   height: 32px;

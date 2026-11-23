@@ -1,7 +1,7 @@
 // Monta o HTML da página de vendas a partir dos blocos. A marcação segue a página original do
 // Manual (mesmas classes de public/css/venda.css), então o visual é o mesmo.
 const { html } = require("../lib/html");
-const { BLOCKS, ICONS, NETWORKS, validBlocks } = require("./blocks");
+const { BLOCKS, ICONS, NETWORKS, validBlocks, hasOffer } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
 const { assetUrl } = require("../lib/assets"); // ?v= nos CSS/JS: cache longo no navegador
@@ -19,10 +19,10 @@ const IMAGE_SIZES = {
   "book-img": "(min-width: 860px) 340px, 60vw",
   "laptop-img": "(min-width: 1100px) 480px, (min-width: 860px) 44vw, calc(100vw - 2rem)",
   "phone-img": "160px",
+  "tablet-img": "220px",
   "mosaic-img": "(min-width: 860px) 260px, 45vw",
   "demo-img": "(min-width: 1100px) 1000px, calc(100vw - 2rem)",
   "feature-img": "(min-width: 1100px) 520px, (min-width: 860px) 46vw, calc(100vw - 2rem)",
-  "v-logo": "200px",
   "quote-photo": "52px",
   "bonus-img": "(min-width: 900px) 320px, (min-width: 600px) 45vw, calc(100vw - 4rem)",
   "seal-img": "200px",
@@ -150,7 +150,7 @@ function brandAttrs(data) {
 // Contexto de uma renderização: produto, imagens e contadores (ids de títulos, fundo alternado).
 // live = true: pré-visualização dentro do editor, com os textos marcados para edição direta.
 function createContext(data, { live = false } = {}) {
-  let sectionCount = 0, headingCount = 0, heroCount = 0;
+  let sectionCount = 0, headingCount = 0, heroCount = 0, offerCount = 0;
   const ctx = {
     product: data,
     live,
@@ -231,9 +231,19 @@ function createContext(data, { live = false } = {}) {
     // icon: ícone antes do texto (ex.: o cadeado do cartão de compra).
     cta(label, fallback, path, { icon = null } = {}) {
       if (!data.checkout_url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
-      const text = ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
-      return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
+      return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${ctx.ctaText(label, fallback, path)}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
+    ctaText(label, fallback, path) {
+      return ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
+    },
+    // Botão que rola a página até a seção de compra (#oferta). Página sem Oferta final (salva antes
+    // da regra) ou ainda sem checkout: o mesmo botão dos outros blocos.
+    scrollCta(label, fallback, path) {
+      if (!ctx.hasOffer || !data.checkout_url) return ctx.cta(label, fallback, path);
+      return html`<a class="btn-cta" href="#${OFFER_ANCHOR}">${ctx.ctaText(label, fallback, path)}</a>`;
+    },
+    // A âncora #oferta fica só no primeiro bloco Oferta final.
+    firstOffer: () => offerCount++ === 0,
     // Preço que vale agora. Com oferta ativa: "de R$ X por R$ Y" e, com prazo, o cronômetro.
     price(label, path) {
       if (data.price_cents === null || data.price_cents === undefined) return null;
@@ -276,6 +286,9 @@ function authorLinks(b, ctx) {
   return html`<ul class="link-list author-links">${links.map(([x, i]) => linkItem(ctx, "links", i, x, linkKind(x.url)))}${ctx.addItem("links", b.links)}</ul>`;
 }
 
+// Âncora da seção de compra (bloco Oferta final): o botão da abertura e o do cabeçalho levam até ela.
+const OFFER_ANCHOR = "oferta";
+
 // Triângulo do botão de play (dentro do círculo laranja; o ícone "play" do sprite já tem círculo).
 const PLAY = html`<svg class="v-play-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 6.5l10 5.5-10 5.5z" fill="currentColor"/></svg>`;
 
@@ -304,20 +317,19 @@ function videoEmbed(url) {
 //   stack   -> composição 3D com a principal e as extras (mesmas peças da página inicial);
 //   mosaic  -> grade com a principal e as extras;
 //   screen  -> a principal dentro de uma janela (barra com três pontos), para telas de software;
-//   devices -> a principal num notebook e a 1ª extra num celular à frente;
+//   devices -> a principal num notebook, a 1ª extra num celular e a 2ª num tablet, à frente;
 //   video   -> a principal como capa, com o botão de play do vídeo de apresentação.
-// As etiquetas viram "chips" sobre as imagens. Sem imagem nenhuma: null (o texto ocupa a largura).
+// Sem imagem nenhuma: null (o texto ocupa a largura).
 function heroVisual(b, ctx) {
-  const chip = (path, label) => ctx.show(label) && html`<span class="v-chip"${ctx.field(path, label)}>${label}</span>`;
   // Principal + extras com imagem (no editor, extras vazias viram o espaço clicável de imagem).
   const pieces = (cls) => [
-    { img: ctx.img(b.image, cls, { priority: true, path: "image" }), chip: chip("image_label", b.image_label), i: null },
+    { img: ctx.img(b.image, cls, { priority: true, path: "image" }), i: null },
     ...b.extra_images.map((x, i) => ({
       img: ctx.img(x.image, cls, { path: `extra_images.${i}.image` }), // só a principal tem prioridade de download
-      chip: chip(`extra_images.${i}.label`, x.label), i,
+      i,
     })),
   ].filter((x) => x.img);
-  const piece = (x, cls) => html`<figure class="${cls}"${x.i !== null && ctx.item("extra_images", x.i)}>${x.img}${x.chip}${x.i !== null && ctx.remove("extra_images", x.i)}</figure>`;
+  const piece = (x, cls) => html`<figure class="${cls}"${x.i !== null && ctx.item("extra_images", x.i)}>${x.img}${x.i !== null && ctx.remove("extra_images", x.i)}</figure>`;
   const addExtra = () => ctx.addItem("extra_images", b.extra_images, "div");
 
   if (b.visual === "stack" || b.visual === "mosaic") {
@@ -333,19 +345,24 @@ function heroVisual(b, ctx) {
   if (b.visual === "book") {
     const cover = ctx.img(b.image, "book-img", { priority: true, path: "image" });
     if (!cover) return null;
-    return html`<figure class="v-visual v-book"><div class="v-book-3d">${cover}</div>${chip("image_label", b.image_label)}</figure>`;
+    return html`<figure class="v-visual v-book"><div class="v-book-3d">${cover}</div></figure>`;
   }
 
+  // Notebook (principal), celular à frente à direita (1ª extra) e tablet à frente à esquerda (2ª extra).
   if (b.visual === "devices") {
     const screen = ctx.img(b.image, "laptop-img", { priority: true, path: "image" });
     if (!screen) return null;
-    const x = b.extra_images[0];
-    const phone = x && ctx.img(x.image, "phone-img", { path: "extra_images.0.image" });
-    return html`<div class="v-visual-wrap"><figure class="v-visual v-devices${phone ? " has-phone" : ""}">
+    const device = (i, cls) => {
+      const x = b.extra_images[i];
+      const img = x && ctx.img(x.image, `${cls}-img`, { path: `extra_images.${i}.image` });
+      return img && html`<div class="v-${cls}"${ctx.item("extra_images", i)}>${img}${ctx.remove("extra_images", i)}</div>`;
+    };
+    const phone = device(0, "phone");
+    const tablet = device(1, "tablet");
+    return html`<div class="v-visual-wrap"><figure class="v-visual v-devices${phone ? " has-phone" : ""}${tablet ? " has-tablet" : ""}">
       <div class="v-laptop"><div class="v-laptop-screen">${screen}</div><span class="v-laptop-base" aria-hidden="true"></span></div>
-      ${phone && html`<div class="v-phone"${ctx.item("extra_images", 0)}>${phone}${chip("extra_images.0.label", x.label)}${ctx.remove("extra_images", 0)}</div>`}
-      ${chip("image_label", b.image_label)}
-    </figure>${!phone && addExtra()}</div>`;
+      ${tablet}${phone}
+    </figure>${!(phone && tablet) && addExtra()}</div>`;
   }
 
   if (b.visual === "video") {
@@ -356,15 +373,15 @@ function heroVisual(b, ctx) {
     const play = b.video_url
       ? html`<a class="v-play" href="${b.video_url}" target="_blank" rel="noopener noreferrer"${embed ? html` data-embed="${embed}"` : null} aria-label="Assistir ao vídeo de apresentação (abre o vídeo)">${PLAY}</a>`
       : ctx.live && html`<span class="v-play is-empty" title="Defina o link do vídeo em Configurar bloco ⚙">${PLAY}</span>`;
-    return html`<figure class="v-visual v-video">${cover}${play}${chip("image_label", b.image_label)}</figure>`;
+    return html`<figure class="v-visual v-video">${cover}${play}</figure>`;
   }
 
   const img = ctx.img(b.image, "v-media", { priority: true, path: "image" });
   if (!img) return null;
   if (b.visual === "screen") {
-    return html`<figure class="v-visual v-screen"><span class="v-screen-bar" aria-hidden="true"><i></i><i></i><i></i></span>${img}${chip("image_label", b.image_label)}</figure>`;
+    return html`<figure class="v-visual v-screen"><span class="v-screen-bar" aria-hidden="true"><i></i><i></i><i></i></span>${img}</figure>`;
   }
-  return html`<figure class="v-visual">${img}${chip("image_label", b.image_label)}</figure>`;
+  return html`<figure class="v-visual">${img}</figure>`;
 }
 
 const RENDERERS = {
@@ -373,20 +390,19 @@ const RENDERERS = {
     const Title = ctx.firstHero() ? "h1" : "h2"; // só um <h1> por página
     const title = b.title || ctx.product.title;
     const titleField = ctx.field("title", b.title, { fallback: true });
-    // Centralizada: uma coluna só, com a imagem entre o título e a chamada.
+    // Centralizada: uma coluna só, no meio, com a imagem entre o subtítulo e o parágrafo.
+    // Lado a lado: o texto à esquerda e a imagem à direita.
     const center = b.layout === "center";
     return html`<section class="v-hero"${ctx.mark()}>
   <div class="container v-hero-grid${center ? " is-center" : media ? "" : " no-media"}">
-    <div>
-      ${ctx.img(b.logo, "v-logo", { priority: true, path: "logo", optional: true })}
+    <div class="v-hero-text">
       ${ctx.eyebrow(b)}
       ${Title === "h1" ? html`<h1${titleField}>${title}</h1>` : html`<h2${titleField}>${title}</h2>`}
-      ${center && media}
       ${ctx.show(b.lead) && html`<p class="lead"${ctx.field("lead", b.lead)}>${b.lead}</p>`}
+      ${center && media}
+      ${ctx.paras("text", b.text, "v-hero-para")}
       ${(b.bullets.length > 0 || ctx.live) && html`<ul class="v-bullets">${b.bullets.map((x, i) => html`<li${ctx.item("bullets", i)}>${ctx.icon(`bullets.${i}.icon`, x.icon)}${ctx.text(`bullets.${i}.text`, x.text)}${ctx.remove("bullets", i)}</li>`)}${ctx.addItem("bullets", b.bullets)}</ul>`}
-      ${(b.stats.length > 0 || ctx.live) && html`<ul class="v-stats" aria-label="Números do produto">${b.stats.map((x, i) => html`<li${ctx.item("stats", i)}><strong${ctx.field(`stats.${i}.value`, x.value)}>${x.value}</strong> <span${ctx.field(`stats.${i}.label`, x.label)}>${x.label}</span>${ctx.remove("stats", i)}</li>`)}${ctx.addItem("stats", b.stats)}</ul>`}
-      ${(b.badges.length > 0 || ctx.live) && html`<ul class="badges" aria-label="Resumo do material">${b.badges.map((x, i) => html`<li${ctx.item("badges", i)}>${ctx.show(x.strong) && html`<strong${ctx.field(`badges.${i}.strong`, x.strong)}>${x.strong}</strong>`} ${ctx.text(`badges.${i}.text`, x.text)}${ctx.remove("badges", i)}</li>`)}${ctx.addItem("badges", b.badges)}</ul>`}
-      <div class="offer">${ctx.price(b.price_label, "price_label")}${ctx.cta(b.cta_label, "Comprar agora", "cta_label")}</div>
+      <p class="v-hero-cta">${ctx.scrollCta(b.cta_label, "Comprar agora", "cta_label")}</p>
       ${ctx.show(b.note) && html`<p class="cta-note"${ctx.field("note", b.note)}>${b.note}</p>`}
     </div>
     ${!center && media}
@@ -551,7 +567,7 @@ const RENDERERS = {
     const card = (filled, cls, content) => (filled || ctx.live)
       && html`<div class="${cls}"${!filled ? html` data-empty` : null}>${content}</div>`;
     const pair = (titlePath, title, textPath, text) => html`<p>${ctx.show(title) && html`<strong${ctx.field(titlePath, title)}>${title}</strong>`}${ctx.show(text) && html`<span${ctx.field(textPath, text)}>${text}</span>`}</p>`;
-    return html`<section class="v-final" aria-labelledby="${id}"${ctx.mark()}>
+    return html`<section class="v-final"${ctx.firstOffer() ? html` id="${OFFER_ANCHOR}"` : null} aria-labelledby="${id}"${ctx.mark()}>
   <div class="container offer-grid">
     <div class="offer-main">
       ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || ctx.product.title}</h2>
@@ -703,6 +719,7 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, ...rest } = product;
   const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer, now };
   const ctx = createContext(data, { live });
+  ctx.hasOffer = hasOffer(data.sections);
   // Blocos inválidos são ignorados um a um; index (posição original) liga a seção ao bloco do editor.
   const rendered = validBlocks(data.sections).map(({ block, index }) => {
     // Bloco que vem de um bloco salvo: no editor é desenhado como na página pública (sem textos

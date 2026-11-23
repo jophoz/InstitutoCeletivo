@@ -1,7 +1,7 @@
 // Lista de blocos da página: cada bloco é um cartão recolhível com o formulário do seu tipo.
 import { Fragment, useId } from "react";
 import { useEditor } from "../state/context.js";
-import { duplicateBlock } from "../state/document.js";
+import { duplicateBlock, canRemoveBlock, REQUIRED_HINT } from "../state/document.js";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
 import { InfoTip } from "../ui/InfoTip.jsx";
 import { BlockFormBody } from "./SharedBlock.jsx";
@@ -28,7 +28,7 @@ function visualOf(block, schema) {
   return { key, label: field.options[key], d: field.previews[key] };
 }
 
-function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle, onRemove, onDuplicate, onHover }) {
+function BlockCard({ block, index, total, isOpen, isSelected, isHidden, removable, onToggle, onRemove, onDuplicate, onHover }) {
   const { schema, dispatch, focusLater, shared } = useEditor();
   const def = schema.blocks[block.type];
   const bodyId = useId();
@@ -74,8 +74,9 @@ function BlockCard({ block, index, total, isOpen, isSelected, isHidden, onToggle
             aria-label={`Mover bloco ${index + 1} (${label}) para baixo`} onClick={() => move(1, "down")}>↓</button>
           <button type="button" className="icon-btn" data-action="duplicate" disabled={total >= schema.maxBlocks}
             aria-label={`Duplicar bloco ${index + 1} (${label})`} title="Duplicar" onClick={onDuplicate}><Icon name="duplicate" /></button>
-          <button type="button" className="icon-btn danger"
-            aria-label={`Remover bloco ${index + 1} (${label})`} onClick={onRemove}>✕</button>
+          <button type="button" className="icon-btn danger" disabled={!removable}
+            aria-label={removable ? `Remover bloco ${index + 1} (${label})` : `Não dá para remover o bloco ${index + 1} (${label}): ${REQUIRED_HINT}`}
+            title={removable ? undefined : REQUIRED_HINT} onClick={onRemove}>✕</button>
         </div>
       </div>
       <div className="block-body" id={bodyId} hidden={!isOpen}>
@@ -105,6 +106,7 @@ export function BlockList({ sections, open, selectedKey, visible, onToggle, onHo
   const { schema, dispatch, focusLater } = useEditor();
 
   async function remove(block, index) {
+    if (!canRemoveBlock(sections, index)) return;
     const label = schema.blocks[block.type].label;
     const ok = await window.Admin.confirm({
       title: `Remover o bloco “${label}”?`,
@@ -147,7 +149,7 @@ export function BlockList({ sections, open, selectedKey, visible, onToggle, onHo
             {index > 0 && <InsertHere position={index} onInsert={onInsert} />}
             <BlockCard block={block} index={index} total={sections.length}
               isOpen={open.has(block._key)} isSelected={selectedKey === block._key}
-              isHidden={visible !== null && !visible.has(index)}
+              isHidden={visible !== null && !visible.has(index)} removable={canRemoveBlock(sections, index)}
               onToggle={() => onToggle(block._key)} onRemove={() => remove(block, index)}
               onDuplicate={() => duplicate(block, index)} onHover={onHover} />
           </Fragment>

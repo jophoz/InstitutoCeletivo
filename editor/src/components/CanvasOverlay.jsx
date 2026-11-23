@@ -9,6 +9,7 @@
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { REQUIRED_HINT } from "../state/document.js";
 import { TextToolbar } from "./TextToolbar.jsx";
 
 const ICONS = {
@@ -121,7 +122,8 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
           <ToolButton icon="duplicate" label={`Duplicar bloco ${n} (${label})`} disabled={full} onClick={() => canvas.duplicate(i)} />
         </>}
         <ToolButton icon="settings" label={`Configurar bloco ${n} (${label}): imagens, ícones e itens`} onClick={() => canvas.configure(i)} />
-        {!canvas.single && <ToolButton icon="remove" label={`Remover bloco ${n} (${label})`} danger onClick={() => canvas.remove(i)} />}
+        {!canvas.single && <ToolButton icon="remove" danger disabled={!canvas.canRemove(i)} onClick={() => canvas.remove(i)}
+          label={canvas.canRemove(i) ? `Remover bloco ${n} (${label})` : `Não dá para remover: ${REQUIRED_HINT}`} />}
       </div>
     );
   }

@@ -90,7 +90,9 @@ function SharedLinkFields({ block, index }) {
 // compartilhável, a opção de virar bloco salvo).
 // Campo com showIf (esquema do servidor): só aparece quando o outro campo do bloco tem um dos
 // valores (ex.: o link do vídeo só no estilo Vídeo). O valor continua guardado.
+// Campo com canvasOnly: editado só direto na página, nunca no formulário.
 function isShown(field, block, schema) {
+  if (field.canvasOnly) return false;
   const rule = field.showIf;
   if (!rule) return true;
   const value = block[rule.field] ?? schema.blocks[block.type].fields[rule.field]?.default;

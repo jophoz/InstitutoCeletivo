@@ -9,7 +9,7 @@
 // "Editar produto") e valem assim que ele é salvo.
 const pool = require("../config/database");
 const storage = require("../lib/storage");
-const { validateSections, validBlocks, mediaIds, sharedIds } = require("./blocks");
+const { validateSections, validBlocks, mediaIds, sharedIds, hasOffer } = require("./blocks");
 
 // Blocos válidos de uma lista gravada (os inválidos são ignorados um a um, ver validBlocks).
 const storedBlocks = (sections) => validBlocks(sections).map((x) => x.block);
@@ -129,6 +129,9 @@ async function inTransaction(fn) {
 // Devolve { page, created }.
 async function savePage(productId, body) {
   const input = normalizeInput(body);
+  // O botão da abertura leva à seção de compra: a página precisa de uma Oferta final.
+  // (A pré-visualização ao vivo não exige: ela mostra o que está sendo editado.)
+  if (!hasOffer(input.sections)) throw new PageInputError("A página precisa do bloco Oferta final (o botão da abertura leva até ele).");
   return inTransaction(async (client) => {
     const { rows } = await client.query(
       `INSERT INTO sales_pages (product_id, sections, theme)

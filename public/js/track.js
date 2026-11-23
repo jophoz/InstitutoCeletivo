@@ -56,10 +56,11 @@
   // produto.html conta a visita só depois de carregar (ou de redirecionar para a página de vendas).
   if (!document.body || document.body.getAttribute("data-track") !== "manual") send("view", product);
 
-  // Clique em "comprar": conta e leva a origem para o checkout da Kiwify.
+  // Clique em "comprar": conta e leva a origem para o checkout da Kiwify. Botões que só rolam a
+  // página até a seção de compra (href="#oferta") não contam: o clique que conta é o de lá.
   document.addEventListener("click", function (event) {
     var a = event.target.closest && event.target.closest("a.btn-cta");
-    if (!a) return;
+    if (!a || (a.getAttribute("href") || "").charAt(0) === "#") return;
     send("checkout_click", product);
     try {
       var url = new URL(a.href);

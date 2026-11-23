@@ -42,7 +42,7 @@ const page = (product, now = NOW) => renderSalesPage({
   title: "Manual", slug: "manual", short_description: "", status: "published", image_id: null,
   brand_name: null, brand_logo_id: null, theme: null, published_at: null, media: new Map(),
   sections: [
-    { type: "hero", title: "T", price_label: "", cta_label: "" },
+    { type: "hero", title: "T", cta_label: "" },
     { type: "cta", title: "Pronto?", cta_label: "" },
     { type: "offer", title: "Oferta", price_label: "", cta_label: "" },
   ],
@@ -52,9 +52,11 @@ const page = (product, now = NOW) => renderSalesPage({
 test("página: oferta ativa usa o link promocional, mostra 'de/por' e o cronômetro em cada bloco de compra", () => {
   const html = page(base);
   assert.ok(!html.includes("Normal1"), "o link normal não deve aparecer durante a oferta");
-  assert.equal(html.match(/href="https:\/\/pay\.kiwify\.com\.br\/Promo01"/g).length, 3);
-  assert.equal(html.match(/<s class="price-was"><span class="sr-only">De <\/span>R\$\s197,00<\/s>/g).length, 3);
-  assert.equal(html.match(/class="offer-timer" data-ends-at="2026-10-26T02:59:00\.000Z" data-now="2026-10-23T12:00:00\.000Z"/g).length, 3);
+  // A abertura não tem preço: o botão dela rola até a oferta final; o checkout fica na faixa e na oferta.
+  assert.match(html, /<p class="v-hero-cta"><a class="btn-cta" href="#oferta">/);
+  assert.equal(html.match(/href="https:\/\/pay\.kiwify\.com\.br\/Promo01"/g).length, 2);
+  assert.equal(html.match(/<s class="price-was"><span class="sr-only">De <\/span>R\$\s197,00<\/s>/g).length, 2);
+  assert.equal(html.match(/class="offer-timer" data-ends-at="2026-10-26T02:59:00\.000Z" data-now="2026-10-23T12:00:00\.000Z"/g).length, 2);
   assert.match(html, /Oferta válida até 25\/10 às 23:59/);
 });
 

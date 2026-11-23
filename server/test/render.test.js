@@ -86,9 +86,9 @@ test("cada texto preenchido do modelo padrão é editável na página", () => {
 });
 
 test("campos vazios ganham texto de exemplo com o rótulo do esquema", () => {
-  const page = render([{ type: "hero", lead: "", badges: [{ strong: "", text: "x" }] }], "live");
-  assert.match(page, /<p class="lead" data-field="lead" data-empty data-placeholder="Chamada"><\/p>/);
-  assert.match(page, /data-field="badges\.0\.strong" data-empty data-placeholder="Destaque"/);
+  const page = render([{ type: "hero", lead: "", bullets: [{ icon: "check", text: "" }] }], "live");
+  assert.match(page, /<p class="lead" data-field="lead" data-empty data-placeholder="Subtítulo"><\/p>/);
+  assert.match(page, /data-field="bullets\.0\.text" data-empty data-placeholder="Texto"/);
 });
 
 test("título vazio mostra o do produto, marcado como padrão (não vazio)", () => {
@@ -208,7 +208,7 @@ const M1 = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
 test("imagens: no editor, clicáveis e com espaço vazio mostrando o tamanho recomendado", () => {
   const media = new Map([[M1, { url: "/uploads/a.webp", alt_text: "Capa", width: 1200, height: 900 }]]);
   const sections = [
-    { type: "hero", title: "T", image: null, logo: null },
+    { type: "hero", title: "T", image: null },
     { type: "author", name: "Ana", photo: M1 },
     { type: "gallery", title: "G", images: [{ image: M1 }] },
     { type: "testimonials", items: [{ quote: "Q", name: "N", photo: null }] },
@@ -217,7 +217,6 @@ test("imagens: no editor, clicáveis e com espaço vazio mostrando o tamanho rec
   assert.match(live, /<span class="img-slot v-media" data-image-field="image" title="[^"]*1200 × 900 px[^"]*">/);
   assert.match(live, /Tamanho recomendado: 1200 × 900 px/);
   assert.ok(!/v-hero-grid no-media/.test(live), "no editor a abertura reserva o espaço da imagem");
-  assert.match(live, /class="img-slot v-logo" data-image-field="logo" data-empty/); // opcional: só no bloco selecionado
   assert.match(live, /<img class="author-photo"[^>]* data-image-field="photo">/);
   assert.match(live, /<img class="slide-img"[^>]* data-image-field="images\.0\.image">/);
   assert.match(live, /data-image-add="images"/);
@@ -311,8 +310,8 @@ test("listas vazias: no editor o bloco continua, oculto, com o botão de adicion
     assert.ok(live.includes('data-item-add="items"'), type);
     assert.ok(!render([{ type, title: "T", items: [] }], false).includes("v-section"), type);
   }
-  assert.ok(render([{ type: "hero", badges: [] }], "live").includes('data-item-add="badges">+ Adicionar selo'));
-  assert.ok(!render([{ type: "hero", badges: [] }], false).includes('class="badges"'));
+  assert.ok(render([{ type: "hero", bullets: [] }], "live").includes('data-item-add="bullets">+ Adicionar ponto'));
+  assert.ok(!render([{ type: "hero", bullets: [] }], false).includes('class="v-bullets"'));
 });
 
 /* ---------- Links (autor e redes sociais) ---------- */
@@ -488,26 +487,52 @@ const withMedia = (sections, ids) => {
   return renderSalesPage(data, { baseUrl: "http://localhost" });
 };
 
-test("abertura: imagem única, tela com moldura e composição 3D com etiquetas", () => {
+test("abertura: imagem única, tela com moldura e composição 3D (etiquetas antigas são descartadas)", () => {
   const [a, b, c] = [IMG(3), IMG(4), IMG(5)];
   const single = withMedia([{ type: "hero", title: "T", image: a, image_label: "Manual em PDF" }], [a]);
-  assert.match(single, /<figure class="v-visual"><img class="v-media"[^>]*><span class="v-chip">Manual em PDF<\/span><\/figure>/);
+  assert.match(single, /<figure class="v-visual"><img class="v-media"[^>]*><\/figure>/);
+  assert.ok(!single.includes("Manual em PDF"));
   const screen = withMedia([{ type: "hero", title: "T", visual: "screen", image: a }], [a]);
   assert.match(screen, /<figure class="v-visual v-screen"><span class="v-screen-bar" aria-hidden="true">/);
   const stack = withMedia([{ type: "hero", title: "T", visual: "stack", image: a,
     extra_images: [{ image: b, label: "Fluxogramas" }, { image: c }, { image: null, label: "sem imagem" }] }], [a, b, c]);
   assert.match(stack, /<div class="hero-covers v-stack" data-count="3">/);
   assert.equal((stack.match(/<figure class="hero-cover">/g) || []).length, 3); // a sem imagem não entra
-  assert.match(stack, /<span class="v-chip">Fluxogramas<\/span>/);
+  assert.ok(!stack.includes("v-chip") && !stack.includes("Fluxogramas"));
   assert.ok(!stack.includes("sem imagem"));
   // Sem imagem nenhuma: o texto ocupa a largura toda.
   assert.match(render([{ type: "hero", title: "T", visual: "stack" }], false), /v-hero-grid no-media/);
 });
 
-test("abertura: números em destaque grandes, em linha, abaixo do título", () => {
-  const page = render([{ type: "hero", title: "T", lead: "L", stats: [{ value: "6", label: "módulos" }, { value: "18h", label: "de aula" }] }], false);
-  assert.match(page, /<p class="lead">L<\/p>\s*<ul class="v-stats" aria-label="Números do produto"><li><strong>6<\/strong> <span>módulos<\/span><\/li><li><strong>18h<\/strong> <span>de aula<\/span><\/li><\/ul>/);
-  assert.ok(!render([{ type: "hero", title: "T" }], false).includes("v-stats"));
+test("abertura antiga: logo, selos, números e preço saem sem invalidar o bloco", () => {
+  const old = [{ type: "hero", title: "T", lead: "L", logo: IMG(1), price_label: "Por apenas",
+    stats: [{ value: "6", label: "módulos" }], badges: [{ strong: "PDF", text: "Prático" }] }, { type: "offer", title: "O" }];
+  const { sections, error } = validateSections(old);
+  assert.equal(error, undefined);
+  for (const name of ["logo", "price_label", "stats", "badges"]) assert.ok(!(name in sections[0]), name);
+  const page = render(old, false);
+  assert.ok(!/v-stats|class="badges"|v-logo|Por apenas/.test(page.split('id="oferta"')[0]));
+  assert.match(page, /<h1>T<\/h1>/);
+});
+
+test("abertura: botão leva à seção de compra (#oferta); sem ela, ao checkout", () => {
+  const page = render([{ type: "hero", title: "T", cta_label: "Quero" }, { type: "offer", title: "O" }, { type: "offer", title: "O2" }], false);
+  assert.match(page, /<p class="v-hero-cta"><a class="btn-cta" href="#oferta">Quero<\/a><\/p>/);
+  assert.equal((page.match(/id="oferta"/g) || []).length, 1, "a âncora fica só na primeira oferta");
+  assert.match(page, /<section class="v-final" id="oferta" aria-labelledby=/);
+  const alone = render([{ type: "hero", title: "T", cta_label: "Quero" }], false);
+  assert.match(alone, /<p class="v-hero-cta"><a class="btn-cta" href="https:\/\/pay\.example\.com\/x" target="_blank"/);
+  const live = render([{ type: "hero", title: "T" }, { type: "offer", title: "O" }], "live");
+  assert.match(live, /<a class="btn-cta" href="#oferta"><span data-field="cta_label" data-fallback>Comprar agora<\/span><\/a>/);
+});
+
+test("abertura: parágrafo abaixo do subtítulo (lado a lado) ou da imagem (centralizada)", () => {
+  const a = IMG(7);
+  const block = { type: "hero", title: "T", lead: "L", text: "Um parágrafo.", image: a };
+  const split = withMedia([block], [a]);
+  assert.match(split, /<p class="lead">L<\/p>\s*<p class="v-hero-para">Um parágrafo\.<\/p>/);
+  const center = withMedia([{ ...block, layout: "center" }], [a]);
+  assert.match(center, /<p class="lead">L<\/p>\s*<figure class="v-visual">.*?<\/figure>\s*<p class="v-hero-para">Um parágrafo\.<\/p>/s);
 });
 
 test("grade de tópicos no formato linha do tempo: passos numerados 01, 02…", () => {
@@ -572,7 +597,7 @@ test("blocos antigos, sem os campos novos, continuam válidos e com o visual de 
   const { sections, error } = validateSections(old);
   assert.equal(error, undefined);
   assert.equal(sections[0].visual, "image");
-  assert.deepEqual(sections[0].stats, []);
+  assert.ok(!("stats" in sections[0]) && !("badges" in sections[0]) && !("logo" in sections[0]));
   assert.equal(sections[1].layout, "grid");
   assert.equal(sections[2].images[0].topics, "");
 });
@@ -580,13 +605,17 @@ test("blocos antigos, sem os campos novos, continuam válidos e com o visual de 
 test("abertura: livro 3D, notebook e celular, mosaico", () => {
   const [a, b, c] = [IMG(3), IMG(4), IMG(5)];
   const book = withMedia([{ type: "hero", title: "T", visual: "book", image: a, image_label: "Manual" }], [a]);
-  assert.match(book, /<figure class="v-visual v-book"><div class="v-book-3d"><img class="book-img"[^>]*><\/div><span class="v-chip">Manual<\/span><\/figure>/);
+  assert.match(book, /<figure class="v-visual v-book"><div class="v-book-3d"><img class="book-img"[^>]*><\/div><\/figure>/);
   const laptop = withMedia([{ type: "hero", title: "T", visual: "devices", image: a }], [a]);
   assert.match(laptop, /<div class="v-laptop"><div class="v-laptop-screen"><img class="laptop-img"/);
   assert.ok(!laptop.includes("v-phone") && !laptop.includes("has-phone"));
   const both = withMedia([{ type: "hero", title: "T", visual: "devices", image: a, extra_images: [{ image: b, label: "App" }] }], [a, b]);
   assert.match(both, /v-devices has-phone/);
-  assert.match(both, /<div class="v-phone"><img class="phone-img"[^>]*><span class="v-chip">App<\/span><\/div>/);
+  assert.match(both, /<div class="v-phone"><img class="phone-img"[^>]*><\/div>/);
+  assert.ok(!both.includes("v-tablet"));
+  const three = withMedia([{ type: "hero", title: "T", visual: "devices", image: a, extra_images: [{ image: b }, { image: c, label: "Tablet" }] }], [a, b, c]);
+  assert.match(three, /v-devices has-phone has-tablet/);
+  assert.match(three, /<div class="v-tablet"><img class="tablet-img"[^>]*><\/div>\s*<div class="v-phone">/);
   const mosaic = withMedia([{ type: "hero", title: "T", visual: "mosaic", image: a,
     extra_images: [{ image: b }, { image: null }, { image: c, label: "Fluxograma" }] }], [a, b, c]);
   assert.match(mosaic, /<div class="v-mosaic" data-count="3">/);
@@ -672,7 +701,7 @@ test("abertura: lista de pontos com ícone, aviso abaixo do botão e disposiçã
   assert.match(split, /<p class="cta-note">Acesso na hora<\/p>\s*<\/div>\s*<figure class="v-visual">/, "lado a lado: a imagem é a 2ª coluna");
   const center = withMedia([{ ...block, layout: "center" }], [a]);
   assert.match(center, /<div class="container v-hero-grid is-center">/);
-  assert.match(center, /<\/h1>\s*<figure class="v-visual">.*?<\/figure>\s*<p class="lead">L<\/p>/s, "centralizada: a imagem vem entre o título e a chamada");
+  assert.match(center, /<\/h1>\s*<p class="lead">L<\/p>\s*<figure class="v-visual">/, "centralizada: a imagem vem logo abaixo do subtítulo");
   const plain = render([{ type: "hero", title: "T" }], false);
   assert.ok(!/v-bullets|cta-note|is-center/.test(plain));
 });
