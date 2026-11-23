@@ -300,6 +300,7 @@ const BLOCKS = {
           timeline: "M8 12h32M8 12h.01M24 12h.01M40 12h.01M4 19h8M20 19h8M36 19h8M4 23h8M20 23h8M36 23h8",
         },
       }),
+      columns: { ...columns(), showIf: { field: "style", in: ["grid"] } },
       title: text("Título da seção", 120, { help: "Opcional: vazio, a seção fica sem título visível." }),
       intro: text("Descrição no fim da seção", 280, { help: "Opcional. Texto curto e centralizado que aparece depois dos itens." }),
       // showIf nos itens: o editor só mostra os campos que o estilo usa (os valores ficam guardados).
@@ -309,7 +310,6 @@ const BLOCKS = {
         text: textarea("Texto", 400),
         callout: text("Destaque", 200, { showIf: { field: "style", in: ["cards"] } }),
       }, "item"),
-      columns: { ...columns(), showIf: { field: "style", in: ["grid"] } },
       background: background(),
     },
   },

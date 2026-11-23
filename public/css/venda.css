@@ -1034,10 +1034,24 @@
   border-radius: 2px;
   background: linear-gradient(var(--v-cta), color-mix(in srgb, var(--v-cta) 12%, transparent));
 }
+/* Colunas por quantidade de passos: no máximo 4 por linha; com mais, quebra em linhas iguais
+   (5 e 6 → 3 + 3, 7 e 8 → 4 + 4, 9 → 3 × 3). Entre 640 e 1000px, sempre 2 por linha. */
+.v-steps { --cols: 4; }
+.v-steps[data-count="1"] { --cols: 1; }
+.v-steps[data-count="2"] { --cols: 2; }
+.v-steps:is([data-count="3"], [data-count="5"], [data-count="6"], [data-count="9"]) { --cols: 3; }
+@media (min-width: 640px) {
+  .v-steps:not([data-count="1"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (min-width: 1000px) {
+  .v-steps:not([data-count="1"]) {
+    grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  }
+}
 @media (min-width: 860px) {
   .v-steps {
-    grid-auto-flow: column;
-    grid-auto-columns: minmax(0, 1fr);
     gap: 2.25rem;
   }
   .v-steps > li {
@@ -1734,7 +1748,8 @@
 
 /* ---------- Passo a passo: cartões com a etiqueta "PASSO 01" ---------- */
 .venda .v-steps {
-  gap: 1.25rem;
+  --gap: 1.75rem;
+  gap: var(--gap);
 }
 .venda .v-steps > li {
   display: flex;
@@ -1747,8 +1762,44 @@
   background: var(--v-card);
   box-shadow: var(--v-shadow);
 }
+/* Linha que liga um passo ao seguinte, no vão entre os cartões: vertical com uma coluna (celular),
+   horizontal na altura da etiqueta com várias colunas. Não aparece depois do último de cada linha. */
 .venda .v-steps > li::after {
   content: none;
+}
+.venda .v-steps > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  grid-row: auto;
+  grid-column: auto;
+  top: 100%;
+  left: 2.5rem;
+  right: auto;
+  bottom: auto;
+  width: 2px;
+  height: var(--gap);
+  margin: 0;
+  border-radius: 2px;
+  background: var(--v-cta);
+}
+@media (min-width: 640px) {
+  .venda .v-steps:not([data-count="1"]) > li:not(:last-child)::after {
+    top: 2.3rem;
+    left: 100%;
+    width: var(--gap);
+    height: 2px;
+  }
+}
+@media (min-width: 640px) and (max-width: 999.98px) {
+  .venda .v-steps > li:nth-child(2n)::after {
+    content: none;
+  }
+}
+@media (min-width: 1000px) {
+  .venda .v-steps:is([data-count="3"], [data-count="5"], [data-count="6"], [data-count="9"]) > li:nth-child(3n)::after,
+  .venda .v-steps:not([data-count="1"], [data-count="2"], [data-count="3"], [data-count="5"], [data-count="6"], [data-count="9"]) > li:nth-child(4n)::after {
+    content: none;
+  }
 }
 .venda .v-step-num {
   padding: 0.35rem 0.9rem;
