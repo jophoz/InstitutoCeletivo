@@ -359,10 +359,10 @@ const BLOCKS = {
   },
   cta: {
     label: "Chamada intermediária",
-    help: "Faixa escura e compacta com o botão de compra, para usar no meio da página. Preço e link vêm do cadastro do produto.",
+    help: "Faixa escura e compacta com um título e um botão que leva até a oferta no fim da página. Use no meio da página.",
+    removed: ["eyebrow"],
     fields: {
-      eyebrow: eyebrow(),
-      title: text("Texto", 160),
+      title: text("Título", 160),
       cta_label: text("Texto do botão", 60, { placeholder: "Quero garantir" }),
     },
   },

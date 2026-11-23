@@ -82,10 +82,10 @@ test("abertura, oferta e chamada são sempre escuras (sem escolha de fundo)", ()
   assert.match(validateSections([{ type: "cta", background: "dark" }]).error, /não suportado/);
 });
 
-test("chamada intermediária: texto e botão com limites", () => {
-  const ok = validateSections([{ type: "cta", title: "Pronto?", cta_label: "Quero" }]);
-  assert.deepEqual(ok.sections[0], { type: "cta", eyebrow: "", title: "Pronto?", cta_label: "Quero" });
-  assert.match(validateSections([{ type: "cta", eyebrow: "x".repeat(41) }]).error, /Rótulo acima do título: máximo de 40/);
+test("chamada intermediária: só título e botão; o rótulo de páginas antigas é descartado", () => {
+  const ok = validateSections([{ type: "cta", eyebrow: "Antigo", title: "Pronto?", cta_label: "Quero" }]);
+  assert.deepEqual(ok.sections[0], { type: "cta", title: "Pronto?", cta_label: "Quero" });
+  assert.match(validateSections([{ type: "cta", title: "x".repeat(161) }]).error, /Título: máximo de 160/);
 });
 
 test("ícones: todos têm nome e um desenho SVG válido (só comandos de caminho e números)", () => {

@@ -457,13 +457,11 @@ const RENDERERS = {
 </div></section>`;
   },
 
-  // Faixa compacta de compra no meio da página: texto à esquerda, preço e botão à direita.
+  // Faixa compacta no meio da página: título à esquerda e, à direita, o botão que leva à oferta final.
   cta(b, ctx) {
-    const price = ctx.product.price_cents === null || ctx.product.price_cents === undefined ? null
-      : html`<span class="v-strip-price">${ctx.amount()}</span>`;
     return html`<section class="v-strip" aria-label="Chamada para compra"${ctx.mark()}><div class="container v-strip-row">
-  <div>${ctx.eyebrow(b)}${ctx.show(b.title) && html`<p class="v-strip-text"${ctx.field("title", b.title)}>${b.title}</p>`}</div>
-  <div class="v-strip-action">${price}${ctx.cta(b.cta_label, "Quero garantir", "cta_label")}${price && ctx.timer()}</div>
+  ${ctx.show(b.title) && html`<p class="v-strip-text"${ctx.field("title", b.title)}>${b.title}</p>`}
+  <div class="v-strip-action">${ctx.scrollCta(b.cta_label, "Quero garantir", "cta_label")}</div>
 </div></section>`;
   },
 

@@ -170,12 +170,15 @@ test("rótulo acima do título: só aparece preenchido na página pública; no e
     /<p class="v-eyebrow" data-field="eyebrow" data-empty data-placeholder="Rótulo acima do título"><\/p>/);
 });
 
-test("chamada intermediária: texto, preço e botão com o link do produto", () => {
-  const page = render([{ type: "cta", title: "Pronto para começar?", cta_label: "" }], false);
+test("chamada intermediária: só título e botão, que leva à oferta final (sem ela, ao checkout)", () => {
+  const page = render([{ type: "cta", title: "Pronto para começar?", cta_label: "" }, { type: "offer", title: "O" }], false);
   assert.match(page, /<section class="v-strip" aria-label="Chamada para compra">/);
   assert.match(page, /<p class="v-strip-text">Pronto para começar\?<\/p>/);
-  assert.match(page, /<span class="v-strip-price">R\$\s49,90<\/span>/);
-  assert.match(page, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/x"[^>]*>Quero garantir<span class="sr-only">/);
+  assert.match(page, /<div class="v-strip-action"><a class="btn-cta" href="#oferta">Quero garantir<\/a><\/div>/);
+  const strip = page.slice(page.indexOf('class="v-strip"'), page.indexOf("</section>", page.indexOf('class="v-strip"')));
+  assert.ok(!/v-eyebrow|v-strip-price|offer-timer/.test(strip), "sem rótulo, preço nem cronômetro");
+  const alone = render([{ type: "cta", title: "T", cta_label: "Quero" }], false);
+  assert.match(alone, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/x" target="_blank"/);
 });
 
 test("editor: <html data-editor> desliga as animações; fonte Inter pré-carregada do próprio site", () => {

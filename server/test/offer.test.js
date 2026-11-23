@@ -49,14 +49,16 @@ const page = (product, now = NOW) => renderSalesPage({
   ...product,
 }, { baseUrl: "http://localhost", now });
 
-test("página: oferta ativa usa o link promocional, mostra 'de/por' e o cronômetro em cada bloco de compra", () => {
+test("página: oferta ativa usa o link promocional, mostra 'de/por' e o cronômetro na oferta final", () => {
   const html = page(base);
   assert.ok(!html.includes("Normal1"), "o link normal não deve aparecer durante a oferta");
-  // A abertura não tem preço: o botão dela rola até a oferta final; o checkout fica na faixa e na oferta.
+  // A abertura e a chamada intermediária não têm preço: os botões delas rolam até a oferta final,
+  // que é o único lugar com o checkout.
   assert.match(html, /<p class="v-hero-cta"><a class="btn-cta" href="#oferta">/);
-  assert.equal(html.match(/href="https:\/\/pay\.kiwify\.com\.br\/Promo01"/g).length, 2);
-  assert.equal(html.match(/<s class="price-was"><span class="sr-only">De <\/span>R\$\s197,00<\/s>/g).length, 2);
-  assert.equal(html.match(/class="offer-timer" data-ends-at="2026-10-26T02:59:00\.000Z" data-now="2026-10-23T12:00:00\.000Z"/g).length, 2);
+  assert.match(html, /<div class="v-strip-action"><a class="btn-cta" href="#oferta">/);
+  assert.equal(html.match(/href="https:\/\/pay\.kiwify\.com\.br\/Promo01"/g).length, 1);
+  assert.equal(html.match(/<s class="price-was"><span class="sr-only">De <\/span>R\$\s197,00<\/s>/g).length, 1);
+  assert.equal(html.match(/class="offer-timer" data-ends-at="2026-10-26T02:59:00\.000Z" data-now="2026-10-23T12:00:00\.000Z"/g).length, 1);
   assert.match(html, /Oferta válida até 25\/10 às 23:59/);
 });
 

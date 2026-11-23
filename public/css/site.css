@@ -349,11 +349,6 @@ main p {
   align-items: center;
   gap: 0.75rem 1.5rem;
 }
-.v-strip-price {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
 @media (max-width: 599px) {
   .v-strip-action,
   .v-strip-action .btn-cta {
