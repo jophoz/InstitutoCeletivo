@@ -648,7 +648,7 @@
 }
 
 
-/* Grade de tópicos (com fundo escuro, vira o painel de conteúdo do curso) */
+/* Apresentação, estilo grade (com fundo escuro, vira o painel de conteúdo do curso) */
 .grid8 {
   list-style: none;
   margin: 0;
@@ -748,29 +748,6 @@
 .v-card.center .mini {
   max-width: 440px;
   margin-inline: auto;
-}
-
-/* Comparativo */
-.versus {
-  display: grid;
-  gap: 1.25rem;
-  align-items: center;
-}
-@media (min-width: 760px) {
-  .versus {
-    grid-template-columns: 1fr auto 1fr;
-  }
-}
-.vs {
-  justify-self: center;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--v-cta);
-  color: var(--v-cta-text);
-  font-weight: 800;
 }
 
 /* Autor */
@@ -1011,7 +988,7 @@
   border-radius: 50%;
 }
 
-/* ---------- Linha do tempo (Grade de tópicos no formato "passo a passo") ----------
+/* ---------- Linha do tempo (Apresentação no estilo "passo a passo") ----------
    Números grandes em laranja ligados por uma linha: na vertical no celular, na horizontal a
    partir de 860px (a linha sai do número e vai até o passo seguinte). */
 .v-steps {

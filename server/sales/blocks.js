@@ -281,28 +281,35 @@ const BLOCKS = {
       }, "imagem", { showIf: { field: "visual", in: ["stack", "mosaic", "devices"] } }),
     },
   },
-  benefits: {
-    label: "Cartões de benefícios",
-    help: "Dois a quatro cartões com os principais benefícios.",
+  presentation: {
+    label: "Apresentação",
+    help: "Apresente o produto em itens com ícone, título e texto, em um destes estilos: cartões de benefícios, grade de tópicos ou linha do tempo (passo a passo).",
+    // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
+    removed: ["eyebrow"],
     fields: {
-      title: text("Título da seção (só para leitores de tela)", 120),
-      items: list("Cartões", 4, {
-        icon: icon(), title: text("Título", 80), text: textarea("Texto", 400), callout: text("Destaque", 200),
-      }, "cartão"),
-      background: background(),
-    },
-  },
-  topics: {
-    label: "Grade de tópicos",
-    help: "O que a pessoa vai encontrar no produto (módulos, capítulos, temas). Com fundo escuro, vira um painel de conteúdo.",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }, "tópico"),
-      layout: choice("Formato", { grid: "Grade de cartões", timeline: "Linha do tempo (passo a passo)" }, "grid",
-        { help: "Linha do tempo: os tópicos viram passos numerados (01, 02…) ligados por uma linha. Bom para a metodologia." }),
-      columns: { ...columns(), showIf: { field: "layout", in: ["grid"] } },
+      style: choice("Estilo", {
+        cards: "Cartões de benefícios",
+        grid: "Grade de tópicos",
+        timeline: "Linha do tempo (passo a passo)",
+      }, "cards", {
+        help: "Cartões: dois por linha, com texto mais longo e um destaque opcional. Grade: tópicos curtos em colunas (módulos, capítulos, temas); com fundo escuro, vira um painel de conteúdo. Linha do tempo: os itens viram passos numerados (01, 02…) ligados por uma linha, bom para a metodologia.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Abertura.
+        previews: {
+          cards: "M4 5h18v22H4zM26 5h18v22H26zM8 10h4M30 10h4M8 15h10M30 15h10M8 19h8M30 19h8",
+          grid: "M4 5h11v10H4zM18.5 5h11v10h-11zM33 5h11v10H33zM4 18h11v10H4zM18.5 18h11v10h-11zM33 18h11v10H33z",
+          timeline: "M8 12h32M8 12h.01M24 12h.01M40 12h.01M4 19h8M20 19h8M36 19h8M4 23h8M20 23h8M36 23h8",
+        },
+      }),
+      title: text("Título da seção", 120, { help: "Opcional: vazio, a seção fica sem título visível." }),
+      intro: text("Descrição no fim da seção", 280, { help: "Opcional. Texto curto e centralizado que aparece depois dos itens." }),
+      // showIf nos itens: o editor só mostra os campos que o estilo usa (os valores ficam guardados).
+      items: list("Itens", 12, {
+        icon: { ...icon(), showIf: { field: "style", in: ["cards", "grid"] } },
+        title: text("Título", 80),
+        text: textarea("Texto", 400),
+        callout: text("Destaque", 200, { showIf: { field: "style", in: ["cards"] } }),
+      }, "item"),
+      columns: { ...columns(), showIf: { field: "style", in: ["grid"] } },
       background: background(),
     },
   },
@@ -315,20 +322,6 @@ const BLOCKS = {
       title: text("Título", 120),
       intro: intro(),
       items: list("Itens", 10, { text: text("Texto", 160), positive: bool("Positivo (✓)") }),
-      background: background(),
-    },
-  },
-  comparison: {
-    label: "Comparativo",
-    help: "Dois lados: a alternativa comum (✗) e o seu produto (✓).",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      left_title: text("Título do lado ✗", 80),
-      left_items: list("Itens do lado ✗", 8, { text: text("Texto", 160) }),
-      right_title: text("Título do lado ✓", 80),
-      right_items: list("Itens do lado ✓", 8, { text: text("Texto", 160) }),
       background: background(),
     },
   },
@@ -755,7 +748,7 @@ function defaultSections() {
         { icon: "checkcircle", text: "Terceiro resultado que a pessoa alcança" }],
       cta_label: "Comprar agora", note: "Você recebe o acesso na hora, no seu e-mail." },
     { type: "demo", style: "carousel", title: "Conheça por dentro", items: [] },
-    { type: "benefits", title: "Benefícios", items: [
+    { type: "presentation", style: "cards", items: [
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
       { icon: "doc", title: "Segundo benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" }] },
     { type: "countdown", title: "Aproveite o preço promocional por tempo limitado", text: "Depois do prazo, o preço volta ao normal.", cta_label: "Quero aproveitar" },
@@ -763,7 +756,7 @@ function defaultSections() {
       { icon: "target", text: "Primeiro perfil", description: "Uma frase sobre o que essa pessoa busca." },
       { icon: "user", text: "Segundo perfil", description: "Uma frase sobre o que essa pessoa busca." },
       { icon: "rocket", text: "Terceiro perfil", description: "Uma frase sobre o que essa pessoa busca." }] },
-    { type: "topics", eyebrow: "Passo a passo", title: "Como você vai aprender", layout: "timeline", items: [
+    { type: "presentation", style: "timeline", title: "Como você vai aprender", items: [
       { icon: "video", title: "Assista", text: "Aulas curtas e objetivas, organizadas por módulos." },
       { icon: "doc", title: "Estude o material", text: "Manual em PDF para estudo e consulta." },
       { icon: "eye", title: "Visualize", text: "Fluxogramas que mostram o processo de forma visual." },

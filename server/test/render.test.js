@@ -18,7 +18,7 @@ const sample = () => [
   { type: "hero", title: "", lead: "", badges: [{ strong: "", text: "x" }] },
   { type: "author", name: "" },                                     // não aparece: sem nome
   { type: "testimonials", title: "Dizem", items: [{ quote: "Q", name: "N", role: "" }, { quote: "" }] },
-  { type: "benefits", items: [{ title: "<script>alert(1)</script>", text: "P1\n\nP2", callout: "" }] },
+  { type: "presentation", items: [{ title: "<script>alert(1)</script>", text: "P1\n\nP2", callout: "" }] },
 ];
 
 // Cada seção da pré-visualização com o número do bloco: [[índice, html], ...]
@@ -80,9 +80,9 @@ test("cada texto preenchido do modelo padrão é editável na página", () => {
     };
     walk(block, BLOCKS[block.type].fields, "");
   });
-  // Exceções conhecidas: o título dos benefícios é só para leitores de tela, e o carrossel do modelo
-  // não tem imagens (não aparece; o editor mostra o aviso e o título e o rótulo ficam no painel).
-  assert.deepEqual(missing.filter((m) => !["benefits:title", "demo:title"].includes(m)), []);
+  // Exceção conhecida: o carrossel do modelo não tem imagens (não aparece; o editor mostra o aviso
+  // e o título fica no painel).
+  assert.deepEqual(missing.filter((m) => !["demo:title"].includes(m)), []);
 });
 
 test("campos vazios ganham texto de exemplo com o rótulo do esquema", () => {
@@ -113,7 +113,7 @@ test("texto digitado continua escapado no modo ao vivo", () => {
 });
 
 test("texto longo: parágrafos dentro de um único campo editável", () => {
-  const page = render([{ type: "benefits", items: [{ title: "T", text: "P1\n\nP2" }] }], "live");
+  const page = render([{ type: "presentation", items: [{ title: "T", text: "P1\n\nP2" }] }], "live");
   assert.match(page, /<div data-field="items\.0\.text" data-multiline><p>P1<\/p><p>P2<\/p><\/div>/);
 });
 
@@ -185,7 +185,7 @@ test("editor: <html data-editor> desliga as animações; fonte Inter pré-carreg
 });
 
 test("ícones: no editor levam o caminho do campo (clique troca o ícone); na página pública, não", () => {
-  const sections = [{ type: "benefits", items: [{ icon: "gift", title: "T" }] }, { type: "checklist", icon: "shield", title: "C", items: [{ text: "x", positive: true }] }];
+  const sections = [{ type: "presentation", items: [{ icon: "gift", title: "T" }] }, { type: "checklist", icon: "shield", title: "C", items: [{ text: "x", positive: true }] }];
   const live = render(sections, "live");
   assert.match(live, /<svg class="ico" aria-hidden="true" data-icon-field="items\.0\.icon"><use href="#i-gift"\/><\/svg>/);
   assert.match(live, /<svg class="ico big" aria-hidden="true" data-icon-field="icon"><use href="#i-shield"\/><\/svg>/);
@@ -193,7 +193,7 @@ test("ícones: no editor levam o caminho do campo (clique troca o ícone); na p�
 });
 
 test("todo data-icon-field aponta para um campo de ícone do bloco certo", () => {
-  const sections = [...defaultSections(), { type: "benefits", items: [{ icon: "gift", title: "T" }] }];
+  const sections = [...defaultSections(), { type: "presentation", items: [{ icon: "gift", title: "T" }] }];
   let count = 0;
   for (const [index, chunk] of sectionsOf(render(sections, "live"))) {
     for (const [, path] of chunk.matchAll(/data-icon-field="([^"]+)"/g)) {
@@ -251,7 +251,7 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
 
 test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
   const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
-  assert.deepEqual(types.sort(), ["audience", "bonus", "checklist", "comparison", "curriculum", "faq", "guarantee", "social", "table", "testimonials", "topics"]);
+  assert.deepEqual(types.sort(), ["audience", "bonus", "checklist", "curriculum", "faq", "guarantee", "presentation", "social", "table", "testimonials"]);
   const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
   assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
@@ -305,7 +305,7 @@ test("listas: cheia, sem '+ Adicionar'; carrossel com × em cada imagem", () => 
 });
 
 test("listas vazias: no editor o bloco continua, oculto, com o botão de adicionar", () => {
-  for (const type of ["benefits", "topics", "checklist", "audience", "faq"]) {
+  for (const type of ["presentation", "checklist", "audience", "faq"]) {
     const live = render([{ type, title: "T", items: [] }], "live");
     assert.match(live, /data-block="0" data-hidden/, type);
     assert.ok(live.includes('data-item-add="items"'), type);
@@ -420,9 +420,9 @@ test("página de vendas sem botão voltar (navegação enxuta)", () => {
 
 test("grades: colunas escolhidas viram classe; automático não leva classe", () => {
   const item = { icon: "check", title: "T", text: "x" };
-  assert.match(render([{ type: "topics", title: "T", items: [item], columns: "four" }], false), /<ul class="grid8 cols-4">/);
+  assert.match(render([{ type: "presentation", style: "grid", title: "T", items: [item], columns: "four" }], false), /<ul class="grid8 cols-4">/);
   assert.match(render([{ type: "audience", title: "T", items: [{ icon: "user", text: "A" }], columns: "three" }], false), /<ul class="who cols-3">/);
-  assert.match(render([{ type: "topics", title: "T", items: [item] }], false), /<ul class="grid8">/);
+  assert.match(render([{ type: "presentation", style: "grid", title: "T", items: [item] }], false), /<ul class="grid8">/);
 });
 
 test("texto formatado: negrito, cor e alinhamento na página pública e no editor", () => {
@@ -536,12 +536,12 @@ test("abertura: parágrafo abaixo do subtítulo (lado a lado) ou da imagem (cent
   assert.match(center, /<p class="lead">L<\/p>\s*<figure class="v-visual">.*?<\/figure>\s*<p class="v-hero-para">Um parágrafo\.<\/p>/s);
 });
 
-test("grade de tópicos no formato linha do tempo: passos numerados 01, 02…", () => {
+test("apresentação no estilo linha do tempo: passos numerados 01, 02…", () => {
   const items = [{ title: "Assista", text: "a" }, { title: "Estude", text: "b" }];
-  const page = render([{ type: "topics", title: "Como", layout: "timeline", items }], false);
+  const page = render([{ type: "presentation", style: "timeline", title: "Como", items }], false);
   assert.match(page, /<ol class="v-steps" data-count="2"><li><span class="v-step-num" aria-hidden="true">01<\/span><strong>Assista<\/strong><span>a<\/span><\/li><li><span class="v-step-num" aria-hidden="true">02<\/span>/);
   assert.ok(!page.includes("grid8"));
-  assert.match(render([{ type: "topics", title: "Como", items }], false), /<ul class="grid8">/); // padrão: grade
+  assert.match(render([{ type: "presentation", style: "grid", title: "Como", items }], false), /<ul class="grid8">/);
 });
 
 test("carrossel com títulos e listas: painel do módulo ao lado das imagens", () => {
@@ -597,13 +597,14 @@ test("oferta: selos de compra segura em linha no fim do cartão de compra", () =
 
 test("blocos antigos, sem os campos novos, continuam válidos e com o visual de antes", () => {
   const old = [{ type: "hero", title: "T", lead: "L", badges: [], price_label: "", cta_label: "", logo: null, eyebrow: "", image: null },
-    { type: "topics", title: "T", items: [{ icon: "doc", title: "a", text: "b" }], columns: "auto", eyebrow: "", intro: "", background: "auto" },
+    { type: "presentation", title: "T", items: [{ icon: "doc", title: "a", text: "b" }], eyebrow: "", intro: "", background: "auto" },
     { type: "demo", title: "G", items: [{ image: IMG(1) }], eyebrow: "", intro: "", background: "auto" }];
   const { sections, error } = validateSections(old);
   assert.equal(error, undefined);
   assert.equal(sections[0].visual, "image");
   assert.ok(!("stats" in sections[0]) && !("badges" in sections[0]) && !("logo" in sections[0]));
-  assert.equal(sections[1].layout, "grid");
+  assert.equal(sections[1].style, "cards");
+  assert.ok(!("eyebrow" in sections[1])); // a Apresentação não tem mais rótulo
   assert.equal(sections[2].items[0].bullets, "");
   assert.ok(!("eyebrow" in sections[2]) && !("intro" in sections[2])); // a Demonstração não tem mais rótulo nem descrição
 });
@@ -752,4 +753,20 @@ test("blocos de antes do modelo de página de vendas continuam válidos, sem as 
   const page = render(old, false);
   assert.ok(!/v-bullets|cta-note|is-center|is-cards|who-desc|author-cta|has-seal|class="stars"/.test(page));
   assert.equal((page.match(/<section/g) || []).length, 5);
+});
+
+test("apresentação em cartões: sem título, só um h2 para leitores de tela; com título, h2 visível", () => {
+  const items = [{ icon: "bolt", title: "B", text: "T", callout: "Destaque" }];
+  const plain = render([{ type: "presentation", items }], false);
+  assert.match(plain, /<h2 id="[^"]+" class="sr-only">Benefícios<\/h2>\s*<div class="two"><article class="v-card">/);
+  assert.ok(plain.includes('<p class="callout">Destaque</p>'));
+  assert.match(render([{ type: "presentation", title: "Por que", items }], false), /<h2 id="[^"]+">Por que<\/h2>/);
+  // No editor o título aparece vazio, para ser preenchido direto na página.
+  assert.match(render([{ type: "presentation", items }], "live"), /<h2 id="[^"]+" data-field="title" data-empty/);
+});
+
+test("apresentação: a descrição fica no fim da seção, depois dos itens", () => {
+  const page = render([{ type: "presentation", style: "grid", title: "T", intro: "Fecho.", items: [{ icon: "doc", title: "a", text: "b" }] }], false);
+  assert.match(page, /<\/ul>\s*<p class="v-intro is-last">Fecho\.<\/p>\s*<\/div><\/section>/);
+  assert.match(render([{ type: "presentation", items: [] }], "live"), /<p class="v-intro is-last" data-field="intro" data-empty data-placeholder="Descrição no fim da seção">/);
 });

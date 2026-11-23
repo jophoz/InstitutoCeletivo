@@ -371,10 +371,8 @@
   // (editor/src/ui/BlockIcon.jsx lê daqui). Tipo sem ícone próprio usa o genérico.
   var BLOCK_ICONS = {
     hero: "M3 4h18v10H3zM7 18h10M9 21h6",                                  // tela com destaque
-    benefits: "M3 5h8v14H3zM13 5h8v14h-8zM6 9h2M16 9h2",                   // dois cartões
-    topics: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",           // grade
+    presentation: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",     // grade
     checklist: "M4 6l2 2 3-3M4 13l2 2 3-3M12 7h8M12 14h8M4 19h16",         // lista ✓
-    comparison: "M3 4h7v16H3zM14 4h7v16h-7zM10.5 12h3",                    // duas colunas
     author: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.5-6 8-6s8 2 8 6", // pessoa
     audience: "M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 7-5s7 2 7 5M17 4a3 3 0 0 1 0 6M19 15c2 .7 3 2.3 3 5", // pessoas
     highlight: "M3 11v2l13 5V6zM16 9a3 3 0 0 1 0 6M6 13l1 6h3l-1-5",       // megafone

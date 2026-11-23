@@ -195,6 +195,10 @@ main p {
 .v-card.center .v-intro {
   margin-bottom: 1.5rem;
 }
+/* Descrição no fim da seção (Apresentação), depois dos itens. */
+.v-intro.is-last {
+  margin: 2rem auto 0;
+}
 .narrow {
   max-width: 780px;
 }

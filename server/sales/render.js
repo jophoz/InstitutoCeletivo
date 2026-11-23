@@ -410,24 +410,17 @@ const RENDERERS = {
 </section>`;
   },
 
-  benefits(b, ctx) {
-    // Lista vazia: some da página; no editor fica só com o botão de adicionar.
+  // Apresentação: itens com ícone, título e texto, no estilo escolhido (ver PRESENTATION_STYLES).
+  // Sem título, a seção leva um h2 só para leitores de tela. Lista vazia: some da página; no editor
+  // fica só com o botão de adicionar.
+  presentation(b, ctx) {
     if (!b.items.length && !ctx.live) return null;
     const id = ctx.headingId();
+    const { fallback, body } = PRESENTATION_STYLES[b.style];
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
-  <h2 id="${id}" class="sr-only">${b.title || "Benefícios"}</h2>
-  <div class="two">${b.items.map((x, i) => html`<article class="v-card"${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.callout) && html`<p class="callout"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</p>`}${ctx.remove("items", i)}</article>`)}${ctx.addItem("items", b.items, "div")}</div>
-</div></section>`;
-  },
-
-  topics(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  ${b.layout === "timeline"
-    ? html`<ol class="v-steps" data-count="${b.items.length}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}><span class="v-step-num" aria-hidden="true">${pad2(i + 1)}</span><strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ol>`
-    : html`<ul class="grid8${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
+  ${ctx.show(b.title) ? html`<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>` : html`<h2 id="${id}" class="sr-only">${fallback}</h2>`}
+  ${body(b, ctx)}
+  ${ctx.show(b.intro) && html`<p class="v-intro is-last"${ctx.field("intro", b.intro)}>${b.intro}</p>`}
 </div></section>`;
   },
 
@@ -438,16 +431,6 @@ const RENDERERS = {
   <div class="v-card center">${ctx.icon("icon", b.icon, "ico big")}${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
     <ul class="mini">${b.items.map((x, i) => html`<li class="${x.positive ? "yes" : "no"}"${ctx.item("items", i)}>${mark(x.positive)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
   </div>
-</div></section>`;
-  },
-
-  comparison(b, ctx) {
-    const id = ctx.headingId();
-    const side = (prefix, title, items, positive) => html`<article class="v-card${positive ? " dark" : ""}"><h3${ctx.field(`${prefix}_title`, title)}>${title}</h3>
-      <ul class="mini">${items.map((x, i) => html`<li class="${positive ? "yes" : "no"}"${ctx.item(`${prefix}_items`, i)}>${mark(positive)}${ctx.text(`${prefix}_items.${i}.text`, x.text)}${ctx.remove(`${prefix}_items`, i)}</li>`)}${ctx.addItem(`${prefix}_items`, items)}</ul></article>`;
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <div class="versus">${side("left", b.left_title, b.left_items, false)}<div class="vs" aria-hidden="true">VS</div>${side("right", b.right_title, b.right_items, true)}</div>
 </div></section>`;
   },
 
@@ -633,6 +616,25 @@ const RENDERERS = {
   ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Acompanhe nas redes"}</h2>${ctx.intro(b)}
   <ul class="link-list social-links">${items.map(([x, i]) => linkItem(ctx, "items", i, x, { icon: `net-${x.network}`, label: NETWORKS[x.network].label }))}${ctx.addItem("items", b.items)}</ul>
 </div></section>`;
+  },
+};
+
+// Estilos do bloco Apresentação: o h2 de leitor de tela (seção sem título) e a lista de itens.
+const PRESENTATION_STYLES = {
+  // Cartões de benefícios, dois por linha, com destaque opcional.
+  cards: {
+    fallback: "Benefícios",
+    body: (b, ctx) => html`<div class="two">${b.items.map((x, i) => html`<article class="v-card"${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.callout) && html`<p class="callout"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</p>`}${ctx.remove("items", i)}</article>`)}${ctx.addItem("items", b.items, "div")}</div>`,
+  },
+  // Grade de tópicos curtos, com o número de colunas escolhido.
+  grid: {
+    fallback: "Tópicos",
+    body: (b, ctx) => html`<ul class="grid8${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`,
+  },
+  // Linha do tempo: passos numerados (01, 02…) ligados por uma linha.
+  timeline: {
+    fallback: "Passo a passo",
+    body: (b, ctx) => html`<ol class="v-steps" data-count="${b.items.length}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}><span class="v-step-num" aria-hidden="true">${pad2(i + 1)}</span><strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ol>`,
   },
 };
 
