@@ -26,6 +26,7 @@ const IMAGE_SIZES = {
   "quote-photo": "52px",
   "bonus-img": "(min-width: 900px) 320px, (min-width: 600px) 45vw, calc(100vw - 4rem)",
   "seal-img": "200px",
+  "banner-img": "(min-width: 1100px) 520px, (min-width: 760px) 46vw, calc(100vw - 4rem)",
 };
 
 const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -434,13 +435,25 @@ const RENDERERS = {
 </div></section>`;
   },
 
+  // Cartão escuro. Sem imagem: título e parágrafo à esquerda, lista à direita. Imagem à esquerda
+  // ou à direita: a imagem de um lado, os textos e a lista do outro (sem imagem, uma coluna só).
+  // Imagem no centro: título e parágrafo centralizados, a imagem e a lista embaixo.
   highlight(b, ctx) {
     const id = ctx.headingId();
+    const head = html`<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.paras("text", b.text)}`;
+    const list = (b.items.length > 0 || ctx.live) && html`<ul class="mini">${b.items.map((x, i) => html`<li class="yes"${ctx.item("items", i)}>${mark(true)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`;
+    const layout = b.layout || "banner";
+    const img = layout !== "banner" && ctx.img(b.image, "banner-img", { path: "image" });
+    let inner;
+    if (layout === "banner") {
+      inner = html`<div class="banner"><div>${head}</div>${list}</div>`;
+    } else if (layout === "top") {
+      inner = html`<div class="banner is-top"><div class="banner-head">${head}</div>${img}${list}</div>`;
+    } else {
+      inner = html`<div class="banner is-side${layout === "right" ? " is-right" : ""}${img ? "" : " no-media"}">${img}<div>${head}${list}</div></div>`;
+    }
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  <div class="banner">
-    <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.paras("text", b.text)}</div>
-    ${(b.items.length > 0 || ctx.live) && html`<ul class="mini">${b.items.map((x, i) => html`<li class="yes"${ctx.item("items", i)}>${mark(true)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
-  </div>
+  ${inner}
 </div></section>`;
   },
 

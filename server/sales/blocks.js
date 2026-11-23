@@ -335,9 +335,25 @@ const BLOCKS = {
   },
   highlight: {
     label: "Destaque",
-    help: "Cartão escuro com chamada e lista (ex.: bônus, conteúdo extra).",
+    help: "Cartão escuro com título, parágrafo e lista (ex.: bônus, conteúdo extra), com ou sem imagem.",
+    removed: ["eyebrow"],
     fields: {
-      eyebrow: eyebrow(),
+      layout: choice("Formato", {
+        banner: "Sem imagem",
+        left: "Imagem à esquerda",
+        right: "Imagem à direita",
+        top: "Imagem no centro",
+      }, "banner", {
+        help: "Sem imagem: título e parágrafo à esquerda, lista à direita. Imagem à esquerda ou à direita: a imagem de um lado e, do outro, título, parágrafo e lista. Imagem no centro: título e parágrafo centralizados em cima, a imagem no meio e a lista embaixo.",
+        // Miniatura de cada formato no editor (SVG 48×32, traço), como na Abertura.
+        previews: {
+          banner: "M3 3h42v26H3zM8 11h14M8 15h16M8 19h12M28 11h2M32 11h9M28 16h2M32 16h9M28 21h2M32 21h9",
+          left: "M3 3h42v26H3zM7 7h16v18H7zM27 10h14M27 14h12M27 19h2M31 19h9M27 23h2M31 23h9",
+          right: "M3 3h42v26H3zM25 7h16v18H25zM7 10h14M7 14h12M7 19h2M11 19h9M7 23h2M11 23h9",
+          top: "M3 3h42v26H3zM17 6.5h14M14 9.5h20M15 12.5h18v9H15zM9 25h2M13 25h8M27 25h2M31 25h8",
+        },
+      }),
+      image: image("Imagem", { size: "1200 × 900 px", showIf: { field: "layout", in: ["left", "right", "top"] } }),
       title: text("Título", 120),
       text: textarea("Texto", 600),
       items: list("Itens", 8, { text: text("Texto", 160) }),

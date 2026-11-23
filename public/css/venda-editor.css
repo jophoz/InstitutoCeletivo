@@ -569,6 +569,12 @@ html[data-editor] {
 
 /* ---------- Blocos do modelo de página de vendas ---------- */
 /* Espaços de imagem vazia: bônus (4:3) e selo de garantia (quadrado). */
+.img-slot.banner-img {
+  aspect-ratio: 4 / 3;
+}
+.banner.is-top .img-slot.banner-img {
+  aspect-ratio: 16 / 9;
+}
 .img-slot.bonus-img {
   aspect-ratio: 4 / 3;
   max-height: none;

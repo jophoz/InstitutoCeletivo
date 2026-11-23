@@ -795,3 +795,13 @@ test("bloco inválido: no editor vira um aviso no lugar dele (o resto aparece); 
   assert.ok(!page.includes("is-invalid") && !page.includes("Antigo"));
   assert.match(page, /Dúvidas/);
 });
+
+test("destaque: sem imagem (padrão), imagem ao lado ou no centro; sem imagem na página pública, uma coluna só", () => {
+  const base = { type: "highlight", title: "Bônus", text: "Texto", items: [{ text: "Item" }] };
+  assert.match(render([base], false), /<div class="banner"><div><h2[^>]*>Bônus<\/h2><p>Texto<\/p><\/div><ul class="mini">/);
+  assert.ok(!render([{ ...base, eyebrow: "Antigo" }], false).includes("Antigo")); // o rótulo saiu
+  assert.match(render([{ ...base, layout: "right" }], false), /<div class="banner is-side is-right no-media"><div><h2/);
+  // No editor, o espaço da imagem aparece antes dos textos (o CSS põe à direita quando é o caso).
+  assert.match(render([{ ...base, layout: "left" }], "live"), /<div class="banner is-side"><span class="img-slot banner-img" data-image-field="image"/);
+  assert.match(render([{ ...base, layout: "top" }], "live"), /<div class="banner is-top"><div class="banner-head"><h2[^>]*>Bônus<\/h2>.*?<\/div><\/div><span class="img-slot banner-img"[^>]*>.*?<\/span><ul class="mini">/);
+});

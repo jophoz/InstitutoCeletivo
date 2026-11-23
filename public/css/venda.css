@@ -811,6 +811,44 @@
   .banner {
     grid-template-columns: 1.2fr 1fr;
   }
+  /* Com imagem ao lado: imagem e textos meio a meio; à direita, a imagem passa para o fim. */
+  .banner.is-side {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .banner.is-right > .banner-img {
+    order: 2;
+  }
+  .banner.is-side.no-media,
+  .banner.is-top {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.banner-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--v-radius-md);
+}
+.banner.is-side .mini {
+  margin-top: 1.5rem;
+}
+/* Imagem no centro: título e parágrafo centralizados em cima, a imagem e a lista embaixo. */
+.banner.is-top {
+  justify-items: center;
+}
+.banner-head {
+  max-width: 720px;
+  text-align: center;
+}
+.banner.is-top .banner-img {
+  max-width: 820px;
+}
+.banner.is-top .mini {
+  width: 100%;
+  max-width: 820px;
+  margin: 0;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 0.7rem 1.5rem;
 }
 
 /* FAQ: acordeão em faixas arredondadas, "+" em círculo laranja */
