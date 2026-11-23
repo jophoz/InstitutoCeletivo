@@ -382,7 +382,6 @@
     guarantee: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM8.5 12l2.5 2.5 4.5-5", // escudo ✓
     offer: "M3 12V4h8l10 10-8 8zM7.5 7.5h.01",                              // etiqueta de preço
     social: "M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4", // compartilhar
-    curriculum: "M4 4h16v5H4zM4 11h16v5H4zM17 6.5h.01M17 13.5h.01M4 20h10",   // módulos empilhados
     demo: "M3 7h18v13H3zM3 7l2-3h5l2 3M8 13l3 2.5L16 11",                      // aba com imagem
     timer: "M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4l2.5 1.5M9 2h6M12 2v3", // cronômetro (faixa e contagem)
     bonus: "M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0", // presente

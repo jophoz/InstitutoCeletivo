@@ -531,16 +531,6 @@ const RENDERERS = {
 </section>`;
   },
 
-  // Currículo: módulos que abrem e fecham (mesmo acordeão do FAQ), com a lista de tópicos.
-  curriculum(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container narrow">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  ${b.items.map((x, i) => html`<details class="faq module"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary><span class="module-head"><span class="module-tag">Módulo ${pad2(i + 1)}</span>${ctx.text(`items.${i}.title`, x.title)}${ctx.show(x.meta) && html`<small class="module-meta"${ctx.field(`items.${i}.meta`, x.meta)}>${x.meta}</small>`}</span></summary>${ctx.lines(`items.${i}.topics`, x.topics, "module-topics")}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}
-</div></section>`;
-  },
-
   // Demonstração: o produto por dentro, no estilo escolhido (ver DEMO_STYLES).
   demo: (b, ctx) => DEMO_STYLES[b.style](b, ctx),
 
@@ -590,6 +580,12 @@ const PRESENTATION_STYLES = {
   timeline: {
     fallback: "Passo a passo",
     body: (b, ctx) => html`<ol class="v-steps" data-count="${b.items.length}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}><span class="v-step-num" aria-hidden="true">${pad2(i + 1)}</span><strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ol>`,
+  },
+  // Módulos que abrem e fecham (mesmo acordeão do FAQ), com "Módulo 01", detalhe e a lista de tópicos.
+  // No editor ficam abertos, para editar os tópicos direto.
+  modules: {
+    fallback: "Módulos",
+    body: (b, ctx) => html`<div class="v-modules narrow">${b.items.map((x, i) => html`<details class="faq module"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary><span class="module-head"><span class="module-tag">Módulo ${pad2(i + 1)}</span>${ctx.text(`items.${i}.title`, x.title)}${ctx.show(x.meta) && html`<small class="module-meta"${ctx.field(`items.${i}.meta`, x.meta)}>${x.meta}</small>`}</span></summary>${ctx.lines(`items.${i}.topics`, x.topics, "module-topics")}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}</div>`,
   },
 };
 

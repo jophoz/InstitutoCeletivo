@@ -283,7 +283,7 @@ const BLOCKS = {
   },
   presentation: {
     label: "Apresentação",
-    help: "Apresente o produto em itens com ícone, título e texto, em um destes estilos: cartões de benefícios, grade de tópicos ou linha do tempo (passo a passo).",
+    help: "Apresente o produto em itens, em um destes estilos: cartões de benefícios, grade de tópicos, linha do tempo (passo a passo) ou módulos que abrem e fecham.",
     // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
     removed: ["eyebrow"],
     fields: {
@@ -291,24 +291,28 @@ const BLOCKS = {
         cards: "Cartões de benefícios",
         grid: "Grade de tópicos",
         timeline: "Linha do tempo (passo a passo)",
+        modules: "Módulos (abre e fecha)",
       }, "cards", {
-        help: "Cartões: dois por linha, com texto mais longo e um destaque opcional. Grade: tópicos curtos em colunas (módulos, capítulos, temas); com fundo escuro, vira um painel de conteúdo. Linha do tempo: os itens viram passos numerados (01, 02…) ligados por uma linha, bom para a metodologia.",
+        help: "Cartões: dois por linha, com texto mais longo e um destaque opcional. Grade: tópicos curtos em colunas (módulos, capítulos, temas); com fundo escuro, vira um painel de conteúdo. Linha do tempo: os itens viram passos numerados (01, 02…) ligados por uma linha, bom para a metodologia. Módulos: cada item abre e fecha com a lista de aulas ou tópicos, muita informação sem deixar a página longa.",
         // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Abertura.
         previews: {
           cards: "M4 5h18v22H4zM26 5h18v22H26zM8 10h4M30 10h4M8 15h10M30 15h10M8 19h8M30 19h8",
           grid: "M4 5h11v10H4zM18.5 5h11v10h-11zM33 5h11v10H33zM4 18h11v10H4zM18.5 18h11v10h-11zM33 18h11v10H33z",
           timeline: "M8 12h32M8 12h.01M24 12h.01M40 12h.01M4 19h8M20 19h8M36 19h8M4 23h8M20 23h8M36 23h8",
+          modules: "M6 4h36v7H6zM6 14h36v7H6zM6 24h36v5H6zM36 7.5l1.5 1.5 1.5-1.5M36 17.5l1.5 1.5 1.5-1.5M10 7.5h14M10 17.5h14",
         },
       }),
       columns: { ...columns(), showIf: { field: "style", in: ["grid"] } },
       title: text("Título da seção", 120, { help: "Opcional: vazio, a seção fica sem título visível." }),
       intro: text("Descrição no fim da seção", 280, { help: "Opcional. Texto curto e centralizado que aparece depois dos itens." }),
       // showIf nos itens: o editor só mostra os campos que o estilo usa (os valores ficam guardados).
-      items: list("Itens", 12, {
+      items: list("Itens", 20, {
         icon: { ...icon(), showIf: { field: "style", in: ["cards", "grid"] } },
-        title: text("Título", 80),
-        text: textarea("Texto", 400),
+        title: text("Título", 120),
+        text: textarea("Texto", 400, { showIf: { field: "style", in: ["cards", "grid", "timeline"] } }),
         callout: text("Destaque", 200, { showIf: { field: "style", in: ["cards"] } }),
+        meta: text("Detalhe (opcional)", 60, { help: "Ex.: 5 aulas · 2h10.", showIf: { field: "style", in: ["modules"] } }),
+        topics: textarea("Tópicos (um por linha)", 1500, { showIf: { field: "style", in: ["modules"] } }),
       }, "item"),
       background: background(),
     },
@@ -442,21 +446,6 @@ const BLOCKS = {
       cta_label: text("Texto do botão", 60, { placeholder: "Garantir agora" }),
       note: text("Aviso abaixo do botão", 160, { help: "Vazio = \"Pagamento processado com segurança pela Kiwify.\"" }),
       seals: list("Selos de compra segura", 4, { icon: icon(), text: text("Texto", 40) }, "selo"),
-    },
-  },
-  curriculum: {
-    label: "Currículo (módulos)",
-    help: "Módulos que abrem e fecham, cada um com a lista de aulas ou tópicos. Muita informação sem deixar a página longa.",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      items: list("Módulos", 20, {
-        title: text("Título do módulo", 120),
-        meta: text("Detalhe (opcional)", 60, { help: "Ex.: 5 aulas · 2h10." }),
-        topics: textarea("Tópicos (um por linha)", 1500),
-      }, "módulo"),
-      background: background(),
     },
   },
   demo: {
@@ -773,7 +762,7 @@ function defaultSections() {
     { type: "demo", style: "rows", items: [
       { title: "Um diferencial do produto", text: "Explique o diferencial em poucas frases." },
       { title: "Outro diferencial", text: "Explique o diferencial em poucas frases." }] },
-    { type: "curriculum", eyebrow: "Conteúdo", title: "O que você vai estudar", items: [
+    { type: "presentation", style: "modules", title: "O que você vai estudar", items: [
       { title: "Módulo de introdução", meta: "3 aulas", topics: "Primeiro tópico\nSegundo tópico" },
       { title: "Segundo módulo", meta: "4 aulas", topics: "Primeiro tópico\nSegundo tópico" }] },
     { type: "cta", title: "Pronto para começar? O acesso é imediato.", cta_label: "Quero garantir" },

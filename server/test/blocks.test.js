@@ -281,3 +281,19 @@ test("migration: faixa de urgência e contagem regressiva viram o bloco Cronôme
     [{ type: "faq", items: [] }, { type: "timer", style: "bar", text: "a" }]);
   assert.equal(timer.convertList([{ type: "faq", items: [] }]), null);
 });
+
+const modules = require("../migrations/1730002700000_modules-style");
+test("migration: currículo vira a Apresentação em módulos, sem o rótulo", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const items = [{ title: "Introdução", meta: "3 aulas", topics: "A\nB" }];
+  const block = modules.convert({ type: "curriculum", eyebrow: "Conteúdo", title: "O que você vai estudar", intro: "x", items, background: "soft" });
+  assert.deepEqual(block, { type: "presentation", style: "modules", title: "O que você vai estudar", intro: "x", items, background: "soft" });
+  const { sections, error } = validateSections([block]);
+  assert.equal(error, undefined);
+  assert.deepEqual(sections[0].items.map(({ title, meta, topics }) => ({ title, meta, topics })), items);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(modules.convert({ type: "curriculum", shared: ID, background: "auto" }), { type: "presentation", shared: ID, background: "auto" });
+  assert.equal(modules.convert({ type: "faq", items: [] }), null);
+  assert.equal(modules.convertList([{ type: "faq", items: [] }]), null);
+  assert.equal(validateSections([{ type: "curriculum", items: [] }]).error, "Bloco 1: tipo inválido.");
+});

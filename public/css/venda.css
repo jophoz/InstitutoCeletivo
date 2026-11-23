@@ -1179,7 +1179,10 @@
   font-size: 1.3rem;
 }
 
-/* Currículo: módulos no mesmo acordeão do FAQ, com "Módulo 01" em laranja e o detalhe abaixo. */
+/* Apresentação em módulos: o mesmo acordeão do FAQ, com "Módulo 01" em laranja e o detalhe abaixo. */
+.v-modules {
+  margin-inline: auto;
+}
 .module-head {
   display: flex;
   flex-direction: column;
