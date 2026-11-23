@@ -6,7 +6,7 @@
 //   SaveAsShared     -> bloco comum de um tipo compartilhável: cria o bloco salvo a partir dele
 import { useId, useState } from "react";
 import { useEditor } from "../state/context.js";
-import { stripKeys, withKeys } from "../state/document.js";
+import { stripKeys, usedByStyle, withKeys } from "../state/document.js";
 import { Field } from "./Fields.jsx";
 
 // Editor visual de um bloco salvo.
@@ -87,17 +87,8 @@ function SharedLinkFields({ block, index }) {
 
 // Corpo do formulário de um bloco (painel Bloco e cartão do painel Estrutura): bloco vinculado
 // mostra a ligação com o bloco salvo; bloco comum mostra os campos (e, se o tipo for
-// compartilhável, a opção de virar bloco salvo).
-// Campo com showIf (esquema do servidor): só aparece quando o outro campo do bloco tem um dos
-// valores (ex.: o link do vídeo só no estilo Vídeo). O valor continua guardado.
-// Campo com canvasOnly: editado só direto na página, nunca no formulário.
-function isShown(field, block, schema) {
-  if (field.canvasOnly) return false;
-  const rule = field.showIf;
-  if (!rule) return true;
-  const value = block[rule.field] ?? schema.blocks[block.type].fields[rule.field]?.default;
-  return rule.in.includes(value);
-}
+// compartilhável, a opção de virar bloco salvo). Campos editados só na página não aparecem.
+const isShown = (field, block, schema) => !field.canvasOnly && usedByStyle(field, block, schema);
 
 export function BlockFormBody({ block, index }) {
   const { schema, isShared } = useEditor();
@@ -105,7 +96,8 @@ export function BlockFormBody({ block, index }) {
   return (
     <>
       {Object.entries(schema.blocks[block.type].fields).filter(([, field]) => isShown(field, block, schema)).map(([name, field]) => (
-        <Field key={name} field={field} value={block[name]} path={["sections", index, name]} />
+        <Field key={name} field={field} value={block[name]} path={["sections", index, name]}
+          shown={(sub) => isShown(sub, block, schema)} />
       ))}
       {!isShared && isShareable(schema, block.type) && <SaveAsShared block={block} index={index} />}
     </>

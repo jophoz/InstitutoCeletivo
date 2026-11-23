@@ -10,7 +10,7 @@
 //                inserir/mover/remover blocos nem cores; "Salvar" muda todas as páginas que o usam.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
-import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText, canRemoveBlock, ensureRequired } from "./state/document.js";
+import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText, canRemoveBlock, ensureRequired, usedByStyle } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
 import { PRODUCT_STATUS, sizeHint } from "./labels.js";
 import { TopBar, SharedTopBar, ToolDock, PublishBadge, SharedBadge, publishState } from "./components/EditorHeader.jsx";
@@ -237,7 +237,7 @@ export default function App({ productId, sharedId }) {
       dispatch({ type: "set", path, value: chosen.id });
     },
     // Imagem da página que pode ser removida (o campo vira vazio)? Não vale para as obrigatórias
-    // (ex.: cada imagem da galeria: lá se remove o item inteiro, pelo × dele).
+    // (no carrossel, o botão nem aparece: lá se remove o slide inteiro, pelo × dele).
     canRemoveImage(index, field) {
       const def = imageFieldDef(schema, sections[index], field);
       return def?.type === "image" && !def.required;
@@ -248,7 +248,7 @@ export default function App({ productId, sharedId }) {
       revealBlock(index, "canvas");
       dispatch({ type: "set", path: fieldPath({ index, field }), value: null });
     },
-    // "Adicionar imagem" no fim da galeria: a imagem escolhida vira um item novo da lista.
+    // "Adicionar imagem" no fim do carrossel: a imagem escolhida vira um item novo da lista.
     async addImage(index, list) {
       const block = sections[index];
       const field = block && schema.blocks[block.type].fields[list];
@@ -267,7 +267,7 @@ export default function App({ productId, sharedId }) {
       if (field?.type !== "list" || block[list].length >= field.max) return;
       revealBlock(index, "canvas");
       dispatch({ type: "insert", path: ["sections", index, list], value: emptyValue(field.item) });
-      const first = Object.entries(field.item).find(([, f]) => f.type === "text" || f.type === "textarea");
+      const first = Object.entries(field.item).find(([, f]) => (f.type === "text" || f.type === "textarea") && usedByStyle(f, block, schema));
       reveal.current = { index, edit: true, field: first && `${list}.${block[list].length}.${first[0]}` };
     },
     // × num item da página. Com texto digitado, pede confirmação (como no painel); Ctrl+Z desfaz.

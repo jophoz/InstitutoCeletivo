@@ -128,12 +128,12 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
     );
   }
 
-  // X de "Remover imagem" no canto das imagens visíveis do bloco selecionado (as do carrossel fora
-  // da tela ficam sem botão; a galeria remove pelo × do item). Só aparece com o mouse sobre a
+  // X de "Remover imagem" no canto das imagens visíveis do bloco selecionado. O carrossel fica de
+  // fora: lá a imagem é o slide inteiro, que sai pelo × dele. Só aparece com o mouse sobre a
   // imagem (ou sobre o próprio X), ao chegar pelo Tab ou, em tela de toque, sempre.
   const imageButtons = [];
   if (selRect && sections[selectedIndex]) {
-    doc.querySelectorAll(`[data-block="${selectedIndex}"] img[data-image-field]`).forEach((img) => {
+    doc.querySelectorAll(`[data-block="${selectedIndex}"] img[data-image-field]:not(.slide-img)`).forEach((img) => {
       const field = img.dataset.imageField;
       const r = img.getBoundingClientRect();
       const visible = r.width > 24 && r.height > 24 && r.bottom > 0 && r.top < viewport

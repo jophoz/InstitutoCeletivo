@@ -80,9 +80,9 @@ test("cada texto preenchido do modelo padrão é editável na página", () => {
     };
     walk(block, BLOCKS[block.type].fields, "");
   });
-  // Exceções conhecidas: o título dos benefícios é só para leitores de tela, e a galeria do modelo
+  // Exceções conhecidas: o título dos benefícios é só para leitores de tela, e o carrossel do modelo
   // não tem imagens (não aparece; o editor mostra o aviso e o título e o rótulo ficam no painel).
-  assert.deepEqual(missing.filter((m) => !["benefits:title", "gallery:title", "gallery:eyebrow"].includes(m)), []);
+  assert.deepEqual(missing.filter((m) => !["benefits:title", "demo:title"].includes(m)), []);
 });
 
 test("campos vazios ganham texto de exemplo com o rótulo do esquema", () => {
@@ -98,7 +98,7 @@ test("título vazio mostra o do produto, marcado como padrão (não vazio)", () 
 });
 
 test("bloco que não aparece vira aviso selecionável no editor, e some na página pública", () => {
-  const sections = [{ type: "hero" }, { type: "author", name: "" }, { type: "gallery", images: [] }];
+  const sections = [{ type: "hero" }, { type: "author", name: "" }, { type: "demo", items: [] }];
   const live = render(sections, "live");
   assert.match(live, /data-block="1" data-hidden/);
   assert.match(live, /data-block="2" data-hidden/);
@@ -210,7 +210,7 @@ test("imagens: no editor, clicáveis e com espaço vazio mostrando o tamanho rec
   const sections = [
     { type: "hero", title: "T", image: null },
     { type: "author", name: "Ana", photo: M1 },
-    { type: "gallery", title: "G", images: [{ image: M1 }] },
+    { type: "demo", title: "G", items: [{ image: M1 }] },
     { type: "testimonials", items: [{ quote: "Q", name: "N", photo: null }] },
   ];
   const live = renderSalesPage({ ...product(sections), media }, { baseUrl: "http://localhost", preview: "live" });
@@ -218,8 +218,8 @@ test("imagens: no editor, clicáveis e com espaço vazio mostrando o tamanho rec
   assert.match(live, /Tamanho recomendado: 1200 × 900 px/);
   assert.ok(!/v-hero-grid no-media/.test(live), "no editor a abertura reserva o espaço da imagem");
   assert.match(live, /<img class="author-photo"[^>]* data-image-field="photo">/);
-  assert.match(live, /<img class="slide-img"[^>]* data-image-field="images\.0\.image">/);
-  assert.match(live, /data-image-add="images"/);
+  assert.match(live, /<img class="slide-img"[^>]* data-image-field="items\.0\.image">/);
+  assert.match(live, /data-image-add="items"/);
   assert.match(live, /class="img-slot quote-photo" data-image-field="items\.0\.photo" data-empty/);
   // Todo data-image-field aponta para um campo de imagem do esquema.
   for (const [index, chunk] of sectionsOf(live)) {
@@ -232,12 +232,12 @@ test("imagens: no editor, clicáveis e com espaço vazio mostrando o tamanho rec
   assert.match(pub, /v-hero-grid no-media/);
 });
 
-test("galeria sem imagens: no editor só o espaço para adicionar, marcada como oculta", () => {
-  const live = render([{ type: "gallery", title: "G", images: [] }], "live");
+test("carrossel sem imagens: no editor só o espaço para adicionar, marcado como oculto", () => {
+  const live = render([{ type: "demo", title: "G", items: [] }], "live");
   assert.match(live, /data-block="0" data-hidden/);
-  assert.match(live, /<li class="slide"[^>]*><span class="img-slot slide-img" data-image-add="images"/);
+  assert.match(live, /<li class="slide"[^>]*><span class="img-slot slide-img" data-image-add="items"/);
   assert.match(live, /1500 × 1000 px/);
-  assert.ok(!render([{ type: "gallery", title: "G", images: [] }], false).includes("carousel"));
+  assert.ok(!render([{ type: "demo", title: "G", items: [] }], false).includes("carousel"));
 });
 
 test("imagens: todo campo de imagem tem tamanho recomendado", () => {
@@ -251,7 +251,7 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
 
 test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
   const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
-  assert.deepEqual(types.sort(), ["audience", "bonus", "checklist", "comparison", "curriculum", "demo", "faq", "gallery", "guarantee", "social", "table", "testimonials", "topics"]);
+  assert.deepEqual(types.sort(), ["audience", "bonus", "checklist", "comparison", "curriculum", "faq", "guarantee", "social", "table", "testimonials", "topics"]);
   const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
   assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
@@ -261,9 +261,10 @@ test("descrição abaixo do título: centralizada após o h2, só preenchida na 
 });
 
 // Um bloco de cada tipo com listas, cada lista com um item preenchido.
-const listBlocks = () => Object.entries(BLOCKS).filter(([type, b]) => type !== "gallery" && Object.values(b.fields).some((f) => f.type === "list"))
+const listBlocks = () => Object.entries(BLOCKS).filter(([, b]) => Object.values(b.fields).some((f) => f.type === "list"))
   .map(([type, b]) => {
     const block = { type };
+    if (type === "demo") block.style = "rows"; // o carrossel adiciona pelo slide "Adicionar imagem"
     if (b.fields.title || b.fields.name) block[b.fields.title ? "title" : "name"] = "T"; // o autor só aparece com nome
     if (type === "hero") block.visual = "stack"; // as imagens da composição só aparecem nesse estilo
     for (const [name, field] of Object.entries(b.fields)) {
@@ -292,15 +293,15 @@ test("listas: a página pública não leva os botões de adicionar e remover", (
   assert.ok(!/data-item|item-add|item-remove/.test(page));
 });
 
-test("listas: cheia, sem '+ Adicionar'; galeria com × em cada imagem", () => {
+test("listas: cheia, sem '+ Adicionar'; carrossel com × em cada imagem", () => {
   const full = Array.from({ length: BLOCKS.guarantee.fields.items.max }, () => ({ icon: "check", text: "Selo" }));
   const live = render([{ type: "guarantee", title: "G", items: full }], "live");
   assert.ok(!live.includes("data-item-add"));
   assert.ok(live.includes(`data-item-remove="items.${full.length - 1}"`));
-  const data = product([{ type: "gallery", title: "G", images: [{ image: M1 }] }]);
+  const data = product([{ type: "demo", title: "G", items: [{ image: M1 }] }]);
   data.media = new Map([[M1, { url: "/uploads/a.webp", alt_text: "", width: 1500, height: 1000 }]]);
   const gallery = renderSalesPage(data, { baseUrl: "http://localhost", preview: "live" });
-  assert.match(gallery, /<li class="slide" aria-label="Slide 1 de 2" data-item="images\.0"><img[^>]*><button type="button" class="item-remove" data-item-remove="images\.0"/);
+  assert.match(gallery, /<li class="slide" aria-label="Slide 1 de 2" data-item="items\.0"><img[^>]*><button type="button" class="item-remove" data-item-remove="items\.0"/);
 });
 
 test("listas vazias: no editor o bloco continua, oculto, com o botão de adicionar", () => {
@@ -543,13 +544,13 @@ test("grade de tópicos no formato linha do tempo: passos numerados 01, 02…", 
   assert.match(render([{ type: "topics", title: "Como", items }], false), /<ul class="grid8">/); // padrão: grade
 });
 
-test("galeria com títulos e tópicos: painel do módulo ao lado do carrossel", () => {
+test("carrossel com títulos e listas: painel do módulo ao lado das imagens", () => {
   const [a, b] = [IMG(6), IMG(7)];
-  const page = withMedia([{ type: "gallery", title: "G", images: [
-    { image: a, title: "Fundamentos", topics: "IBS e CBS\n\nTransição" }, { image: b, title: "Prática" }] }], [a, b]);
+  const page = withMedia([{ type: "demo", title: "G", items: [
+    { image: a, title: "Fundamentos", bullets: "IBS e CBS\n\nTransição" }, { image: b, title: "Prática" }] }], [a, b]);
   assert.match(page, /<div class="gallery-split">/);
   assert.match(page, /<div class="module-panel" data-slide="0"><p class="module-num"><strong>01<\/strong> \/ 02<\/p><h3>Fundamentos<\/h3><ul class="v-lines"><li>IBS e CBS<\/li><li>Transição<\/li><\/ul><\/div>/);
-  const plain = withMedia([{ type: "gallery", title: "G", images: [{ image: a }, { image: b }] }], [a, b]);
+  const plain = withMedia([{ type: "demo", title: "G", items: [{ image: a }, { image: b }] }], [a, b]);
   assert.ok(!plain.includes("gallery-split") && !plain.includes("module-panel"));
 });
 
@@ -566,22 +567,26 @@ test("currículo: módulos que abrem e fecham, com número, detalhe e tópicos",
 
 test("demonstração: abas só com imagem; sem nenhuma, some da página e fica oculta no editor", () => {
   const a = IMG(8);
-  const page = withMedia([{ type: "demo", title: "Veja", items: [
-    { label: "Manual", image: a, caption: "Uma página" }, { label: "Aula", image: null }] }], [a]);
+  const page = withMedia([{ type: "demo", style: "tabs", title: "Veja", items: [
+    { label: "Manual", image: a, text: "Uma página" }, { label: "Aula", image: null }] }], [a]);
   assert.match(page, /<div class="demo-tabs" role="tablist" aria-labelledby="t-1" hidden><button type="button" role="tab" id="t-1-tab-0" aria-controls="t-1-panel-0" aria-selected="true">Manual<\/button><\/div>/);
   assert.match(page, /<figure class="demo-panel" role="tabpanel" id="t-1-panel-0" aria-labelledby="t-1-tab-0"><img class="demo-img"[^>]*><figcaption>Uma página<\/figcaption><\/figure>/);
   assert.ok(!page.includes("Aula"));
-  const empty = [{ type: "demo", title: "Veja", items: [{ label: "Manual" }] }];
+  const empty = [{ type: "demo", style: "tabs", title: "Veja", items: [{ label: "Manual" }] }];
   assert.ok(!render(empty, false).includes("v-section"));
   assert.match(render(empty, "live"), /data-block="0" data-hidden/);
 });
 
 test("texto e imagem: linhas alternadas; sem imagem, o texto ocupa a linha", () => {
   const a = IMG(9);
-  const page = withMedia([{ type: "feature", items: [
+  const page = withMedia([{ type: "demo", style: "rows", items: [
     { title: "Um", text: "T", bullets: "x\ny", image: a }, { title: "Dois", text: "T" }] }], [a]);
-  assert.match(page, /<article class="feature-row"><div class="feature-text"><h2>Um<\/h2><p>T<\/p><ul class="v-lines feature-list"><li>x<\/li><li>y<\/li><\/ul><\/div><img class="feature-img"/);
+  assert.match(page, /<article class="feature-row"><div class="feature-text"><h2>Um<\/h2><p>T<\/p><\/div><img class="feature-img"/); // a lista é só do carrossel
   assert.match(page, /<article class="feature-row no-media"><div class="feature-text"><h2>Dois<\/h2><p>T<\/p><\/div><\/article>/);
+  assert.match(page, /<section class="[^"]*" aria-label="Destaques">/);
+  // Com título na seção, o título de cada linha vira h3.
+  const titled = withMedia([{ type: "demo", style: "rows", title: "Por dentro", items: [{ title: "Um", text: "T" }] }], []);
+  assert.match(titled, /aria-labelledby="(t-\d+)">.*<h2 id="\1">Por dentro<\/h2>.*<h3>Um<\/h3>/s);
 });
 
 test("oferta: selos de compra segura em linha no fim do cartão de compra", () => {
@@ -593,13 +598,14 @@ test("oferta: selos de compra segura em linha no fim do cartão de compra", () =
 test("blocos antigos, sem os campos novos, continuam válidos e com o visual de antes", () => {
   const old = [{ type: "hero", title: "T", lead: "L", badges: [], price_label: "", cta_label: "", logo: null, eyebrow: "", image: null },
     { type: "topics", title: "T", items: [{ icon: "doc", title: "a", text: "b" }], columns: "auto", eyebrow: "", intro: "", background: "auto" },
-    { type: "gallery", title: "G", images: [{ image: IMG(1) }], eyebrow: "", intro: "", background: "auto" }];
+    { type: "demo", title: "G", items: [{ image: IMG(1) }], eyebrow: "", intro: "", background: "auto" }];
   const { sections, error } = validateSections(old);
   assert.equal(error, undefined);
   assert.equal(sections[0].visual, "image");
   assert.ok(!("stats" in sections[0]) && !("badges" in sections[0]) && !("logo" in sections[0]));
   assert.equal(sections[1].layout, "grid");
-  assert.equal(sections[2].images[0].topics, "");
+  assert.equal(sections[2].items[0].bullets, "");
+  assert.ok(!("eyebrow" in sections[2]) && !("intro" in sections[2])); // a Demonstração não tem mais rótulo nem descrição
 });
 
 test("abertura: livro 3D, notebook e celular, mosaico", () => {

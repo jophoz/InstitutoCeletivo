@@ -306,21 +306,6 @@ const BLOCKS = {
       background: background(),
     },
   },
-  gallery: {
-    label: "Galeria (carrossel)",
-    help: "Imagens do produto por dentro. Com título ou tópicos nas imagens, ao lado do carrossel aparece a lista do módulo que está na tela. Sem imagens, o bloco não aparece na página.",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      images: list("Imagens", 12, {
-        image: image("Imagem", { required: true, size: "1500 × 1000 px" }),
-        title: text("Título do módulo (opcional)", 80),
-        topics: textarea("Tópicos do módulo (um por linha)", 600),
-      }, "imagem"),
-      background: background(),
-    },
-  },
   checklist: {
     label: "Lista ✓ / ✗",
     help: "O que o produto é e o que não é.",
@@ -495,30 +480,32 @@ const BLOCKS = {
   },
   demo: {
     label: "Demonstração",
-    help: "Mostre o produto por dentro em abas (ex.: Manual, Aula, Fluxograma). Abas sem imagem não aparecem.",
+    help: "Mostre o produto por dentro, em um destes estilos: carrossel de imagens, abas (uma imagem grande por aba) ou linhas de texto e imagem.",
+    // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
+    removed: ["eyebrow", "intro", "items.eyebrow"],
     fields: {
-      eyebrow: eyebrow(),
+      style: choice("Estilo", {
+        carousel: "Carrossel de imagens",
+        tabs: "Abas (ex.: Manual, Aula)",
+        rows: "Texto e imagem alternados",
+      }, "carousel", {
+        help: "Carrossel: as imagens passam uma a uma; com título ou lista no item, ela aparece ao lado. Abas: uma imagem grande com legenda por aba. Texto e imagem: linhas com o texto de um lado e a imagem do outro, alternando o lado. No carrossel e nas abas, itens sem imagem não aparecem na página.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Abertura.
+        previews: {
+          carousel: "M10 5h28v19H10zM3 10v9M45 10v9M19 28h.01M24 28h.01M29 28h.01",
+          tabs: "M10 3h9v5h-9zM21 3h9v5h-9zM32 3h7v5h-7zM8 11h32v19H8z",
+          rows: "M3 3h18v12H3zM27 5h18M27 9h14M27 13h16M27 19h18v11H27zM3 21h18M3 25h14M3 29h16",
+        },
+      }),
       title: text("Título da seção", 120),
-      intro: intro(),
-      items: list("Abas", 4, {
-        label: text("Nome da aba", 30),
+      // showIf nos itens: o editor só mostra os campos que o estilo usa (os valores ficam guardados).
+      items: list("Itens", 12, {
+        label: text("Nome da aba", 30, { showIf: { field: "style", in: ["tabs"] } }),
         image: image("Imagem", { size: "1500 × 1000 px" }),
-        caption: textarea("Legenda", 300),
-      }, "aba"),
-      background: background(),
-    },
-  },
-  feature: {
-    label: "Texto e imagem",
-    help: "Linhas com texto de um lado e imagem do outro, alternando o lado a cada linha.",
-    fields: {
-      items: list("Linhas", 6, {
-        eyebrow: text("Rótulo acima do título", 40),
-        title: text("Título", 120),
-        text: textarea("Texto", 800),
-        bullets: textarea("Lista (um item por linha)", 600),
-        image: image("Imagem", { size: "1200 × 900 px" }),
-      }, "linha"),
+        title: text("Título", 120, { showIf: { field: "style", in: ["carousel", "rows"] } }),
+        text: textarea("Texto", 800, { showIf: { field: "style", in: ["tabs", "rows"] } }),
+        bullets: textarea("Lista (um item por linha)", 600, { showIf: { field: "style", in: ["carousel"] } }),
+      }, "item"),
       background: background(),
     },
   },
@@ -767,7 +754,7 @@ function defaultSections() {
         { icon: "checkcircle", text: "Segundo resultado que a pessoa alcança" },
         { icon: "checkcircle", text: "Terceiro resultado que a pessoa alcança" }],
       cta_label: "Comprar agora", note: "Você recebe o acesso na hora, no seu e-mail." },
-    { type: "gallery", eyebrow: "Por dentro", title: "Conheça por dentro", images: [] },
+    { type: "demo", style: "carousel", title: "Conheça por dentro", items: [] },
     { type: "benefits", title: "Benefícios", items: [
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
       { icon: "doc", title: "Segundo benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" }] },
@@ -781,11 +768,11 @@ function defaultSections() {
       { icon: "doc", title: "Estude o material", text: "Manual em PDF para estudo e consulta." },
       { icon: "eye", title: "Visualize", text: "Fluxogramas que mostram o processo de forma visual." },
       { icon: "target", title: "Aplique", text: "Casos práticos para usar no dia a dia." }] },
-    { type: "demo", eyebrow: "Demonstração", title: "Veja o que você recebe", items: [
-      { label: "Manual", caption: "Uma página do manual." }, { label: "Aula", caption: "Um trecho de aula." }] },
-    { type: "feature", items: [
-      { eyebrow: "Na prática", title: "Um diferencial do produto", text: "Explique o diferencial em poucas frases.", bullets: "Primeiro ponto\nSegundo ponto" },
-      { eyebrow: "Para consultar", title: "Outro diferencial", text: "Explique o diferencial em poucas frases.", bullets: "" }] },
+    { type: "demo", style: "tabs", title: "Veja o que você recebe", items: [
+      { label: "Manual", text: "Uma página do manual." }, { label: "Aula", text: "Um trecho de aula." }] },
+    { type: "demo", style: "rows", items: [
+      { title: "Um diferencial do produto", text: "Explique o diferencial em poucas frases." },
+      { title: "Outro diferencial", text: "Explique o diferencial em poucas frases." }] },
     { type: "curriculum", eyebrow: "Conteúdo", title: "O que você vai estudar", items: [
       { title: "Módulo de introdução", meta: "3 aulas", topics: "Primeiro tópico\nSegundo tópico" },
       { title: "Segundo módulo", meta: "4 aulas", topics: "Primeiro tópico\nSegundo tópico" }] },

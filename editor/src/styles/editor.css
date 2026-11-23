@@ -430,12 +430,13 @@ dialog.picker.icon-menu::backdrop { background: rgb(0 0 0 / .08); }
 .choice-field.has-previews .choice-option::before {
   content: none;
 }
-/* Cartão escolhido: borda, fundo e um ✓ no canto, para não haver dúvida de qual está valendo. */
-.choice-field.has-previews .choice-option:has(input:checked) {
+/* Opção escolhida (com ou sem miniatura): borda, fundo e um ✓ no canto, para não haver dúvida de
+   qual está valendo (só a borda se confundia com a do mouse por cima). */
+.choice-option:has(input:checked) {
   font-weight: 700;
   box-shadow: 0 0 0 1px var(--color-primary);
 }
-.choice-field.has-previews .choice-option:has(input:checked)::after {
+.choice-option:has(input:checked)::after {
   content: "✓";
   position: absolute;
   top: 4px;
@@ -487,6 +488,14 @@ dialog.picker.icon-menu::backdrop { background: rgb(0 0 0 / .08); }
    "Automático" caber no botão; se ainda faltar espaço, o texto quebra dentro dele. */
 .choice-field:not(.has-previews) .choice-options {
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+/* Opções de texto: espaço para o ✓, centralizado na altura do botão. */
+.choice-field:not(.has-previews) .choice-options .choice-option {
+  padding-right: 1.75rem;
+}
+.choice-field:not(.has-previews) .choice-option:has(input:checked)::after {
+  top: 50%;
+  transform: translateY(-50%);
 }
 .choice-option > span {
   min-width: 0;

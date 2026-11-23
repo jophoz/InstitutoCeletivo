@@ -373,7 +373,6 @@
     hero: "M3 4h18v10H3zM7 18h10M9 21h6",                                  // tela com destaque
     benefits: "M3 5h8v14H3zM13 5h8v14h-8zM6 9h2M16 9h2",                   // dois cartões
     topics: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",           // grade
-    gallery: "M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 9.5h.01",            // imagem
     checklist: "M4 6l2 2 3-3M4 13l2 2 3-3M12 7h8M12 14h8M4 19h16",         // lista ✓
     comparison: "M3 4h7v16H3zM14 4h7v16h-7zM10.5 12h3",                    // duas colunas
     author: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.5-6 8-6s8 2 8 6", // pessoa
@@ -387,7 +386,6 @@
     social: "M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4", // compartilhar
     curriculum: "M4 4h16v5H4zM4 11h16v5H4zM17 6.5h.01M17 13.5h.01M4 20h10",   // módulos empilhados
     demo: "M3 7h18v13H3zM3 7l2-3h5l2 3M8 13l3 2.5L16 11",                      // aba com imagem
-    feature: "M3 4h8v7H3zM14 5h7M14 8h5M13 14h8v7h-8zM3 15h7M3 18h5",          // texto e imagem alternados
     urgency: "M3 5h18v5H3zM13 3l-3 5h4l-3 5M5 15h14M7 19h10",                  // faixa de topo com raio
     countdown: "M3 7h4v10H3zM10 7h4v10h-4zM17 7h4v10h-4zM8.5 10.5h.01M8.5 13.5h.01M15.5 10.5h.01M15.5 13.5h.01", // caixas do cronômetro
     bonus: "M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0", // presente

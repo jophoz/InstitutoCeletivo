@@ -1303,16 +1303,23 @@
     grid-template-columns: minmax(0, 760px);
   }
 }
-.feature-text h2 {
+.feature-text :is(h2, h3) {
   margin: 0 0 1rem;
   text-align: left;
 }
+/* Com título na seção, o de cada linha vira h3, com o mesmo peso do h2. */
+.venda .feature-text h3 {
+  font-family: var(--v-font);
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+}
+.features-alt:not(:first-child) {
+  margin-top: clamp(2rem, 5vw, 3.5rem);
+}
 .feature-text p {
   color: var(--color-muted);
-}
-.feature-list {
-  margin-top: 1.25rem;
-  font-weight: 600;
 }
 .feature-img {
   display: block;

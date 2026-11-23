@@ -78,6 +78,16 @@ export function duplicateBlock(block, schema) {
   return withKeys([stripKeys(block)], schema)[0];
 }
 
+// Campo com showIf (esquema do servidor): só vale quando o outro campo do bloco tem um dos valores
+// (ex.: o link do vídeo só no estilo Vídeo). Serve também para os campos dos itens de lista (a
+// regra olha o campo do bloco). O valor de um campo escondido continua guardado.
+export function usedByStyle(field, block, schema) {
+  const rule = field.showIf;
+  if (!rule) return true;
+  const value = block[rule.field] ?? schema.blocks[block.type].fields[rule.field]?.default;
+  return rule.in.includes(value);
+}
+
 /* ---------- Seção de compra obrigatória ---------- */
 // O botão da abertura leva à seção de compra (bloco "Oferta final"): a página precisa de uma.
 const REQUIRED_TYPE = "offer";

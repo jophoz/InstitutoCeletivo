@@ -204,3 +204,21 @@ test("seção de compra: a página precisa de uma Oferta final (própria ou de b
   assert.ok(!hasOffer([{ type: "hero" }, { type: "cta" }]));
   assert.ok(!hasOffer(undefined));
 });
+
+/* ---------- Galeria e Texto e imagem viraram estilos da Demonstração (migration) ---------- */
+const { convert } = require("../migrations/1730002300000_demo-block");
+test("migration: galeria, abas antigas e texto e imagem viram o bloco Demonstração, e continuam válidos", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const gallery = convert({ type: "gallery", title: "G", images: [{ image: ID, title: "M", topics: "a\nb" }], background: "soft" });
+  assert.deepEqual(gallery, { type: "demo", style: "carousel", title: "G", background: "soft", items: [{ image: ID, title: "M", bullets: "a\nb" }] });
+  const tabs = convert({ type: "demo", title: "D", items: [{ label: "Manual", image: null, caption: "Uma página" }] });
+  assert.deepEqual(tabs, { type: "demo", style: "tabs", title: "D", items: [{ label: "Manual", image: null, text: "Uma página" }] });
+  const rows = convert({ type: "feature", items: [{ title: "Um", text: "T", bullets: "x" }] });
+  assert.equal(rows.style, "rows");
+  const { error } = validateSections([gallery, tabs, rows]);
+  assert.equal(error, undefined);
+  // Referência a bloco salvo: só o tipo muda. Demonstração já no formato novo: nada muda.
+  assert.deepEqual(convert({ type: "gallery", shared: ID, background: "auto" }), { type: "demo", shared: ID, background: "auto" });
+  assert.equal(convert({ type: "demo", style: "tabs", items: [] }), null);
+  assert.equal(convert({ type: "faq", items: [] }), null);
+});

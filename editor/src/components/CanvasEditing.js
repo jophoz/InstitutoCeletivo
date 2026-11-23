@@ -172,7 +172,7 @@ export function attachCanvas(doc, apiRef) {
     api().pickIcon(Number(section.dataset.block), icon.dataset.iconField, icon.getBoundingClientRect());
   });
   // Imagens: clicar numa imagem (ou no espaço "Adicionar imagem") abre a biblioteca de imagens.
-  // data-image-field = campo da imagem; data-image-add = lista onde entra uma imagem nova (galeria).
+  // data-image-field = campo da imagem; data-image-add = lista onde entra uma imagem nova (carrossel).
   doc.addEventListener("click", (e) => {
     const image = e.target.closest?.("[data-image-field], [data-image-add]");
     const section = image?.closest("[data-block]");

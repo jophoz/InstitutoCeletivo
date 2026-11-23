@@ -202,7 +202,7 @@ function createContext(data, { live = false } = {}) {
       const responsive = m.srcset && IMAGE_SIZES[cls] ? html` srcset="${m.srcset}" sizes="${IMAGE_SIZES[cls]}"` : null;
       return html`<img class="${cls}" src="${m.url}"${responsive} alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async"${editable ? html` data-image-field="${path}"` : null}>`;
     },
-    // Espaço de imagem vazia (só no editor). add: lista onde a imagem escolhida entra (galeria).
+    // Espaço de imagem vazia (só no editor). add: lista onde a imagem escolhida entra (carrossel).
     imageSlot(cls, path, { optional = false, add = null } = {}) {
       const field = schemaField(ctx.type, path);
       const size = field?.size ? `${field.size}${field.tip ? ` · ${field.tip}` : ""}` : "";
@@ -431,34 +431,6 @@ const RENDERERS = {
 </div></section>`;
   },
 
-  gallery(b, ctx) {
-    const slides = b.images.map((x, i) => ({ img: ctx.img(x.image, "slide-img", { path: `images.${i}.image` }), i })).filter((s) => s.img);
-    // No editor, um último slide "Adicionar imagem" (a escolhida entra no fim da lista). Sem nenhuma
-    // imagem a galeria não aparece na página, mas no editor fica só com esse slide, para começar.
-    const filled = b.images.some((x) => ctx.product.media.get(x.image));
-    if (ctx.live && b.images.length < BLOCKS.gallery.fields.images.max) slides.push({ img: ctx.imageSlot("slide-img", "images.0.image", { add: "images" }), i: null });
-    if (!slides.length) return null;
-    const id = ctx.headingId();
-    // Com título ou tópicos nas imagens: ao lado do carrossel, o painel do slide atual (venda.js
-    // mostra só o do slide na tela; sem JavaScript aparecem todos).
-    const real = slides.filter((x) => x.i !== null);
-    const panels = real.some((x) => b.images[x.i].title || b.images[x.i].topics) && html`<div class="module-panels" aria-live="polite">${real.map((x, n) => {
-      const item = b.images[x.i];
-      return html`<div class="module-panel" data-slide="${n}"><p class="module-num"><strong>${pad2(n + 1)}</strong> / ${pad2(real.length)}</p>${ctx.show(item.title) && html`<h3${ctx.field(`images.${x.i}.title`, item.title)}>${item.title}</h3>`}${ctx.lines(`images.${x.i}.topics`, item.topics)}</div>`;
-    })}</div>`;
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  ${panels ? html`<div class="gallery-split">` : null}
-  <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
-    <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
-    <ul class="track">${slides.map((s, n) => html`<li class="slide" aria-label="Slide ${n + 1} de ${slides.length}"${s.i !== null && ctx.item("images", s.i)}>${s.img}${s.i !== null && ctx.remove("images", s.i)}</li>`)}</ul>
-    <button class="car-btn next" type="button" aria-label="Próximo slide" hidden>›</button>
-    <div class="dots" hidden></div>
-  </div>
-  ${panels ? html`${panels}</div>` : null}
-</div></section>`;
-  },
-
   checklist(b, ctx) {
     if (!b.items.length && !ctx.live) return null;
     const id = ctx.headingId();
@@ -598,32 +570,8 @@ const RENDERERS = {
 </div></section>`;
   },
 
-  // Demonstração: abas com uma imagem grande e legenda (venda.js liga as abas; sem JavaScript e no
-  // editor, os painéis ficam um embaixo do outro). Página pública: só as abas com imagem.
-  demo(b, ctx) {
-    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || ctx.product.media.get(x.image));
-    if (!items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    const filled = b.items.some((x) => ctx.product.media.get(x.image));
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <div class="demo" data-demo>
-    <div class="demo-tabs" role="tablist" aria-labelledby="${id}" hidden>${items.map(([x], n) => html`<button type="button" role="tab" id="${id}-tab-${n}" aria-controls="${id}-panel-${n}" aria-selected="${n === 0}"${n ? html` tabindex="-1"` : null}>${x.label || `Parte ${n + 1}`}</button>`)}</div>
-    ${items.map(([x, i], n) => html`<figure class="demo-panel" role="tabpanel" id="${id}-panel-${n}" aria-labelledby="${id}-tab-${n}"${ctx.item("items", i)}>${ctx.live ? html`<p class="demo-label"${ctx.field(`items.${i}.label`, x.label)}>${x.label}</p>` : null}${ctx.img(x.image, "demo-img", { path: `items.${i}.image` })}${ctx.show(x.caption) && html`<figcaption${ctx.field(`items.${i}.caption`, x.caption)}>${x.caption}</figcaption>`}${ctx.remove("items", i)}</figure>`)}${ctx.addItem("items", b.items, "div")}
-  </div>
-</div></section>`;
-  },
-
-  // Texto e imagem: linhas em duas colunas que alternam o lado da imagem (CSS: :nth-child(even)).
-  feature(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    return html`<section class="${ctx.sectionClass(b)}" aria-label="Destaques"${ctx.mark({ hidden: !b.items.length })}><div class="container features-alt">
-  ${b.items.map((x, i) => {
-    const img = ctx.img(x.image, "feature-img", { path: `items.${i}.image` });
-    return html`<article class="feature-row${img ? "" : " no-media"}"${ctx.item("items", i)}><div class="feature-text">${ctx.show(x.eyebrow) && html`<p class="v-eyebrow"${ctx.field(`items.${i}.eyebrow`, x.eyebrow)}>${x.eyebrow}</p>`}<h2${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h2>${ctx.paras(`items.${i}.text`, x.text)}${ctx.lines(`items.${i}.bullets`, x.bullets, "feature-list")}</div>${img}${ctx.remove("items", i)}</article>`;
-  })}${ctx.addItem("items", b.items, "div")}
-</div></section>`;
-  },
+  // Demonstração: o produto por dentro, no estilo escolhido (ver DEMO_STYLES).
+  demo: (b, ctx) => DEMO_STYLES[b.style](b, ctx),
 
   // Faixa de urgência: texto curto e o cronômetro da oferta. Só existe com oferta ativa no cadastro
   // do produto (nada de "só hoje" sem prazo de verdade); no editor aparece sempre, marcada como oculta.
@@ -688,13 +636,75 @@ const RENDERERS = {
   },
 };
 
+// Estilos do bloco Demonstração. Página pública: o carrossel e as abas só mostram itens com imagem.
+const demoHeading = (b, ctx, id) => html`<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>`;
+const DEMO_STYLES = {
+  // Carrossel. Com título ou lista nos itens: ao lado, o painel do slide atual (venda.js mostra só o
+  // do slide na tela; sem JavaScript aparecem todos). No editor, um último slide "Adicionar imagem"
+  // (a escolhida entra no fim da lista), que é o que aparece quando ainda não há imagens.
+  carousel(b, ctx) {
+    const slides = b.items.map((x, i) => ({ img: ctx.img(x.image, "slide-img", { path: `items.${i}.image` }), i })).filter((s) => s.img);
+    const filled = b.items.some((x) => ctx.product.media.get(x.image));
+    if (ctx.live && b.items.length < BLOCKS.demo.fields.items.max) slides.push({ img: ctx.imageSlot("slide-img", "items.0.image", { add: "items" }), i: null });
+    if (!slides.length) return null;
+    const id = ctx.headingId();
+    const real = slides.filter((x) => x.i !== null);
+    const panels = real.some((x) => b.items[x.i].title || b.items[x.i].bullets) && html`<div class="module-panels" aria-live="polite">${real.map((x, n) => {
+      const item = b.items[x.i];
+      return html`<div class="module-panel" data-slide="${n}"><p class="module-num"><strong>${pad2(n + 1)}</strong> / ${pad2(real.length)}</p>${ctx.show(item.title) && html`<h3${ctx.field(`items.${x.i}.title`, item.title)}>${item.title}</h3>`}${ctx.lines(`items.${x.i}.bullets`, item.bullets)}</div>`;
+    })}</div>`;
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
+  ${demoHeading(b, ctx, id)}
+  ${panels ? html`<div class="gallery-split">` : null}
+  <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
+    <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
+    <ul class="track">${slides.map((s, n) => html`<li class="slide" aria-label="Slide ${n + 1} de ${slides.length}"${s.i !== null && ctx.item("items", s.i)}>${s.img}${s.i !== null && ctx.remove("items", s.i)}</li>`)}</ul>
+    <button class="car-btn next" type="button" aria-label="Próximo slide" hidden>›</button>
+    <div class="dots" hidden></div>
+  </div>
+  ${panels ? html`${panels}</div>` : null}
+</div></section>`;
+  },
+
+  // Abas com uma imagem grande e legenda (venda.js liga as abas; sem JavaScript e no editor, os
+  // painéis ficam um embaixo do outro).
+  tabs(b, ctx) {
+    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || ctx.product.media.get(x.image));
+    if (!items.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    const filled = b.items.some((x) => ctx.product.media.get(x.image));
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
+  ${demoHeading(b, ctx, id)}
+  <div class="demo" data-demo>
+    <div class="demo-tabs" role="tablist" aria-labelledby="${id}" hidden>${items.map(([x], n) => html`<button type="button" role="tab" id="${id}-tab-${n}" aria-controls="${id}-panel-${n}" aria-selected="${n === 0}"${n ? html` tabindex="-1"` : null}>${x.label || `Parte ${n + 1}`}</button>`)}</div>
+    ${items.map(([x, i], n) => html`<figure class="demo-panel" role="tabpanel" id="${id}-panel-${n}" aria-labelledby="${id}-tab-${n}"${ctx.item("items", i)}>${ctx.live ? html`<p class="demo-label"${ctx.field(`items.${i}.label`, x.label)}>${x.label}</p>` : null}${ctx.img(x.image, "demo-img", { path: `items.${i}.image` })}${ctx.show(x.text) && html`<figcaption${ctx.field(`items.${i}.text`, x.text)}>${x.text}</figcaption>`}${ctx.remove("items", i)}</figure>`)}${ctx.addItem("items", b.items, "div")}
+  </div>
+</div></section>`;
+  },
+
+  // Texto e imagem: linhas em duas colunas que alternam o lado da imagem (CSS: :nth-child(even)).
+  // O título da seção é opcional; sem ele, o título de cada linha é o título principal (h2).
+  rows(b, ctx) {
+    if (!b.items.length && !ctx.live) return null;
+    const head = ctx.show(b.title);
+    const id = head && ctx.headingId();
+    const h = head ? "h3" : "h2";
+    return html`<section class="${ctx.sectionClass(b)}"${head ? html` aria-labelledby="${id}"` : html` aria-label="Destaques"`}${ctx.mark({ hidden: !b.items.length })}><div class="container">
+  ${head ? demoHeading(b, ctx, id) : null}
+  <div class="features-alt">${b.items.map((x, i) => {
+    const img = ctx.img(x.image, "feature-img", { path: `items.${i}.image` });
+    return html`<article class="feature-row${img ? "" : " no-media"}"${ctx.item("items", i)}><div class="feature-text"><${h}${ctx.field(`items.${i}.title`, x.title)}>${x.title}</${h}>${ctx.paras(`items.${i}.text`, x.text)}</div>${img}${ctx.remove("items", i)}</article>`;
+  })}${ctx.addItem("items", b.items, "div")}</div>
+</div></section>`;
+  },
+};
+
 // Por que um bloco não aparece na página (aviso exibido só no editor).
 const HIDDEN_REASON = {
   testimonials: "escreva pelo menos um depoimento",
-  gallery: "adicione imagens",
   author: "preencha o nome do autor",
   social: "coloque o link de pelo menos uma rede",
-  demo: "adicione uma imagem em pelo menos uma aba",
+  demo: "adicione pelo menos uma imagem",
   urgency: "cadastre uma oferta no produto",
   countdown: "cadastre uma oferta com prazo no produto",
 };
