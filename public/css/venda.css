@@ -1223,7 +1223,7 @@
   padding: 0.35rem;
   background: var(--v-card);
   border: 1px solid var(--v-line);
-  border-radius: 999px;
+  border-radius: calc(var(--v-radius-btn, 8px) + 0.35rem); /* acompanha o canto das abas + o respiro */
   box-shadow: var(--v-shadow);
 }
 .demo-tabs[hidden] {
@@ -1237,7 +1237,7 @@
   color: var(--color-muted);
   background: none;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--v-radius-btn, 8px);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -1538,6 +1538,10 @@
 .venda {
   --v-radius: 20px;
   --v-radius-md: 14px;
+  --v-radius-btn: 8px; /* botões: quase retos, mas com o canto arredondado */
+}
+.venda :is(.btn-cta, .btn-ghost, .link-btn) {
+  border-radius: var(--v-radius-btn);
 }
 
 /* ---------- Títulos: Inter pesada no lugar da serifa, maiores e mais juntos ---------- */
