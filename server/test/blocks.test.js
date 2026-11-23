@@ -263,3 +263,21 @@ test("migration: comparativo e tabela viram o bloco Comparação, e a lista ✓ 
   assert.equal(compare.convert({ type: "checklist", items: [] }), null);
   assert.equal(compare.convertList([{ type: "faq", items: [] }]), null);
 });
+
+const timer = require("../migrations/1730002600000_timer-block");
+test("migration: faixa de urgência e contagem regressiva viram o bloco Cronômetro", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const bar = timer.convert({ type: "urgency", text: "Só hoje" });
+  assert.deepEqual(bar, { type: "timer", style: "bar", text: "Só hoje" });
+  const big = timer.convert({ type: "countdown", title: "T", text: "x", cta_label: "Quero" });
+  assert.deepEqual(big, { type: "timer", style: "countdown", title: "T", text: "x", cta_label: "Quero" });
+  const { sections, error } = validateSections([bar, big]);
+  assert.equal(error, undefined);
+  assert.deepEqual(sections.map((b) => b.style), ["bar", "countdown"]);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(timer.convert({ type: "countdown", shared: ID }), { type: "timer", shared: ID });
+  assert.equal(timer.convert({ type: "faq", items: [] }), null);
+  assert.deepEqual(timer.convertList([{ type: "faq", items: [] }, { type: "urgency", text: "a" }]),
+    [{ type: "faq", items: [] }, { type: "timer", style: "bar", text: "a" }]);
+  assert.equal(timer.convertList([{ type: "faq", items: [] }]), null);
+});

@@ -490,20 +490,24 @@ const BLOCKS = {
       background: background(),
     },
   },
-  urgency: {
-    label: "Faixa de urgência",
-    help: "Faixa fina e chamativa, normalmente no topo da página, com o cronômetro da oferta. Só aparece enquanto há oferta ativa no cadastro do produto.",
+  timer: {
+    label: "Cronômetro",
+    help: "O prazo da oferta cadastrada no produto, em um destes estilos: faixa de urgência (fina e chamativa, normalmente no topo da página) ou contagem regressiva (seção com o cronômetro grande e o botão de compra). Só aparece enquanto há oferta ativa; a contagem precisa de oferta com prazo.",
     fields: {
-      text: text("Texto", 80, { placeholder: "Oferta especial por tempo limitado" }),
-    },
-  },
-  countdown: {
-    label: "Contagem regressiva",
-    help: "Seção com o cronômetro grande (dias, horas, minutos e segundos) e o botão de compra. Usa o prazo da oferta cadastrada no produto; sem oferta com prazo, não aparece.",
-    fields: {
-      title: text("Título", 120),
-      text: text("Texto", 200),
-      cta_label: text("Texto do botão", 60, { placeholder: "Quero aproveitar" }),
+      style: choice("Estilo", {
+        bar: "Faixa de urgência",
+        countdown: "Contagem regressiva",
+      }, "bar", {
+        help: "Faixa: uma linha com o texto e o tempo que falta; como primeiro bloco, fica acima do menu. Contagem regressiva: título, texto, caixas de dias, horas, minutos e segundos e o botão de compra.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Apresentação.
+        previews: {
+          bar: "M3 11h42v10H3zM8 16h18M31 14h10v4H31z",
+          countdown: "M12 5h24M16 9h16M5 14h8v9H5zM15 14h8v9h-8zM25 14h8v9h-8zM35 14h8v9h-8zM17 27h14",
+        },
+      }),
+      title: text("Título", 120, { showIf: { field: "style", in: ["countdown"] } }),
+      text: text("Texto", 200, { help: "Na faixa, poucas palavras (ex.: Oferta especial por tempo limitado)." }),
+      cta_label: text("Texto do botão", 60, { placeholder: "Quero aproveitar", showIf: { field: "style", in: ["countdown"] } }),
     },
   },
   bonus: {
@@ -744,7 +748,7 @@ function mediaIds(sections) {
 // conteúdo, bônus, garantia, oferta), com textos de orientação.
 function defaultSections() {
   return [
-    { type: "urgency", text: "Oferta especial por tempo limitado" },
+    { type: "timer", style: "bar", text: "Oferta especial por tempo limitado" },
     { type: "hero", eyebrow: "Material profissional", lead: "Uma frase que resume a transformação que o produto entrega.",
       bullets: [{ icon: "checkcircle", text: "Primeiro resultado que a pessoa alcança" },
         { icon: "checkcircle", text: "Segundo resultado que a pessoa alcança" },
@@ -754,7 +758,7 @@ function defaultSections() {
     { type: "presentation", style: "cards", items: [
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
       { icon: "doc", title: "Segundo benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" }] },
-    { type: "countdown", title: "Aproveite o preço promocional por tempo limitado", text: "Depois do prazo, o preço volta ao normal.", cta_label: "Quero aproveitar" },
+    { type: "timer", style: "countdown", title: "Aproveite o preço promocional por tempo limitado", text: "Depois do prazo, o preço volta ao normal.", cta_label: "Quero aproveitar" },
     { type: "audience", title: "Ideal para você que deseja", items: [
       { icon: "target", text: "Primeiro perfil", description: "Uma frase sobre o que essa pessoa busca." },
       { icon: "user", text: "Segundo perfil", description: "Uma frase sobre o que essa pessoa busca." },

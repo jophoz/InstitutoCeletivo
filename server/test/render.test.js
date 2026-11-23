@@ -660,8 +660,8 @@ const withOffer = (sections, { ends = "2026-11-12T02:59:00Z", preview = false } 
   offer_checkout_url: "https://pay.example.com/promo", offer_ends_at: ends,
 }, { baseUrl: "http://localhost", preview, now: NOW });
 
-test("faixa de urgência: só com oferta ativa; leva o cronômetro quando a oferta tem prazo", () => {
-  const sections = [{ type: "urgency", text: "Só esta semana" }];
+test("cronômetro, faixa de urgência: só com oferta ativa; leva o tempo que falta quando a oferta tem prazo", () => {
+  const sections = [{ type: "timer", style: "bar", text: "Só esta semana" }];
   assert.ok(!render(sections, false).includes("v-urgent"), "sem oferta, não aparece");
   const page = withOffer(sections);
   assert.match(page, /<section class="v-urgent"[^>]*>.*?<p class="v-urgent-text">Só esta semana<\/p><p class="offer-timer" data-ends-at="2026-11-12T02:59:00\.000Z"/s);
@@ -669,11 +669,14 @@ test("faixa de urgência: só com oferta ativa; leva o cronômetro quando a ofer
   assert.match(withOffer(sections, { ends: null }), /v-urgent-text">Só esta semana/);
   // No editor aparece sempre (para editar o texto), marcada como oculta enquanto não há oferta.
   assert.match(render(sections, "live"), /<section class="v-urgent"[^>]* data-block="0" data-hidden>/);
-  assert.match(withOffer(sections, { preview: "live" }), /<section class="v-urgent"[^>]* data-block="0">/);
+  assert.match(withOffer(sections, { preview: "live" }), /<section class="v-urgent"[^>]* data-block="0">/);  // Como primeiro bloco, a faixa fica acima do menu (fora do <main>); a contagem não.
+  assert.ok(page.indexOf("v-urgent") < page.indexOf("<main"));
+  const big = withOffer([{ type: "timer", style: "countdown", title: "T" }]);
+  assert.ok(big.indexOf("v-countdown") > big.indexOf("<main"));
 });
 
-test("contagem regressiva: usa o prazo da oferta; sem prazo não aparece", () => {
-  const sections = [{ type: "countdown", title: "Aproveite", text: "Depois volta ao normal.", cta_label: "Quero" }];
+test("cronômetro, contagem regressiva: usa o prazo da oferta; sem prazo não aparece", () => {
+  const sections = [{ type: "timer", style: "countdown", title: "Aproveite", text: "Depois volta ao normal.", cta_label: "Quero" }];
   assert.ok(!render(sections, false).includes("v-countdown"));
   assert.ok(!withOffer(sections, { ends: null }).includes("v-countdown"));
   const page = withOffer(sections);

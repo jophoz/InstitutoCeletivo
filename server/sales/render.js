@@ -546,31 +546,8 @@ const RENDERERS = {
   // Demonstração: o produto por dentro, no estilo escolhido (ver DEMO_STYLES).
   demo: (b, ctx) => DEMO_STYLES[b.style](b, ctx),
 
-  // Faixa de urgência: texto curto e o cronômetro da oferta. Só existe com oferta ativa no cadastro
-  // do produto (nada de "só hoje" sem prazo de verdade); no editor aparece sempre, marcada como oculta.
-  urgency(b, ctx) {
-    const active = ctx.product.offer.active;
-    if (!active && !ctx.live) return null;
-    return html`<section class="v-urgent" aria-label="Oferta por tempo limitado"${ctx.mark({ hidden: !active })}><div class="container v-urgent-row">
-  ${svg("bolt", "v-urgent-ico")}<p class="v-urgent-text"${ctx.field("text", b.text, { fallback: true })}>${b.text || "Oferta especial por tempo limitado"}</p>${ctx.timer()}
-</div></section>`;
-  },
-
-  // Contagem regressiva: cronômetro grande até o fim da oferta, com o botão de compra. Sem
-  // JavaScript fica a data por extenso; venda.js troca pelas caixas (dias, horas, min, seg).
-  countdown(b, ctx) {
-    const ends = ctx.product.offer.ends_at;
-    if (!ends && !ctx.live) return null;
-    const id = ctx.headingId();
-    return html`<section class="v-countdown" aria-labelledby="${id}"${ctx.mark({ hidden: !ends })}><div class="container">
-  <h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Oferta por tempo limitado"}</h2>
-  ${ctx.show(b.text) && html`<p class="v-countdown-text"${ctx.field("text", b.text)}>${b.text}</p>`}
-  ${ends
-    ? html`<div class="v-count" data-count-ends="${ends}" data-now="${new Date(ctx.product.now).toISOString()}"><p class="v-count-date">Oferta válida até ${formatEnd(ends)}</p>${countBoxes(true)}</div>`
-    : html`<div class="v-count">${countBoxes(false)}</div>`}
-  ${ctx.cta(b.cta_label, "Quero aproveitar", "cta_label")}
-</div></section>`;
-  },
+  // Cronômetro: o prazo da oferta como faixa de urgência ou contagem regressiva (ver TIMER_STYLES).
+  timer: (b, ctx) => TIMER_STYLES[b.style](b, ctx),
 
   // Bônus: cartões numerados com imagem, nome, descrição e o valor que sai de graça.
   bonus(b, ctx) {
@@ -710,14 +687,42 @@ const DEMO_STYLES = {
   },
 };
 
+// Estilos do bloco Cronômetro. Só existem com oferta ativa no cadastro do produto (a contagem, com
+// prazo): nada de "só hoje" sem prazo de verdade. No editor aparecem sempre, marcados como ocultos.
+const TIMER_STYLES = {
+  // Faixa de urgência: texto curto e o cronômetro da oferta (oferta sem prazo: só o texto).
+  bar(b, ctx) {
+    const active = ctx.product.offer.active;
+    if (!active && !ctx.live) return null;
+    return html`<section class="v-urgent" aria-label="Oferta por tempo limitado"${ctx.mark({ hidden: !active })}><div class="container v-urgent-row">
+  ${svg("bolt", "v-urgent-ico")}<p class="v-urgent-text"${ctx.field("text", b.text, { fallback: true })}>${b.text || "Oferta especial por tempo limitado"}</p>${ctx.timer()}
+</div></section>`;
+  },
+
+  // Contagem regressiva: cronômetro grande até o fim da oferta, com o botão de compra. Sem
+  // JavaScript fica a data por extenso; venda.js troca pelas caixas (dias, horas, min, seg).
+  countdown(b, ctx) {
+    const ends = ctx.product.offer.ends_at;
+    if (!ends && !ctx.live) return null;
+    const id = ctx.headingId();
+    return html`<section class="v-countdown" aria-labelledby="${id}"${ctx.mark({ hidden: !ends })}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Oferta por tempo limitado"}</h2>
+  ${ctx.show(b.text) && html`<p class="v-countdown-text"${ctx.field("text", b.text)}>${b.text}</p>`}
+  ${ends
+    ? html`<div class="v-count" data-count-ends="${ends}" data-now="${new Date(ctx.product.now).toISOString()}"><p class="v-count-date">Oferta válida até ${formatEnd(ends)}</p>${countBoxes(true)}</div>`
+    : html`<div class="v-count">${countBoxes(false)}</div>`}
+  ${ctx.cta(b.cta_label, "Quero aproveitar", "cta_label")}
+</div></section>`;
+  },
+};
+
 // Por que um bloco não aparece na página (aviso exibido só no editor).
 const HIDDEN_REASON = {
   testimonials: "escreva pelo menos um depoimento",
   author: "preencha o nome do autor",
   social: "coloque o link de pelo menos uma rede",
   demo: "adicione pelo menos uma imagem",
-  urgency: "cadastre uma oferta no produto",
-  countdown: "cadastre uma oferta com prazo no produto",
+  timer: "cadastre uma oferta com prazo no produto",
 };
 
 // Cores da página: só inclui a folha de estilo quando não é a paleta padrão (que já está no venda.css).
@@ -754,7 +759,7 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
       : null);
     ctx.type = block.type;
     const section = RENDERERS[block.type](richFields(block, BLOCKS[block.type].fields), ctx);
-    if (section) return { type: block.type, section };
+    if (section) return { type: block.type, style: block.style, section };
     // No editor, um bloco que não aparece na página vira um aviso selecionável (senão ficaria inalcançável).
     if (live) {
       const reason = shared ? `o bloco salvo “${shared.name}” está vazio (preencha na aba Blocos salvos)`
@@ -767,7 +772,7 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   }).filter(Boolean);
   // A faixa de urgência, quando é o primeiro bloco da página, fica acima do menu (fora do <main>):
   // o menu flutua sobre a primeira seção, e cobriria uma faixa fina.
-  const topBar = rendered[0]?.type === "urgency" ? rendered.shift().section : null;
+  const topBar = rendered[0]?.type === "timer" && rendered[0].style === "bar" ? rendered.shift().section : null;
   const body = rendered.map((x) => x.section);
 
   const title = data.title;

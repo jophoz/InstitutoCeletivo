@@ -384,8 +384,7 @@
     social: "M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4", // compartilhar
     curriculum: "M4 4h16v5H4zM4 11h16v5H4zM17 6.5h.01M17 13.5h.01M4 20h10",   // módulos empilhados
     demo: "M3 7h18v13H3zM3 7l2-3h5l2 3M8 13l3 2.5L16 11",                      // aba com imagem
-    urgency: "M3 5h18v5H3zM13 3l-3 5h4l-3 5M5 15h14M7 19h10",                  // faixa de topo com raio
-    countdown: "M3 7h4v10H3zM10 7h4v10h-4zM17 7h4v10h-4zM8.5 10.5h.01M8.5 13.5h.01M15.5 10.5h.01M15.5 13.5h.01", // caixas do cronômetro
+    timer: "M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4l2.5 1.5M9 2h6M12 2v3", // cronômetro (faixa e contagem)
     bonus: "M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0", // presente
     _fallback: "M4 4h16v16H4zM8 9h8M8 13h8M8 17h5"
   };
