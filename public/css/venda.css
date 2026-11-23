@@ -684,21 +684,21 @@
 
 /* Colunas escolhidas no bloco (campo "Colunas"): 4×2, 3×2... No celular, sempre uma coluna;
    no tablet, duas; a partir daí, o número escolhido. "Automático" não leva classe. */
-:is(.grid8, .who):is(.cols-2, .cols-3, .cols-4) {
+.grid8:is(.cols-2, .cols-3, .cols-4) {
   grid-template-columns: minmax(0, 1fr);
 }
 @media (min-width: 640px) {
-  :is(.grid8, .who):is(.cols-2, .cols-3, .cols-4) {
+  .grid8:is(.cols-2, .cols-3, .cols-4) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (min-width: 900px) {
-  :is(.grid8, .who).cols-3 {
+  .grid8.cols-3 {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 @media (min-width: 1000px) {
-  :is(.grid8, .who).cols-4 {
+  .grid8.cols-4 {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
@@ -787,32 +787,6 @@
   box-shadow:
     0 0 0 1px rgb(255 255 255 / 0.1),
     0 28px 50px -18px rgb(0 0 0 / 0.6);
-}
-
-/* Público */
-.who {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-}
-.who li {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 1rem 1.25rem;
-  border: 1px solid var(--v-line);
-  border-radius: var(--v-radius);
-  background: var(--v-card);
-  box-shadow: var(--v-shadow);
-  font-weight: 700;
-}
-.who .ico {
-  width: 48px;
-  height: 48px;
-  padding: 12px;
 }
 
 /* Destaque: cartão escuro dentro da seção */
@@ -1816,29 +1790,6 @@
 }
 .venda .v-steps > li > strong {
   margin-top: 0;
-}
-
-/* ---------- Público: perfis com descrição viram cartões ---------- */
-.who-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: 0;
-}
-.who-desc {
-  font-weight: 400;
-  line-height: 1.5;
-  color: var(--color-muted);
-}
-.who.is-cards {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
-}
-.who.is-cards li {
-  align-items: flex-start;
-  padding: 1.4rem;
-}
-.who.is-cards .who-text strong {
-  font-size: 1.08rem;
 }
 
 /* ---------- Autor / Quem somos: botão de compra ---------- */

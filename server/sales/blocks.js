@@ -293,7 +293,7 @@ const BLOCKS = {
         timeline: "Linha do tempo (passo a passo)",
         modules: "Módulos (abre e fecha)",
       }, "cards", {
-        help: "Cartões: dois por linha, com texto mais longo e um destaque opcional. Grade: tópicos curtos em colunas (módulos, capítulos, temas); com fundo escuro, vira um painel de conteúdo. Linha do tempo: os itens viram passos numerados (01, 02…) ligados por uma linha, bom para a metodologia. Módulos: cada item abre e fecha com a lista de aulas ou tópicos, muita informação sem deixar a página longa.",
+        help: "Cartões: dois por linha, com texto mais longo e um destaque opcional. Grade: tópicos curtos em colunas (módulos, capítulos, temas, para quem é o produto); com fundo escuro, vira um painel de conteúdo. Linha do tempo: os itens viram passos numerados (01, 02…) ligados por uma linha, bom para a metodologia. Módulos: cada item abre e fecha com a lista de aulas ou tópicos, muita informação sem deixar a página longa.",
         // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Abertura.
         previews: {
           cards: "M4 5h18v22H4zM26 5h18v22H26zM8 10h4M30 10h4M8 15h10M30 15h10M8 19h8M30 19h8",
@@ -330,21 +330,6 @@ const BLOCKS = {
       }, "link"),
       show_cta: bool("Mostrar o botão de compra"),
       cta_label: text("Texto do botão", 60, { placeholder: "Quero começar agora" }),
-      background: background(),
-    },
-  },
-  audience: {
-    label: "Público-alvo",
-    help: "Para quem é o produto.",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      items: list("Perfis", 8, {
-        icon: icon(), text: text("Texto", 60),
-        description: text("Descrição (opcional)", 160, { help: "Uma frase sobre o perfil. Com descrição, o perfil vira um cartão." }),
-      }, "perfil"),
-      columns: columns(),
       background: background(),
     },
   },
@@ -746,10 +731,10 @@ function defaultSections() {
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
       { icon: "doc", title: "Segundo benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" }] },
     { type: "timer", style: "countdown", title: "Aproveite o preço promocional por tempo limitado", text: "Depois do prazo, o preço volta ao normal.", cta_label: "Quero aproveitar" },
-    { type: "audience", title: "Ideal para você que deseja", items: [
-      { icon: "target", text: "Primeiro perfil", description: "Uma frase sobre o que essa pessoa busca." },
-      { icon: "user", text: "Segundo perfil", description: "Uma frase sobre o que essa pessoa busca." },
-      { icon: "rocket", text: "Terceiro perfil", description: "Uma frase sobre o que essa pessoa busca." }] },
+    { type: "presentation", style: "grid", title: "Ideal para você que deseja", items: [
+      { icon: "target", title: "Primeiro perfil", text: "Uma frase sobre o que essa pessoa busca." },
+      { icon: "user", title: "Segundo perfil", text: "Uma frase sobre o que essa pessoa busca." },
+      { icon: "rocket", title: "Terceiro perfil", text: "Uma frase sobre o que essa pessoa busca." }] },
     { type: "presentation", style: "timeline", title: "Como você vai aprender", items: [
       { icon: "video", title: "Assista", text: "Aulas curtas e objetivas, organizadas por módulos." },
       { icon: "doc", title: "Estude o material", text: "Manual em PDF para estudo e consulta." },

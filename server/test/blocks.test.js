@@ -127,11 +127,9 @@ test("ícones: cada um está em exatamente um grupo do seletor", () => {
 });
 
 test("grades: colunas aceitam automático, 2, 3 ou 4 (two/three/four)", () => {
-  for (const type of ["presentation", "audience"]) {
-    assert.equal(validateSections([{ type }]).sections[0].columns, "auto");
-    assert.equal(validateSections([{ type, columns: "four" }]).sections[0].columns, "four");
-    assert.match(validateSections([{ type, columns: "five" }]).error, /opção inválida/);
-  }
+  assert.equal(validateSections([{ type: "presentation" }]).sections[0].columns, "auto");
+  assert.equal(validateSections([{ type: "presentation", columns: "four" }]).sections[0].columns, "four");
+  assert.match(validateSections([{ type: "presentation", columns: "five" }]).error, /opção inválida/);
 });
 
 /* ---------- Blocos salvos ---------- */
@@ -301,4 +299,19 @@ test("migration: currículo vira a Apresentação em módulos, sem o rótulo; de
   assert.equal(modules.convert({ type: "faq", items: [] }), null);
   assert.equal(modules.convertList([{ type: "faq", items: [] }]), null);
   assert.equal(validateSections([{ type: "curriculum", items: [] }]).error, "Bloco 1: tipo inválido.");
+});
+
+const audience = require("../migrations/1730002800000_audience-grid");
+test("migration: público-alvo vira a Apresentação em grade (perfil vira título; descrição, texto)", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const block = audience.convert({ type: "audience", eyebrow: "Para quem", title: "Ideal para você", intro: "x", columns: "three", background: "soft",
+    items: [{ icon: "user", text: "Iniciante", description: "Quer começar do zero." }, { icon: "target", text: "Sem descrição" }] });
+  assert.deepEqual(block, { type: "presentation", style: "grid", title: "Ideal para você", intro: "x", columns: "three", background: "soft",
+    items: [{ icon: "user", title: "Iniciante", text: "Quer começar do zero." }, { icon: "target", title: "Sem descrição", text: "" }] });
+  assert.equal(validateSections([block]).error, undefined);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(audience.convert({ type: "audience", shared: ID, background: "auto" }), { type: "presentation", shared: ID, background: "auto" });
+  assert.equal(audience.convert({ type: "faq", items: [] }), null);
+  assert.equal(audience.convertList([{ type: "faq", items: [] }]), null);
+  assert.equal(validateSections([{ type: "audience", items: [] }]).error, "Bloco 1: tipo inválido.");
 });

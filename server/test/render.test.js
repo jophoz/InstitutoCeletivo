@@ -253,7 +253,7 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
 
 test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
   const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
-  assert.deepEqual(types.sort(), ["audience", "bonus", "compare", "faq", "guarantee", "presentation", "social", "testimonials"]);
+  assert.deepEqual(types.sort(), ["bonus", "compare", "faq", "guarantee", "presentation", "social", "testimonials"]);
   const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
   assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
@@ -312,7 +312,7 @@ test("listas: cheia, sem '+ Adicionar'; carrossel com × em cada imagem", () => 
 });
 
 test("listas vazias: no editor o bloco continua, oculto, com o botão de adicionar", () => {
-  for (const type of ["presentation", "audience", "faq"]) {
+  for (const type of ["presentation", "faq"]) {
     const live = render([{ type, title: "T", items: [] }], "live");
     assert.match(live, /data-block="0" data-hidden/, type);
     assert.ok(live.includes('data-item-add="items"'), type);
@@ -428,7 +428,6 @@ test("página de vendas sem botão voltar (navegação enxuta)", () => {
 test("grades: colunas escolhidas viram classe; automático não leva classe", () => {
   const item = { icon: "check", title: "T", text: "x" };
   assert.match(render([{ type: "presentation", style: "grid", title: "T", items: [item], columns: "four" }], false), /<ul class="grid8 cols-4">/);
-  assert.match(render([{ type: "audience", title: "T", items: [{ icon: "user", text: "A" }], columns: "three" }], false), /<ul class="who cols-3">/);
   assert.match(render([{ type: "presentation", style: "grid", title: "T", items: [item] }], false), /<ul class="grid8">/);
 });
 
@@ -734,12 +733,6 @@ test("abertura: lista de pontos com ícone, aviso abaixo do botão e disposiçã
   assert.ok(!/v-bullets|cta-note|is-center/.test(plain));
 });
 
-test("público: com descrição o perfil vira cartão; sem descrição, a lista de antes", () => {
-  const cards = render([{ type: "audience", title: "T", items: [{ icon: "user", text: "Iniciante", description: "Quer começar do zero." }] }], false);
-  assert.match(cards, /<ul class="who is-cards"><li><svg[^>]*><use href="#i-user"\/><\/svg><div class="who-text"><strong>Iniciante<\/strong><span class="who-desc">Quer começar do zero\.<\/span><\/div><\/li><\/ul>/);
-  assert.match(render([{ type: "audience", title: "T", items: [{ icon: "user", text: "A" }] }], false), /<ul class="who"><li><svg[^>]*><use href="#i-user"\/><\/svg>A<\/li><\/ul>/);
-});
-
 test("autor: botão de compra opcional, com o link do produto", () => {
   const on = render([{ type: "author", name: "Instituto", show_cta: true, cta_label: "Quero conhecer" }], false);
   assert.match(on, /<p class="author-cta"><a class="btn-cta" href="https:\/\/pay\.example\.com\/x"[^>]*>Quero conhecer/);
@@ -765,15 +758,14 @@ test("depoimentos: estrelas só quando escolhidas, com a nota em texto para leit
 test("blocos de antes do modelo de página de vendas continuam válidos, sem as peças novas", () => {
   const old = [
     { type: "hero", title: "T", lead: "L", badges: [], stats: [], visual: "image", image: null },
-    { type: "audience", title: "P", items: [{ icon: "user", text: "A" }], columns: "auto", background: "auto" },
     { type: "author", name: "Ana", role: "", bio: "", photo: null, links: [] },
     { type: "guarantee", title: "G", intro: "", items: [{ icon: "lock", text: "Seguro" }] },
     { type: "testimonials", title: "D", items: [{ quote: "Q", name: "N", role: "", photo: null }] },
   ];
   assert.equal(validateSections(old).error, undefined);
   const page = render(old, false);
-  assert.ok(!/v-bullets|cta-note|is-center|is-cards|who-desc|author-cta|has-seal|class="stars"/.test(page));
-  assert.equal((page.match(/<section/g) || []).length, 5);
+  assert.ok(!/v-bullets|cta-note|is-center|author-cta|has-seal|class="stars"/.test(page));
+  assert.equal((page.match(/<section/g) || []).length, 4);
 });
 
 test("apresentação em cartões: sem título, só um h2 para leitores de tela; com título, h2 visível", () => {

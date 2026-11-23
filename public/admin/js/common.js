@@ -374,7 +374,6 @@
     presentation: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",     // grade
     compare: "M3 4h7v16H3zM14 4h7v16h-7zM10.5 12h3",                       // duas colunas (Comparação)
     author: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.5-6 8-6s8 2 8 6", // pessoa
-    audience: "M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 7-5s7 2 7 5M17 4a3 3 0 0 1 0 6M19 15c2 .7 3 2.3 3 5", // pessoas
     highlight: "M3 11v2l13 5V6zM16 9a3 3 0 0 1 0 6M6 13l1 6h3l-1-5",       // megafone
     cta: "M3 8h18v8H3zM13 12h5M16 10l2 2-2 2",                            // faixa com seta
     testimonials: "M4 5h16v11H10l-5 4v-4H4zM8 9h8M8 12h5",                 // balão de fala

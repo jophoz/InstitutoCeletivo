@@ -434,19 +434,6 @@ const RENDERERS = {
 </div></section>`;
   },
 
-  audience(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    const cards = b.items.some((x) => x.description);
-    const body = (x, i) => (ctx.show(x.description)
-      ? html`<div class="who-text"><strong${ctx.field(`items.${i}.text`, x.text)}>${x.text}</strong><span class="who-desc"${ctx.field(`items.${i}.description`, x.description)}>${x.description}</span></div>`
-      : ctx.text(`items.${i}.text`, x.text));
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <ul class="who${cols(b)}${cards ? " is-cards" : ""}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${body(x, i)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
-</div></section>`;
-  },
-
   highlight(b, ctx) {
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
