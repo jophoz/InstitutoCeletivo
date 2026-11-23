@@ -9,7 +9,7 @@
 // "Editar produto") e valem assim que ele é salvo.
 const pool = require("../config/database");
 const storage = require("../lib/storage");
-const { validateSections, validBlocks, mediaIds, sharedIds, hasOffer } = require("./blocks");
+const { validateSections, validBlocks, mediaIds, sharedIds, hasOffer, MAX_BLOCKS } = require("./blocks");
 
 // Blocos válidos de uma lista gravada (os inválidos são ignorados um a um, ver validBlocks).
 const storedBlocks = (sections) => validBlocks(sections).map((x) => x.block);
@@ -42,11 +42,15 @@ function storedTheme(input) {
   }
 }
 
-function normalizeInput(body) {
+function checkBody(body) {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new PageInputError("Envie um objeto JSON.");
   const allowed = ["sections", "theme"];
   const unknown = Object.keys(body).filter((k) => !allowed.includes(k));
   if (unknown.length) throw new PageInputError(`Campo(s) não suportado(s): ${unknown.join(", ")}.`);
+}
+
+function normalizeInput(body) {
+  checkBody(body);
 
   const { sections, error } = validateSections(body.sections ?? []);
   if (error) throw new PageInputError(error);
@@ -184,8 +188,14 @@ async function loadMedia(sections, ...productImageIds) {
 
 // Rascunho para a pré-visualização ao vivo do editor: usa os blocos enviados (validados),
 // sem gravar nada. Devolve null se o produto não existir; lança PageInputError se inválido.
+// Os blocos vão SEM validar a lista inteira: cada bloco inválido (ex.: de um tipo que saiu do
+// sistema) vira um aviso só no lugar dele, e o resto da página continua aparecendo (ver render).
 async function loadDraftForRender(productId, body) {
-  const input = normalizeInput(body);
+  checkBody(body);
+  const raw = body.sections ?? [];
+  if (!Array.isArray(raw)) throw new PageInputError("sections deve ser uma lista de blocos.");
+  if (raw.length > MAX_BLOCKS) throw new PageInputError(`Use no máximo ${MAX_BLOCKS} blocos.`);
+  const input = { sections: raw, theme: storedTheme(body.theme) };
   const { rows } = await pool.query(
     `SELECT ${PRODUCT_COLUMNS} FROM ${PRODUCT_FROM} WHERE p.id = $1`, [productId]);
   if (!rows.length) return null;

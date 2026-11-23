@@ -97,6 +97,11 @@
   margin: 0;
   text-align: center;
 }
+/* Bloco inválido (ex.: tipo que saiu do sistema): em vermelho, para a pessoa achar e remover. */
+.is-editor-preview .editor-hidden-block.is-invalid {
+  color: var(--color-danger);
+  border-color: currentColor;
+}
 
 /* ---------- Controles sobre a página (editor/src/components/CanvasOverlay.jsx) ----------
    Posições e escala vêm do editor (style via JavaScript); aqui só a aparência. */

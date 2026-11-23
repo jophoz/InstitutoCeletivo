@@ -44,6 +44,15 @@ export function carryKeys(fresh, old) {
   return fresh;
 }
 
+// Definição do tipo de um bloco (esquema do servidor). Bloco de um tipo que saiu do sistema (ex.:
+// página gravada antes de uma mudança, ainda sem a migração): uma definição vazia, para o editor
+// mostrar o bloco com o aviso e o botão de remover em vez de quebrar.
+export const UNKNOWN_BLOCK = Object.freeze({
+  label: "Bloco inválido", unknown: true, fields: {},
+  help: "Este tipo de bloco não existe mais. Remova o bloco para poder salvar a página.",
+});
+export const blockDef = (schema, type) => schema.blocks[type] || UNKNOWN_BLOCK;
+
 // Valor vazio de um conjunto de campos (conforme o esquema do servidor).
 export function emptyValue(fields) {
   const out = { _key: newKey() };
@@ -84,7 +93,7 @@ export function duplicateBlock(block, schema) {
 export function usedByStyle(field, block, schema) {
   const rule = field.showIf;
   if (!rule) return true;
-  const value = block[rule.field] ?? schema.blocks[block.type].fields[rule.field]?.default;
+  const value = block[rule.field] ?? blockDef(schema, block.type).fields[rule.field]?.default;
   return rule.in.includes(value);
 }
 

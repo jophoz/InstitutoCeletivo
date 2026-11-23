@@ -694,14 +694,22 @@ function validateSections(sections) {
 // até ela, então toda página salva precisa de uma.
 const hasOffer = (sections) => Array.isArray(sections) && sections.some((b) => isObject(b) && b.type === "offer");
 
-// Blocos já gravados, validados UM A UM: um bloco inválido (ex.: dado antigo, de antes de uma
-// mudança no esquema) é descartado sozinho, em vez de invalidar a página inteira. Cada item
-// guarda a posição ORIGINAL do bloco: { index, block }.
-function validBlocks(sections) {
-  return (Array.isArray(sections) ? sections : [])
-    .map((block, index) => ({ index, block: isObject(block) && has(BLOCKS, block.type) ? validateSections([block]).sections?.[0] : null }))
-    .filter((x) => x.block);
+// Cada bloco de uma lista, validado UM A UM: { index, block } se válido, { index, error } se não.
+// index é a posição ORIGINAL; error explica o problema sem o "Bloco 1 (…) ›" da validação avulsa.
+function checkBlocks(sections) {
+  return (Array.isArray(sections) ? sections : []).map((block, index) => {
+    if (!isObject(block) || !has(BLOCKS, block.type)) {
+      const type = isObject(block) && typeof block.type === "string" ? ` (“${block.type.slice(0, 40)}”)` : "";
+      return { index, error: `este tipo de bloco${type} não existe mais` };
+    }
+    const { sections: ok, error } = validateSections([block]);
+    return ok ? { index, block: ok[0] } : { index, error: error.replace(/^Bloco 1 \([^)]*\)(: | › )/, "") };
+  });
 }
+
+// Blocos já gravados, sem os inválidos (ex.: dado antigo, de antes de uma mudança no esquema): um
+// bloco inválido é descartado sozinho, em vez de invalidar a página inteira. { index, block }.
+const validBlocks = (sections) => checkBlocks(sections).filter((x) => x.block);
 
 // IDs de todas as imagens usadas nos blocos (para buscar URLs e registrar o uso).
 function mediaIds(sections) {
@@ -776,5 +784,5 @@ function defaultSections() {
 
 module.exports = {
   ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, SHAREABLE,
-  validateSections, validBlocks, mediaIds, defaultSections, validateSharedData, sharedIds, hasOffer,
+  validateSections, validBlocks, checkBlocks, mediaIds, defaultSections, validateSharedData, sharedIds, hasOffer,
 };

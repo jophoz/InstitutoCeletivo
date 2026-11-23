@@ -10,7 +10,7 @@
 //                inserir/mover/remover blocos nem cores; "Salvar" muda todas as páginas que o usam.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
-import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText, canRemoveBlock, ensureRequired, usedByStyle } from "./state/document.js";
+import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText, canRemoveBlock, ensureRequired, usedByStyle, blockDef } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
 import { PRODUCT_STATUS, sizeHint } from "./labels.js";
 import { TopBar, SharedTopBar, ToolDock, PublishBadge, SharedBadge, publishState } from "./components/EditorHeader.jsx";
@@ -31,7 +31,7 @@ const imageFieldDef = (schema, block, field) => field.split(".").filter((p) => !
   .reduce((def, part) => (def?.item ?? def?.fields)?.[part], schema.blocks[block?.type]);
 // Bloco salvo -> documento do editor: o bloco (com os campos locais, como o fundo, no padrão) e o nome.
 function sharedDoc(saved, schema, theme) {
-  const def = schema.blocks[saved.type];
+  const def = blockDef(schema, saved.type);
   const local = Object.fromEntries((schema.shareable[saved.type] || []).map((n) => [n, def.fields[n].default ?? ""]));
   return { name: saved.name, sections: [{ type: saved.type, ...saved.data, ...local }], theme: theme || resolveTheme(null, schema) };
 }
@@ -251,7 +251,7 @@ export default function App({ productId, sharedId }) {
     // "Adicionar imagem" no fim do carrossel: a imagem escolhida vira um item novo da lista.
     async addImage(index, list) {
       const block = sections[index];
-      const field = block && schema.blocks[block.type].fields[list];
+      const field = block && blockDef(schema, block.type).fields[list];
       if (field?.type !== "list" || block[list].length >= field.max) return;
       revealBlock(index, "canvas");
       const [name, imageDef] = Object.entries(field.item).find(([, f]) => f.type === "image");
@@ -263,7 +263,7 @@ export default function App({ productId, sharedId }) {
     // "+ Adicionar …" no fim de uma lista da página: item novo no fim, já com o cursor no 1º texto.
     addItem(index, list) {
       const block = sections[index];
-      const field = block && schema.blocks[block.type].fields[list];
+      const field = block && blockDef(schema, block.type).fields[list];
       if (field?.type !== "list" || block[list].length >= field.max) return;
       revealBlock(index, "canvas");
       dispatch({ type: "insert", path: ["sections", index, list], value: emptyValue(field.item) });
@@ -277,7 +277,8 @@ export default function App({ productId, sharedId }) {
       const value = block?.[list]?.[Number(n)];
       if (!value) return;
       revealBlock(index, "canvas");
-      const field = schema.blocks[block.type].fields[list];
+      const field = blockDef(schema, block.type).fields[list];
+      if (!field) return;
       if (hasText(value, field.item) &&!(await window.Admin.confirm({
         title: `Remover ${field.noun} ${Number(n) + 1}?`, text: "O texto será perdido.", action: "Remover", danger: true,
       }))) return;
@@ -339,7 +340,7 @@ export default function App({ productId, sharedId }) {
 
   async function removeBlock(index) {
     const block = sections[index];
-    const label = schema.blocks[block.type].label;
+    const label = blockDef(schema, block.type).label;
     const ok = await window.Admin.confirm({
       title: `Remover o bloco “${label}”?`,
       text: "O conteúdo deste bloco será perdido quando você salvar (dá para desfazer com Ctrl+Z).",

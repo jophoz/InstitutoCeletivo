@@ -10,6 +10,7 @@ const GAP = 10, MARGIN = 8;
 
 export function BlockPicker({ position, anchor, total, onPick, onPickShared, onClose }) {
   const { schema, shared } = useEditor();
+  const knownShared = shared.list.filter((s) => Object.hasOwn(schema.blocks, s.type));
   const dialog = useRef(null);
   const isOpen = position !== null;
   const compact = isOpen && !!anchor;
@@ -52,11 +53,12 @@ export function BlockPicker({ position, anchor, total, onPick, onPickShared, onC
         ))}
       </div>
       {/* Blocos salvos (aba "Blocos salvos"): o conteúdo vem de lá e muda em todas as páginas. */}
-      {shared.list.length > 0 && (
+      {/* (Só os de tipos que existem: um bloco salvo de um tipo que saiu do sistema não entra.) */}
+      {knownShared.length > 0 && (
         <>
           <h3 className="block-types-title">Blocos salvos</h3>
           <div className="block-types">
-            {shared.list.map((s) => (
+            {knownShared.map((s) => (
               <button key={s.id} type="button" className="block-type" onClick={() => onPickShared(s)}
                 title={compact ? `${schema.blocks[s.type].label} · muda junto em todas as páginas que o usam` : undefined}>
                 <BlockIcon type={s.type} />

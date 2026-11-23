@@ -1,7 +1,7 @@
 // Monta o HTML da página de vendas a partir dos blocos. A marcação segue a página original do
 // Manual (mesmas classes de public/css/venda.css), então o visual é o mesmo.
 const { html } = require("../lib/html");
-const { BLOCKS, ICONS, NETWORKS, validBlocks, hasOffer } = require("./blocks");
+const { BLOCKS, ICONS, NETWORKS, checkBlocks, hasOffer } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
 const { assetUrl } = require("../lib/assets"); // ?v= nos CSS/JS: cache longo no navegador
@@ -727,8 +727,14 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer, now };
   const ctx = createContext(data, { live });
   ctx.hasOffer = hasOffer(data.sections);
-  // Blocos inválidos são ignorados um a um; index (posição original) liga a seção ao bloco do editor.
-  const rendered = validBlocks(data.sections).map(({ block, index }) => {
+  // Blocos inválidos são ignorados um a um (no editor, viram um aviso com o motivo, para a pessoa
+  // achar e remover o bloco); index (posição original) liga a seção ao bloco do editor.
+  const rendered = checkBlocks(data.sections).map(({ block, index, error }) => {
+    if (!block) {
+      return live ? { type: null, section: html`<section class="editor-hidden-block is-invalid" data-block="${index}" data-hidden><div class="container">
+  <p><strong>Bloco inválido</strong> — não aparece na página: ${error}. Corrija ou remova o bloco para poder salvar.</p>
+</div></section>` } : null;
+    }
     // Bloco que vem de um bloco salvo: no editor é desenhado como na página pública (sem textos
     // editáveis), com a etiqueta data-shared; o conteúdo se edita na aba "Blocos salvos".
     const shared = data.shared?.get(index);

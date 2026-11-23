@@ -6,7 +6,7 @@
 //   SaveAsShared     -> bloco comum de um tipo compartilhável: cria o bloco salvo a partir dele
 import { useId, useState } from "react";
 import { useEditor } from "../state/context.js";
-import { stripKeys, usedByStyle, withKeys } from "../state/document.js";
+import { stripKeys, usedByStyle, withKeys, blockDef } from "../state/document.js";
 import { Field } from "./Fields.jsx";
 
 // Editor visual de um bloco salvo.
@@ -92,10 +92,12 @@ const isShown = (field, block, schema) => !field.canvasOnly && usedByStyle(field
 
 export function BlockFormBody({ block, index }) {
   const { schema, isShared } = useEditor();
+  const def = blockDef(schema, block.type);
+  if (def.unknown) return <p className="hint warn" role="alert">{def.help}</p>;
   if (block.shared) return <SharedLinkFields block={block} index={index} />;
   return (
     <>
-      {Object.entries(schema.blocks[block.type].fields).filter(([, field]) => isShown(field, block, schema)).map(([name, field]) => (
+      {Object.entries(def.fields).filter(([, field]) => isShown(field, block, schema)).map(([name, field]) => (
         <Field key={name} field={field} value={block[name]} path={["sections", index, name]}
           shown={(sub) => isShown(sub, block, schema)} />
       ))}

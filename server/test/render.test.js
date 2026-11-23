@@ -783,3 +783,15 @@ test("apresentação: a descrição fica no fim da seção, depois dos itens", (
   assert.match(page, /<\/ul>\s*<p class="v-intro is-last">Fecho\.<\/p>\s*<\/div><\/section>/);
   assert.match(render([{ type: "presentation", items: [] }], "live"), /<p class="v-intro is-last" data-field="intro" data-empty data-placeholder="Descrição no fim da seção">/);
 });
+
+test("bloco inválido: no editor vira um aviso no lugar dele (o resto aparece); na página pública some", () => {
+  const sections = [{ type: "audience", title: "Antigo", items: [] }, { type: "faq", title: "Dúvidas", items: [{ question: "Q", answer: "A" }] },
+    { type: "faq", title: "x".repeat(121), items: [] }];
+  const live = render(sections, "live");
+  assert.match(live, /<section class="editor-hidden-block is-invalid" data-block="0" data-hidden>[\s\S]*?este tipo de bloco \(“audience”\) não existe mais/);
+  assert.match(live, /data-block="1"/);
+  assert.match(live, /<section class="editor-hidden-block is-invalid" data-block="2" data-hidden>[\s\S]*?Título da seção: máximo de 120 caracteres\./);
+  const page = render(sections, false);
+  assert.ok(!page.includes("is-invalid") && !page.includes("Antigo"));
+  assert.match(page, /Dúvidas/);
+});
