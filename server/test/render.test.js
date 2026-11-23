@@ -562,12 +562,12 @@ test("carrossel com títulos e listas: painel do módulo ao lado das imagens", (
 });
 
 test("tópicos no editor: uma linha por <div>, editável como texto de várias linhas", () => {
-  const live = render([{ type: "presentation", style: "modules", title: "C", items: [{ title: "M1", topics: "Um\nDois" }] }], "live");
-  assert.match(live, /<div class="v-lines module-topics" data-field="items\.0\.topics" data-multiline><div>Um<\/div><div>Dois<\/div><\/div>/);
+  const live = render([{ type: "presentation", style: "modules", title: "C", items: [{ title: "M1", text: "Um\nDois" }] }], "live");
+  assert.match(live, /<div class="v-lines module-topics" data-field="items\.0\.text" data-multiline><div>Um<\/div><div>Dois<\/div><\/div>/);
 });
 
 test("apresentação em módulos: abrem e fecham, com número, detalhe e tópicos", () => {
-  const page = render([{ type: "presentation", style: "modules", title: "Currículo", items: [{ title: "Introdução", meta: "3 aulas", topics: "A\nB" }] }], false);
+  const page = render([{ type: "presentation", style: "modules", title: "Currículo", items: [{ title: "Introdução", callout: "3 aulas", text: "A\nB" }] }], false);
   assert.match(page, /<div class="v-modules narrow"><details class="faq module"><summary><span class="module-head"><span class="module-tag">Módulo 01<\/span>Introdução<small class="module-meta">3 aulas<\/small><\/span><\/summary><ul class="v-lines module-topics"><li>A<\/li><li>B<\/li><\/ul><\/details>/);
   assert.ok(!render([{ type: "presentation", style: "modules", title: "C", items: [] }], false).includes("v-section"));
   assert.match(render([{ type: "presentation", style: "modules", items: [{ title: "M" }] }], false), /<h2 id="[^"]+" class="sr-only">Módulos<\/h2>/);

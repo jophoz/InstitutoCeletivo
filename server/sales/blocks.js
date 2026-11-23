@@ -309,10 +309,8 @@ const BLOCKS = {
       items: list("Itens", 20, {
         icon: { ...icon(), showIf: { field: "style", in: ["cards", "grid"] } },
         title: text("Título", 120),
-        text: textarea("Texto", 400, { showIf: { field: "style", in: ["cards", "grid", "timeline"] } }),
-        callout: text("Destaque", 200, { showIf: { field: "style", in: ["cards"] } }),
-        meta: text("Detalhe (opcional)", 60, { help: "Ex.: 5 aulas · 2h10.", showIf: { field: "style", in: ["modules"] } }),
-        topics: textarea("Tópicos (um por linha)", 1500, { showIf: { field: "style", in: ["modules"] } }),
+        text: textarea("Texto", 1500, { help: "Nos cartões, na grade e na linha do tempo, prefira poucas frases. Nos módulos, é o que aparece ao abrir: um tópico por linha." }),
+        callout: text("Destaque", 200, { help: "Opcional. Nos cartões, frase em destaque abaixo do texto; nos módulos, detalhe abaixo do título (ex.: 5 aulas · 2h10).", showIf: { field: "style", in: ["cards", "modules"] } }),
       }, "item"),
       background: background(),
     },
@@ -763,8 +761,8 @@ function defaultSections() {
       { title: "Um diferencial do produto", text: "Explique o diferencial em poucas frases." },
       { title: "Outro diferencial", text: "Explique o diferencial em poucas frases." }] },
     { type: "presentation", style: "modules", title: "O que você vai estudar", items: [
-      { title: "Módulo de introdução", meta: "3 aulas", topics: "Primeiro tópico\nSegundo tópico" },
-      { title: "Segundo módulo", meta: "4 aulas", topics: "Primeiro tópico\nSegundo tópico" }] },
+      { title: "Módulo de introdução", callout: "3 aulas", text: "Primeiro tópico\nSegundo tópico" },
+      { title: "Segundo módulo", callout: "4 aulas", text: "Primeiro tópico\nSegundo tópico" }] },
     { type: "cta", title: "Pronto para começar? O acesso é imediato.", cta_label: "Quero garantir" },
     { type: "bonus", eyebrow: "E não para por aí", title: "Você também vai receber", items: [
       { title: "Nome do primeiro bônus", text: "Explique o que é e por que ajuda.", value: "" },

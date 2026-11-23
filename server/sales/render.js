@@ -581,11 +581,11 @@ const PRESENTATION_STYLES = {
     fallback: "Passo a passo",
     body: (b, ctx) => html`<ol class="v-steps" data-count="${b.items.length}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}><span class="v-step-num" aria-hidden="true">${pad2(i + 1)}</span><strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ol>`,
   },
-  // Módulos que abrem e fecham (mesmo acordeão do FAQ), com "Módulo 01", detalhe e a lista de tópicos.
-  // No editor ficam abertos, para editar os tópicos direto.
+  // Módulos que abrem e fecham (mesmo acordeão do FAQ): "Módulo 01", o título, o destaque como
+  // detalhe (ex.: "5 aulas") e, ao abrir, o texto com um tópico por linha. No editor ficam abertos.
   modules: {
     fallback: "Módulos",
-    body: (b, ctx) => html`<div class="v-modules narrow">${b.items.map((x, i) => html`<details class="faq module"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary><span class="module-head"><span class="module-tag">Módulo ${pad2(i + 1)}</span>${ctx.text(`items.${i}.title`, x.title)}${ctx.show(x.meta) && html`<small class="module-meta"${ctx.field(`items.${i}.meta`, x.meta)}>${x.meta}</small>`}</span></summary>${ctx.lines(`items.${i}.topics`, x.topics, "module-topics")}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}</div>`,
+    body: (b, ctx) => html`<div class="v-modules narrow">${b.items.map((x, i) => html`<details class="faq module"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary><span class="module-head"><span class="module-tag">Módulo ${pad2(i + 1)}</span>${ctx.text(`items.${i}.title`, x.title)}${ctx.show(x.callout) && html`<small class="module-meta"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</small>`}</span></summary>${ctx.lines(`items.${i}.text`, x.text, "module-topics")}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}</div>`,
   },
 };
 
