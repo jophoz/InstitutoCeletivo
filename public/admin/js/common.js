@@ -372,7 +372,7 @@
   var BLOCK_ICONS = {
     hero: "M3 4h18v10H3zM7 18h10M9 21h6",                                  // tela com destaque
     presentation: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",     // grade
-    checklist: "M4 6l2 2 3-3M4 13l2 2 3-3M12 7h8M12 14h8M4 19h16",         // lista ✓
+    compare: "M3 4h7v16H3zM14 4h7v16h-7zM10.5 12h3",                       // duas colunas (Comparação)
     author: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.5-6 8-6s8 2 8 6", // pessoa
     audience: "M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 7-5s7 2 7 5M17 4a3 3 0 0 1 0 6M19 15c2 .7 3 2.3 3 5", // pessoas
     highlight: "M3 11v2l13 5V6zM16 9a3 3 0 0 1 0 6M6 13l1 6h3l-1-5",       // megafone
@@ -387,7 +387,6 @@
     urgency: "M3 5h18v5H3zM13 3l-3 5h4l-3 5M5 15h14M7 19h10",                  // faixa de topo com raio
     countdown: "M3 7h4v10H3zM10 7h4v10h-4zM17 7h4v10h-4zM8.5 10.5h.01M8.5 13.5h.01M15.5 10.5h.01M15.5 13.5h.01", // caixas do cronômetro
     bonus: "M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0", // presente
-    table: "M3 4h18v16H3zM3 9h18M3 14.5h18M9 4v16M15 4v16",                   // tabela
     _fallback: "M4 4h16v16H4zM8 9h8M8 13h8M8 17h5"
   };
   function blockIcon(type, className) {

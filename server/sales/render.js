@@ -424,16 +424,6 @@ const RENDERERS = {
 </div></section>`;
   },
 
-  checklist(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container narrow">
-  <div class="v-card center">${ctx.icon("icon", b.icon, "ico big")}${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-    <ul class="mini">${b.items.map((x, i) => html`<li class="${x.positive ? "yes" : "no"}"${ctx.item("items", i)}>${mark(x.positive)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
-  </div>
-</div></section>`;
-  },
-
   author(b, ctx) {
     if (!b.name) return null;
     const id = ctx.headingId();
@@ -592,19 +582,9 @@ const RENDERERS = {
 </div></section>`;
   },
 
-  // Comparativo em tabela: uma linha por critério, a alternativa (✗) e o produto (✓) lado a lado.
-  // No celular cada linha vira um cartão: o critério em cima e as duas colunas embaixo (CSS).
-  table(b, ctx) {
-    if (!b.rows.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    const cell = (path, value, positive, extra = null) => html`<td class="${positive ? "yes" : "no"}"><span class="v-compare-cell">${mark(positive)}<span${ctx.field(path, value)}>${value}</span></span>${extra}</td>`;
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.rows.length })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <div class="v-compare-wrap"><table class="v-compare" aria-labelledby="${id}">
-    <thead><tr><td></td><th scope="col" class="no"${ctx.field("left_title", b.left_title)}>${b.left_title}</th><th scope="col" class="yes"${ctx.field("right_title", b.right_title)}>${b.right_title}</th></tr></thead>
-    <tbody>${b.rows.map((x, i) => html`<tr${ctx.item("rows", i)}><th scope="row"${ctx.field(`rows.${i}.label`, x.label)}>${x.label}</th>${cell(`rows.${i}.left`, x.left, false)}${cell(`rows.${i}.right`, x.right, true, ctx.remove("rows", i))}</tr>`)}</tbody>
-  </table></div>${ctx.addItem("rows", b.rows, "div")}
-</div></section>`;
+  // Comparação: dois lados (VS) ou tabela critério a critério (ver COMPARE_STYLES).
+  compare(b, ctx) {
+    return COMPARE_STYLES[b.style](b, ctx);
   },
 
   // Redes sociais: botões em pílula centralizados. Página pública: só as redes com link.
@@ -635,6 +615,35 @@ const PRESENTATION_STYLES = {
   timeline: {
     fallback: "Passo a passo",
     body: (b, ctx) => html`<ol class="v-steps" data-count="${b.items.length}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}><span class="v-step-num" aria-hidden="true">${pad2(i + 1)}</span><strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ol>`,
+  },
+};
+
+// Estilos do bloco Comparação.
+const COMPARE_STYLES = {
+  // Dois lados: um cartão com a alternativa (✗) e outro, escuro, com o produto (✓), separados por "VS".
+  columns(b, ctx) {
+    const id = ctx.headingId();
+    const side = (prefix, title, items, positive) => html`<article class="v-card${positive ? " dark" : ""}"><h3${ctx.field(`${prefix}_title`, title)}>${title}</h3>
+      <ul class="mini">${items.map((x, i) => html`<li class="${positive ? "yes" : "no"}"${ctx.item(`${prefix}_items`, i)}>${mark(positive)}${ctx.text(`${prefix}_items.${i}.text`, x.text)}${ctx.remove(`${prefix}_items`, i)}</li>`)}${ctx.addItem(`${prefix}_items`, items)}</ul></article>`;
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="versus">${side("left", b.left_title, b.left_items, false)}<div class="vs" aria-hidden="true">VS</div>${side("right", b.right_title, b.right_items, true)}</div>
+</div></section>`;
+  },
+
+  // Tabela: uma linha por critério, a alternativa (✗) e o produto (✓) lado a lado.
+  // No celular cada linha vira um cartão: o critério em cima e as duas colunas embaixo (CSS).
+  table(b, ctx) {
+    if (!b.rows.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    const cell = (path, value, positive, extra = null) => html`<td class="${positive ? "yes" : "no"}"><span class="v-compare-cell">${mark(positive)}<span${ctx.field(path, value)}>${value}</span></span>${extra}</td>`;
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.rows.length })}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="v-compare-wrap"><table class="v-compare" aria-labelledby="${id}">
+    <thead><tr><td></td><th scope="col" class="no"${ctx.field("left_title", b.left_title)}>${b.left_title}</th><th scope="col" class="yes"${ctx.field("right_title", b.right_title)}>${b.right_title}</th></tr></thead>
+    <tbody>${b.rows.map((x, i) => html`<tr${ctx.item("rows", i)}><th scope="row"${ctx.field(`rows.${i}.label`, x.label)}>${x.label}</th>${cell(`rows.${i}.left`, x.left, false)}${cell(`rows.${i}.right`, x.right, true, ctx.remove("rows", i))}</tr>`)}</tbody>
+  </table></div>${ctx.addItem("rows", b.rows, "div")}
+</div></section>`;
   },
 };
 

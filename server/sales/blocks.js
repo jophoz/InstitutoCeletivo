@@ -313,18 +313,6 @@ const BLOCKS = {
       background: background(),
     },
   },
-  checklist: {
-    label: "Lista ✓ / ✗",
-    help: "O que o produto é e o que não é.",
-    fields: {
-      icon: icon(),
-      eyebrow: eyebrow(),
-      title: text("Título", 120),
-      intro: intro(),
-      items: list("Itens", 10, { text: text("Texto", 160), positive: bool("Positivo (✓)") }),
-      background: background(),
-    },
-  },
   author: {
     label: "Autor / Quem somos",
     help: "Quem criou o produto: uma pessoa ou a instituição (Quem somos). Pode levar o botão de compra.",
@@ -534,20 +522,35 @@ const BLOCKS = {
       background: background(),
     },
   },
-  table: {
-    label: "Comparativo em tabela",
-    help: "Tabela critério a critério: a alternativa comum (✗) de um lado e o seu produto (✓) do outro.",
+  compare: {
+    label: "Comparação",
+    help: "Compare a alternativa comum (✗) com o seu produto (✓), em um destes estilos: dois lados (VS) ou tabela critério a critério.",
+    // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
+    removed: ["eyebrow"],
     fields: {
-      eyebrow: eyebrow(),
+      style: choice("Estilo", {
+        columns: "Dois lados (VS)",
+        table: "Tabela (critério a critério)",
+      }, "columns", {
+        help: "Dois lados: um cartão com os itens da alternativa (✗) e outro com os do produto (✓), separados por \"VS\". Tabela: uma linha por critério, a alternativa (✗) de um lado e o produto (✓) do outro; no celular, cada linha vira um cartão.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Apresentação.
+        previews: {
+          columns: "M3 5h17v22H3zM28 5h17v22H28zM7 11h9M7 16h9M7 21h6M32 11h9M32 16h9M32 21h6M22.5 16h3",
+          table: "M4 5h40v22H4zM4 11h40M4 19h40M16 5v22M30 5v22",
+        },
+      }),
       title: text("Título da seção", 120),
       intro: intro(),
-      left_title: text("Título da coluna ✗", 60),
-      right_title: text("Título da coluna ✓", 60),
+      left_title: text("Título do lado ✗", 80),
+      right_title: text("Título do lado ✓", 80),
+      // Cada estilo tem os seus itens; os do outro estilo ficam guardados (trocar e voltar não perde nada).
+      left_items: list("Itens do lado ✗", 8, { text: text("Texto", 160) }, "item", { showIf: { field: "style", in: ["columns"] } }),
+      right_items: list("Itens do lado ✓", 8, { text: text("Texto", 160) }, "item", { showIf: { field: "style", in: ["columns"] } }),
       rows: list("Linhas", 8, {
         label: text("Critério", 40, { help: "Ex.: Atendimento, Preço, Suporte." }),
         left: text("Coluna ✗", 160),
         right: text("Coluna ✓", 160),
-      }, "linha"),
+      }, "linha", { showIf: { field: "style", in: ["table"] } }),
       background: background(),
     },
   },
@@ -773,9 +776,7 @@ function defaultSections() {
     { type: "bonus", eyebrow: "E não para por aí", title: "Você também vai receber", items: [
       { title: "Nome do primeiro bônus", text: "Explique o que é e por que ajuda.", value: "" },
       { title: "Nome do segundo bônus", text: "Explique o que é e por que ajuda.", value: "" }] },
-    { type: "checklist", icon: "shield", title: "Conteúdo focado no que importa", items: [
-      { text: "O que o produto não é", positive: false }, { text: "O que o produto entrega", positive: true }] },
-    { type: "table", eyebrow: "Diferenciais", title: "Por que este material", left_title: "Alternativa comum", right_title: "Este produto",
+    { type: "compare", style: "table", title: "Por que este material", left_title: "Alternativa comum", right_title: "Este produto",
       rows: [{ label: "Primeiro critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" },
         { label: "Segundo critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" }] },
     { type: "author", eyebrow: "Quem ensina", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },

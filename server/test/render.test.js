@@ -185,10 +185,9 @@ test("editor: <html data-editor> desliga as animações; fonte Inter pré-carreg
 });
 
 test("ícones: no editor levam o caminho do campo (clique troca o ícone); na página pública, não", () => {
-  const sections = [{ type: "presentation", items: [{ icon: "gift", title: "T" }] }, { type: "checklist", icon: "shield", title: "C", items: [{ text: "x", positive: true }] }];
+  const sections = [{ type: "presentation", items: [{ icon: "gift", title: "T" }] }];
   const live = render(sections, "live");
   assert.match(live, /<svg class="ico" aria-hidden="true" data-icon-field="items\.0\.icon"><use href="#i-gift"\/><\/svg>/);
-  assert.match(live, /<svg class="ico big" aria-hidden="true" data-icon-field="icon"><use href="#i-shield"\/><\/svg>/);
   assert.match(render(sections, false), /<svg class="ico" aria-hidden="true"><use href="#i-gift"\/><\/svg>/);
 });
 
@@ -251,7 +250,7 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
 
 test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
   const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
-  assert.deepEqual(types.sort(), ["audience", "bonus", "checklist", "curriculum", "faq", "guarantee", "presentation", "social", "table", "testimonials"]);
+  assert.deepEqual(types.sort(), ["audience", "bonus", "compare", "curriculum", "faq", "guarantee", "presentation", "social", "testimonials"]);
   const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
   assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
@@ -273,14 +272,19 @@ const listBlocks = () => Object.entries(BLOCKS).filter(([, b]) => Object.values(
       for (const [n, f] of Object.entries(field.item)) if (f.type === "text" || f.type === "textarea") item[n] = "x";
       block[name] = [item];
     }
-    return block;
-  });
+    // Comparação: cada estilo mostra só a sua lista (showIf); testa os dois.
+    return type === "compare" ? [block, { ...block, style: "table" }] : [block];
+  }).flat();
+
+// A lista aparece no estilo escolhido (showIf do campo; sem valor, vale o padrão da opção).
+const shown = (block, field) => !field.showIf
+  || field.showIf.in.includes(block[field.showIf.field] ?? BLOCKS[block.type].fields[field.showIf.field].default);
 
 test("listas: no editor, cada item tem × e cada lista tem '+ Adicionar …'", () => {
   for (const block of listBlocks()) {
     const live = render([block], "live");
     for (const [name, field] of Object.entries(BLOCKS[block.type].fields)) {
-      if (field.type !== "list") continue;
+      if (field.type !== "list" || !shown(block, field)) continue;
       assert.ok(live.includes(`data-item="${name}.0"`), `${block.type}.${name}: item`);
       assert.ok(live.includes(`data-item-remove="${name}.0" aria-label="Remover ${field.noun} 1"`), `${block.type}.${name}: ×`);
       assert.ok(live.includes(`data-item-add="${name}">+ Adicionar ${field.noun}</button>`), `${block.type}.${name}: +`);
@@ -305,7 +309,7 @@ test("listas: cheia, sem '+ Adicionar'; carrossel com × em cada imagem", () => 
 });
 
 test("listas vazias: no editor o bloco continua, oculto, com o botão de adicionar", () => {
-  for (const type of ["presentation", "checklist", "audience", "faq"]) {
+  for (const type of ["presentation", "audience", "faq"]) {
     const live = render([{ type, title: "T", items: [] }], "live");
     assert.match(live, /data-block="0" data-hidden/, type);
     assert.ok(live.includes('data-item-add="items"'), type);
@@ -691,13 +695,23 @@ test("bônus: cartões numerados com imagem, nome, descrição e valor riscado",
   assert.ok(!render([{ type: "bonus", title: "T", items: [] }], false).includes("bonus-grid"));
 });
 
-test("comparativo em tabela: uma linha por critério, com ✗ e ✓", () => {
-  const sections = [{ type: "table", title: "Compare", left_title: "Outros", right_title: "Este curso",
+test("comparação em tabela: uma linha por critério, com ✗ e ✓", () => {
+  const sections = [{ type: "compare", style: "table", title: "Compare", left_title: "Outros", right_title: "Este curso",
     rows: [{ label: "Suporte", left: "Demorado", right: "Em 24 horas" }] }];
   const page = render(sections, false);
   assert.match(page, /<thead><tr><td><\/td><th scope="col" class="no">Outros<\/th><th scope="col" class="yes">Este curso<\/th><\/tr><\/thead>/);
   assert.match(page, /<tr><th scope="row">Suporte<\/th><td class="no"><span class="v-compare-cell"><svg aria-hidden="true"><use href="#i-x"\/><\/svg><span>Demorado<\/span><\/span><\/td><td class="yes"><span class="v-compare-cell"><svg aria-hidden="true"><use href="#i-check"\/><\/svg><span>Em 24 horas<\/span><\/span><\/td><\/tr>/);
-  assert.ok(!render([{ type: "table", title: "T", rows: [] }], false).includes("v-compare"));
+  assert.ok(!render([{ type: "compare", style: "table", title: "T", rows: [] }], false).includes("v-compare"));
+  // Cada estilo usa os seus itens: a tabela vazia some mesmo com itens guardados dos dois lados.
+  assert.ok(!render([{ type: "compare", style: "table", title: "T", left_items: [{ text: "x" }], rows: [] }], false).includes("v-section"));
+});
+
+test("comparação em dois lados: cartão ✗, VS e cartão escuro ✓ (padrão do bloco)", () => {
+  const page = render([{ type: "compare", title: "T", left_title: "Outros", right_title: "Este curso",
+    left_items: [{ text: "Demorado" }], right_items: [{ text: "Rápido" }], rows: [{ label: "C", left: "l", right: "r" }] }], false);
+  assert.match(page, /<div class="versus"><article class="v-card"><h3>Outros<\/h3>\s*<ul class="mini"><li class="no"><svg aria-hidden="true"><use href="#i-x"\/><\/svg>Demorado<\/li><\/ul><\/article><div class="vs" aria-hidden="true">VS<\/div><article class="v-card dark"><h3>Este curso<\/h3>/);
+  assert.match(page, /<li class="yes"><svg aria-hidden="true"><use href="#i-check"\/><\/svg>Rápido<\/li>/);
+  assert.ok(!page.includes("v-compare"), "as linhas da tabela ficam guardadas, mas não aparecem");
 });
 
 test("abertura: lista de pontos com ícone, aviso abaixo do botão e disposição centralizada", () => {

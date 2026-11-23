@@ -1,11 +1,10 @@
 /* Os blocos "Cartões de benefícios" e "Grade de tópicos" viraram estilos do bloco "Apresentação"
-   (campo style: cards, grid ou timeline), e o bloco "Comparativo" saiu. Converte o que já está
-   gravado: rascunho e versão publicada das páginas e os blocos salvos (referências a eles na
-   página só trocam o tipo).
+   (campo style: cards, grid ou timeline). Converte o que já está gravado: rascunho e versão
+   publicada das páginas e os blocos salvos (referências a eles na página só trocam o tipo).
      benefits { title, items }          -> presentation cards (o título era só para leitores de tela: sai)
      topics   { layout, ...campos }     -> presentation grid ou timeline (o layout vira o estilo)
-     comparison                         -> removido das páginas; blocos salvos do tipo são apagados
-   Sem volta: os comparativos apagados não voltam. */
+   O "Comparativo" (comparison) não é mais apagado aqui: virou um estilo do bloco "Comparação"
+   (ver 1730002500000_compare-block). */
 
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
@@ -27,19 +26,15 @@ function convert(block) {
   return null;
 }
 
-const isComparison = (b) => isObject(b) && b.type === "comparison";
-
-// Lista de blocos no formato novo (sem os comparativos); null se nada muda.
+// Lista de blocos no formato novo; null se nada muda.
 function convertList(sections) {
   if (!Array.isArray(sections)) return null;
   let changed = false;
-  const out = [];
-  for (const b of sections) {
-    if (isComparison(b)) { changed = true; continue; }
+  const out = sections.map((b) => {
     const next = convert(b);
     if (next) changed = true;
-    out.push(next || b);
-  }
+    return next || b;
+  });
   return changed ? out : null;
 }
 
@@ -54,11 +49,6 @@ exports.up = async (pgm) => {
       "UPDATE sales_pages SET sections = $2::jsonb, published_sections = $3::jsonb WHERE id = $1",
       [page.id, JSON.stringify(sections || page.sections), pub === null ? null : JSON.stringify(pub)]);
   }
-
-  // Comparativos salvos: as referências já saíram das páginas acima; o registro de uso vai junto.
-  await pgm.db.query(`DELETE FROM sales_page_shared_blocks
-    WHERE shared_block_id IN (SELECT id FROM shared_blocks WHERE type = 'comparison')`);
-  await pgm.db.query("DELETE FROM shared_blocks WHERE type = 'comparison'");
 
   const shared = await pgm.db.select("SELECT id, type, data FROM shared_blocks WHERE type IN ('benefits', 'topics')");
   for (const row of shared) {

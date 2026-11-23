@@ -225,7 +225,7 @@ test("migration: galeria, abas antigas e texto e imagem viram o bloco Demonstra�
 
 /* ---------- Benefícios e Grade de tópicos viraram estilos da Apresentação; Comparativo saiu (migration) ---------- */
 const presentation = require("../migrations/1730002400000_presentation-block");
-test("migration: benefícios e tópicos viram o bloco Apresentação, e o comparativo sai das páginas", () => {
+test("migration: benefícios e tópicos viram o bloco Apresentação", () => {
   const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
   const cards = presentation.convert({ type: "benefits", title: "Só leitor de tela", items: [{ icon: "bolt", title: "B", text: "T", callout: "" }], background: "soft" });
   assert.deepEqual(cards, { type: "presentation", style: "cards", items: [{ icon: "bolt", title: "B", text: "T", callout: "" }], background: "soft" });
@@ -236,7 +236,30 @@ test("migration: benefícios e tópicos viram o bloco Apresentação, e o compar
   // Referência a bloco salvo: só o tipo muda.
   assert.deepEqual(presentation.convert({ type: "benefits", shared: ID, background: "auto" }), { type: "presentation", shared: ID, background: "auto" });
   assert.equal(presentation.convert({ type: "faq", items: [] }), null);
-  const page = presentation.convertList([{ type: "faq", items: [] }, { type: "comparison", title: "X" }, { type: "comparison", shared: ID }]);
-  assert.deepEqual(page, [{ type: "faq", items: [] }]);
+  // O comparativo fica (vira estilo da Comparação na migration seguinte).
+  assert.equal(presentation.convertList([{ type: "faq", items: [] }, { type: "comparison", title: "X" }]), null);
   assert.equal(presentation.convertList([{ type: "faq", items: [] }]), null);
+});
+
+/* ---------- Comparativo e Comparativo em tabela viraram estilos da Comparação; Lista ✓ / ✗ saiu (migration) ---------- */
+const compare = require("../migrations/1730002500000_compare-block");
+test("migration: comparativo e tabela viram o bloco Comparação, e a lista ✓ / ✗ sai das páginas", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const sides = compare.convert({ type: "comparison", title: "C", left_title: "A", left_items: [{ text: "x" }], right_title: "B", right_items: [], background: "soft" });
+  assert.deepEqual(sides, { type: "compare", style: "columns", title: "C", left_title: "A", left_items: [{ text: "x" }], right_title: "B", right_items: [], background: "soft" });
+  const table = compare.convert({ type: "table", title: "T", left_title: "A", right_title: "B", rows: [{ label: "C", left: "l", right: "r" }] });
+  assert.deepEqual(table, { type: "compare", style: "table", title: "T", left_title: "A", right_title: "B", rows: [{ label: "C", left: "l", right: "r" }] });
+  const { sections, error } = validateSections([sides, table]);
+  assert.equal(error, undefined);
+  assert.deepEqual(sections.map((b) => b.style), ["columns", "table"]);
+  // O rótulo saiu do bloco: o de páginas antigas é descartado ao ler.
+  assert.equal(validateSections([{ type: "compare", eyebrow: "Diferenciais" }]).sections[0].eyebrow, undefined);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(compare.convert({ type: "table", shared: ID, background: "auto" }), { type: "compare", shared: ID, background: "auto" });
+  assert.equal(compare.convert({ type: "faq", items: [] }), null);
+  assert.deepEqual(compare.convert({ type: "comparison", shared: ID }), { type: "compare", shared: ID });
+  const page = compare.convertList([{ type: "faq", items: [] }, { type: "checklist", items: [] }, { type: "checklist", shared: ID }]);
+  assert.deepEqual(page, [{ type: "faq", items: [] }]);
+  assert.equal(compare.convert({ type: "checklist", items: [] }), null);
+  assert.equal(compare.convertList([{ type: "faq", items: [] }]), null);
 });
