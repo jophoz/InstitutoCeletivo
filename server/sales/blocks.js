@@ -576,6 +576,16 @@ function normalizeUrl(value) {
 
 const { plain, canonical } = require("./richtext");
 
+// Ordem do "Adicionar bloco" no editor: segue o caminho de uma página de vendas, de cima para baixo.
+// Todo tipo de BLOCKS aparece em um grupo (o teste confere).
+const BLOCK_GROUPS = [
+  { label: "Topo", types: ["hero"] },
+  { label: "O produto", types: ["presentation", "demo", "highlight", "compare"] },
+  { label: "Confiança", types: ["author", "testimonials"] },
+  { label: "Compra", types: ["cta", "bonus", "guarantee", "timer", "offer"] },
+  { label: "Fechamento", types: ["faq", "social"] },
+];
+
 const MAX_BLOCKS = 30;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
@@ -799,6 +809,6 @@ function defaultSections() {
 }
 
 module.exports = {
-  ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, SHAREABLE,
+  ICONS, ICON_GROUPS, NETWORKS, BLOCKS, BLOCK_GROUPS, MAX_BLOCKS, SHAREABLE,
   validateSections, validBlocks, checkBlocks, mediaIds, defaultSections, validateSharedData, sharedIds, hasOffer,
 };

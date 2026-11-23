@@ -1,7 +1,7 @@
 // Testes do esquema de blocos (validação do que chega na API). Rodar: npm test (node --test)
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { BLOCKS, ICONS, ICON_GROUPS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections } = require("../sales/blocks");
+const { BLOCKS, BLOCK_GROUPS, ICONS, ICON_GROUPS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections } = require("../sales/blocks");
 const { createLimiter } = require("../lib/security");
 
 test("aceita o modelo padrão inteiro", () => {
@@ -314,4 +314,11 @@ test("migration: público-alvo vira a Apresentação em grade (perfil vira títu
   assert.equal(audience.convert({ type: "faq", items: [] }), null);
   assert.equal(audience.convertList([{ type: "faq", items: [] }]), null);
   assert.equal(validateSections([{ type: "audience", items: [] }]).error, "Bloco 1: tipo inválido.");
+});
+
+test("grupos do Adicionar bloco: cada tipo aparece uma vez, sem tipo inexistente", () => {
+  const listed = BLOCK_GROUPS.flatMap((g) => g.types);
+  assert.deepEqual([...listed].sort(), Object.keys(BLOCKS).sort());
+  assert.equal(new Set(listed).size, listed.length);
+  assert.equal(listed[0], "hero");
 });
