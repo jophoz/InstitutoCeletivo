@@ -645,6 +645,11 @@
 .is-double .buy-card .price-big {
   text-align: center;
 }
+/* Nos dois cartões, o "de" riscado fica numa linha própria acima do preço (com ou sem o texto
+   acima do preço), para os preços ficarem alinhados. */
+.is-double .buy-card .price-was {
+  display: block;
+}
 .is-double .buy-note {
   max-width: 30rem;
   margin: 1.5rem auto 0;

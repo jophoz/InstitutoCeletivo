@@ -329,6 +329,15 @@
     o.value = value; o.textContent = text;
     return o;
   }
+  // Link da Kiwify como opção de oferta. Sem preço na Kiwify (ex.: a "Sales Page" de alguns
+  // produtos), não serve de oferta: aparece desabilitado.
+  function linkOption(l) {
+    var priced = typeof l.price_cents === "number";
+    var o = option(l.id, l.name + " — " + (priced ? Admin.formatPrice(l.price_cents) : "sem preço na Kiwify") +
+      (l.status === "active" ? "" : " (desativado)"));
+    o.disabled = !priced;
+    return o;
+  }
   var kiwifyOn = function () { return !!kiwify.collect().kiwify_product_id; };
   // "de R$ 497,00 por R$ 259,00 (R$ 238,00 a menos)"
   function dePor(de, por) {
@@ -399,9 +408,7 @@
       if (kbox.hidden) return preview();
       var keep = sel.value; // escolha atual (ao abrir, a gravada: ver setSaved)
       var list = kiwify.links().filter(function (l) { return l.id !== kiwify.linkId(); });
-      sel.replaceChildren.apply(sel, [option("", "Escolha o link")].concat(list.map(function (l) {
-        return option(l.id, l.name + " — " + Admin.formatPrice(l.price_cents) + (l.status === "active" ? "" : " (desativado)"));
-      })));
+      sel.replaceChildren.apply(sel, [option("", "Escolha o link")].concat(list.map(linkOption)));
       // Link gravado que sumiu da lista (desativado na Kiwify): continua escolhido, com aviso no nome.
       var missing = keep && keep === savedLink && keep !== kiwify.linkId() && !list.some(function (l) { return l.id === keep; });
       if (missing) sel.append(option(keep, "Link vinculado (" + keep + ")"));
@@ -536,21 +543,19 @@
         var all = await linksOf(prodSel.value);
         if (mine !== run) return;
         var list = all.filter(function (l) { return l.status === "active" || l.id === chosen.link; });
-        linkSel.replaceChildren.apply(linkSel, list.map(function (l) {
-          return option(l.id, l.name + " — " + Admin.formatPrice(l.price_cents) + (l.status === "active" ? "" : " (desativado)"));
-        }));
+        linkSel.replaceChildren.apply(linkSel, [option("", "Escolha o link")].concat(list.map(linkOption)));
         // Link gravado que sumiu da lista (desativado ou apagado na Kiwify): continua escolhido, com aviso.
         if (chosen.link && chosen.link === saved.link && prodSel.value === saved.product
           && !list.some(function (l) { return l.id === chosen.link; })) {
           linkSel.append(option(chosen.link, "Link vinculado (" + chosen.link + ")"));
         }
-        if (!linkSel.options.length) {
-          linkSel.append(option("", "Nenhum outro link ativo neste produto"));
+        if (!list.some(function (l) { return typeof l.price_cents === "number"; }) && !chosen.link) {
+          linkSel.replaceChildren(option("", "Nenhum link com preço neste produto"));
           chosen.link = "";
         } else {
           linkSel.disabled = false;
           linkSel.value = chosen.link;
-          if (linkSel.selectedIndex < 0) linkSel.value = linkSel.options[0].value;
+          if (linkSel.selectedIndex < 0) linkSel.value = ""; // a escolha não existe mais: "Escolha o link"
           chosen.link = linkSel.value;
         }
         applyLink(list);
