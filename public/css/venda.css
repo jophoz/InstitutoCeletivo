@@ -413,7 +413,7 @@
 }
 /* "R$ 62,00 a menos": etiqueta logo abaixo do preço com "de/por" (promoção e Melhor opção). */
 .price-save {
-  align-self: center;
+  align-self: flex-start;
   margin: -0.6rem 0 0;
   padding: 0.25rem 0.8rem;
   font-size: 0.9rem;
@@ -558,6 +558,12 @@
   background: color-mix(in srgb, var(--v-cta) 7%, transparent);
   border: 1px solid color-mix(in srgb, var(--v-cta) 42%, transparent);
 }
+@media (max-width: 480px) {
+  .buy-guarantee {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+}
 .buy-card .btn-cta {
   width: 100%;
 }
@@ -644,6 +650,9 @@
 }
 .is-double .buy-card .price-big {
   text-align: center;
+}
+.is-double .price-save {
+  align-self: center;
 }
 /* Nos dois cartões, o "de" riscado fica numa linha própria acima do preço (com ou sem o texto
    acima do preço), para os preços ficarem alinhados. */
@@ -888,6 +897,13 @@
   }
   .author.no-media {
     grid-template-columns: minmax(0, 760px);
+  }
+}
+@media (max-width: 759.98px) {
+  /* Celular (uma coluna): a foto não ocupa a tela toda. */
+  .author-photo {
+    max-width: 300px;
+    margin-inline: auto;
   }
 }
 .author .muted strong {

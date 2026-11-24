@@ -449,6 +449,17 @@
     }
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePops(null); });
+  // O balão do "i" começa na borda esquerda da linha do título; no celular, a largura dele fica
+  // limitada ao espaço até a borda direita da tela, para não sair dela.
+  function fitInfo(e) {
+    var pop = e.target.closest && e.target.closest(".info-pop");
+    var text = pop && pop.querySelector(".info-text");
+    if (!text) return;
+    var row = pop.closest(".title-row, .label-row, .legend-info") || pop.parentElement;
+    text.style.maxWidth = Math.max(200, document.documentElement.clientWidth - row.getBoundingClientRect().left - 16) + "px";
+  }
+  document.addEventListener("pointerover", fitInfo);
+  document.addEventListener("focusin", fitInfo);
 
   // Busca das listas (Imagens, Blocos salvos, Empresas): sem diferenciar maiúsculas nem acentos
   // ("tributaria" encontra "Tributária"); todas as palavras digitadas precisam aparecer.

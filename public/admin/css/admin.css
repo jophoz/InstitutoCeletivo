@@ -44,7 +44,7 @@ body:has(> main.auth){min-height:100vh;padding:0 1rem;
 .field input,.field select,.field textarea{width:100%;min-height:44px;padding:.5rem .75rem;font:inherit;color:var(--color-text);background:var(--color-bg);border:2px solid var(--color-border);border-radius:8px}
 .field textarea{resize:vertical}
 .field.check{display:flex;align-items:center;gap:.6rem}
-.field.check input{width:1.25rem;min-height:1.25rem;margin:0}
+.field.check input{flex:none;width:1.25rem;min-height:1.25rem;margin:0}
 .field.check label{margin:0}
 .req{font-weight:400;color:var(--color-muted);font-size:.85em}
 .hint{margin:.25rem 0 0;font-size:.9rem;color:var(--color-muted)}
@@ -90,10 +90,12 @@ body:has(> main.auth){min-height:100vh;padding:0 1rem;
 .info-btn:focus-visible{outline:3px solid var(--color-focus);outline-offset:1px}
 .info-text{position:absolute;z-index:25;top:calc(100% + 8px);left:0;width:min(34rem,calc(100vw - 2rem));padding:.75rem 1rem;font-size:.92rem;line-height:1.5;font-weight:400;
   color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:12px;box-shadow:0 14px 32px -14px rgb(0 0 0 / .45);
-  visibility:hidden;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility 0s .15s}
+  display:none;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s,display .15s allow-discrete}
 /* Faixa invisível entre o "i" e o balão: o mouse atravessa sem o balão fechar. */
 .info-text::before{content:"";position:absolute;left:0;right:0;top:-1.75rem;height:1.75rem}
-.info-pop:hover .info-text,.info-pop:focus-within .info-text,.info-pop.is-open .info-text{visibility:visible;opacity:1;transform:none;transition:opacity .15s,transform .15s}
+/* Fechado, o balão sai do layout (display:none): escondido, ele não alarga a página no celular. */
+.info-pop:hover .info-text,.info-pop:focus-within .info-text,.info-pop.is-open .info-text{display:block;opacity:1;transform:none}
+@starting-style{.info-pop:hover .info-text,.info-pop:focus-within .info-text,.info-pop.is-open .info-text{opacity:0;transform:translateY(-4px)}}
 
 /* "i" menor ao lado do rótulo de um campo, do título de um quadro (legend) ou de um cartão. */
 .info-sm .info-btn{width:1.6rem;height:1.6rem}
@@ -316,12 +318,13 @@ dialog.picker .msg:empty{display:none}
 .usage-btn{white-space:nowrap;padding:.1rem .6rem;font:inherit;font-size:.8rem;font-weight:700;color:var(--color-focus);background:none;border:1px solid currentColor;border-radius:999px;cursor:help}
 .usage-list{position:absolute;z-index:15;top:calc(100% + 6px);left:0;width:max-content;max-width:min(20rem,80vw);margin:0;padding:.5rem .75rem;list-style:none;font-size:.88rem;
   color:var(--color-text);background:var(--color-bg);border:1px solid var(--color-border);border-radius:10px;box-shadow:0 12px 28px -12px rgb(0 0 0 / .4);
-  visibility:hidden;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s,visibility 0s .15s}
+  display:none;opacity:0;transform:translateY(-4px);transition:opacity .15s,transform .15s,display .15s allow-discrete}
 /* Faixa invisível entre o botão e o balão: o mouse atravessa sem o balão fechar. */
 .usage-list::before{content:"";position:absolute;left:0;right:0;top:-8px;height:8px}
 .usage-list li{padding:.2rem 0;color:var(--color-muted)}
 .usage-list a{font-weight:700}
-.usage-pop:hover .usage-list,.usage-pop:focus-within .usage-list,.usage-pop.is-open .usage-list{visibility:visible;opacity:1;transform:none;transition:opacity .15s,transform .15s}
+.usage-pop:hover .usage-list,.usage-pop:focus-within .usage-list,.usage-pop.is-open .usage-list{display:block;opacity:1;transform:none}
+@starting-style{.usage-pop:hover .usage-list,.usage-pop:focus-within .usage-list,.usage-pop.is-open .usage-list{opacity:0;transform:translateY(-4px)}}
 /* Blocos salvos (blocos.html): cartões da lista e formulário com lista de itens (ex.: redes). */
 .shared-list{margin-top:1.25rem;margin-bottom:2rem}
 /* Cartão do bloco salvo: ícone do tipo à esquerda do nome; uso e ações na última linha (sempre embaixo). */
