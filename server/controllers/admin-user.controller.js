@@ -4,6 +4,7 @@
 // recupera o acesso se todos esquecerem a senha.
 const pool = require("../config/database");
 const sec = require("../lib/security");
+const { withTransaction } = require("../lib/transaction");
 const { AdminUserInputError, normalizeEmail, checkPassword } = require("../lib/admin-users");
 
 // Senha atual errada: mesmo limite do login (5 erros em 15 min por usuário).
@@ -87,22 +88,14 @@ async function removeOwnAccess(req, res) {
 
   // Trava todos os administradores antes de contar: se os dois últimos saírem ao mesmo tempo,
   // o segundo espera o primeiro terminar e vê a contagem já atualizada (nunca sobram zero).
-  const client = await pool.connect();
-  let broken; // ROLLBACK falhou (conexão caiu): o cliente é descartado em vez de voltar ao pool
-  try {
-    await client.query("BEGIN");
+  const last = await withTransaction(async (client) => {
     const { rows } = await client.query("SELECT id FROM admin_users FOR UPDATE");
-    const last = rows.length < 2;
-    if (!last) await client.query("DELETE FROM admin_users WHERE id = $1", [req.admin.userId]);
-    await client.query("COMMIT");
-    if (last) return res.status(409).json({ error: "Você é o único administrador; o painel ficaria sem acesso. Adicione outra pessoa antes de sair." });
-    return res.status(204).end();
-  } catch (error) {
-    await client.query("ROLLBACK").catch((rollbackError) => { broken = rollbackError; });
-    throw error;
-  } finally {
-    client.release(broken);
-  }
+    if (rows.length < 2) return true;
+    await client.query("DELETE FROM admin_users WHERE id = $1", [req.admin.userId]);
+    return false;
+  });
+  if (last) return res.status(409).json({ error: "Você é o único administrador; o painel ficaria sem acesso. Adicione outra pessoa antes de sair." });
+  return res.status(204).end();
 }
 
 module.exports = { listUsers, createUser, changeOwnPassword, removeOwnAccess };

@@ -1,5 +1,5 @@
 // Validação do corpo das requisições de empresas (separada do controller, sem banco, para os testes).
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { UUID } = require("./ids");
 const MAX_NAME = 80;
 
 // Corpo de criação ou alteração: { name, logo_id, icon_id, is_default }. icon_id é opcional (ícone da

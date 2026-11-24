@@ -31,12 +31,14 @@ async function processImage(buf) {
 }
 
 // Versões menores de uma imagem já processada (WebP). Devolve [{ width, data }], da menor para a maior.
+// Uma entrada só (clone): o arquivo é lido uma vez e as versões são geradas em paralelo.
 async function makeVariants(webp, width) {
-  const variants = [];
-  for (const w of VARIANT_WIDTHS.filter((v) => v < width)) {
-    variants.push({ width: w, data: await sharp(webp).resize({ width: w }).webp({ quality: 80 }).toBuffer() });
-  }
-  return variants;
+  const widths = VARIANT_WIDTHS.filter((v) => v < width);
+  if (!widths.length) return [];
+  const source = sharp(webp);
+  return Promise.all(widths.map(async (w) => ({
+    width: w, data: await source.clone().resize({ width: w }).webp({ quality: 80 }).toBuffer(),
+  })));
 }
 
 module.exports = { MAX_BYTES, detectType, processImage, makeVariants };

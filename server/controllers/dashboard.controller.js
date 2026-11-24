@@ -16,7 +16,33 @@ const SOURCE = "COALESCE(utm_source, ref_host, 'direto')";
 // da página (início, catálogo e outras páginas gerais não são de nenhuma empresa); vendas, pela conta Kiwify.
 const EV_BRAND = (n) => `($${n}::uuid IS NULL OR product_id IN (SELECT id FROM products WHERE brand_id = $${n}))`;
 const SA_BRAND = (n) => `($${n}::uuid IS NULL OR brand_id = $${n})`;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { UUID } = require("../lib/ids");
+
+// O pool tem 10 conexões, divididas com o site público. Todas as consultas do Resumo de uma vez
+// ocupariam quase todas: com duas abas abertas, as páginas de vendas esperariam (e dariam erro).
+// No máximo MAX_PARALLEL consultas do Resumo (somando todas as abas abertas) ficam no banco ao
+// mesmo tempo; as outras esperam a vez aqui, sem ocupar conexão.
+const MAX_PARALLEL = 3;
+let active = 0;
+const waiting = [];
+
+// A vaga passa direto de quem termina para quem espera (sem "active--" no meio), para nenhum
+// pedido novo furar a fila entre uma coisa e outra.
+function acquire() {
+  if (active < MAX_PARALLEL) { active += 1; return Promise.resolve(); }
+  return new Promise((resolve) => waiting.push(resolve));
+}
+function release() {
+  const next = waiting.shift();
+  if (next) next(); else active -= 1;
+}
+async function limited(task) {
+  await acquire();
+  try { return await task(); } finally { release(); }
+}
+
+// Como Promise.all, mas cada tarefa (função que devolve promessa) passa pelo limite acima.
+const runLimited = (tasks) => Promise.all(tasks.map(limited));
 
 async function bounds(days) {
   const { rows: [b] } = await pool.query(
@@ -154,12 +180,12 @@ async function getDashboard(req, res) {
   const brand = req.query.brand || null;
   if (brand && !UUID.test(brand)) return res.status(400).json({ error: "Empresa inválida." });
   const b = await bounds(days);
-  const [current, previous, series, products, sources, devices, pages, kiwify, alerts] = await Promise.all([
-    totals(b.start, b.end, brand), totals(b.prev_start, b.start, brand), daily(b.start, b.end, brand),
-    byProduct(b.start, b.end, brand), bySource(b.start, b.end, brand), byDevice(b.start, b.end, brand),
-    topPages(b.start, b.end, brand), kiwifyByBrand(b.start, b.end, brand), warnings(brand),
+  const [current, previous, series, products, sources, devices, pages, kiwify, alerts, any] = await runLimited([
+    () => totals(b.start, b.end, brand), () => totals(b.prev_start, b.start, brand), () => daily(b.start, b.end, brand),
+    () => byProduct(b.start, b.end, brand), () => bySource(b.start, b.end, brand), () => byDevice(b.start, b.end, brand),
+    () => topPages(b.start, b.end, brand), () => kiwifyByBrand(b.start, b.end, brand), () => warnings(brand),
+    async () => (await pool.query("SELECT EXISTS (SELECT 1 FROM site_events) AS any")).rows[0].any,
   ]);
-  const { rows: [{ any }] } = await pool.query("SELECT EXISTS (SELECT 1 FROM site_events) AS any");
   return res.json({ data: {
     days, brand, start: b.start, end: b.end, has_events: any,
     totals: current, previous, daily: series, products, sources, devices, pages, kiwify, warnings: alerts,

@@ -132,6 +132,9 @@ const updateIn = (obj, path, fn) => setIn(obj, path, fn(getIn(obj, path)));
 export function reducer(doc, action) {
   switch (action.type) {
     case "set":
+      // Mesmo valor (ex.: escolheu de novo o ícone que já estava): devolve o MESMO objeto, e o
+      // histórico não ganha um passo vazio nem a página fica "não salva".
+      if (getIn(doc, action.path) === action.value) return doc;
       return setIn(doc, action.path, action.value);
     case "insert":
       return updateIn(doc, action.path, (list) => {

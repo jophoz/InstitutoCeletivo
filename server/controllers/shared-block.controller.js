@@ -3,12 +3,13 @@
 // (pagina.html?bloco=<id>), que usa GET /:id, POST /:id/preview e PUT /:id. Alterar um bloco salvo muda na hora todas as páginas que o usam, inclusive as
 // publicadas (a página guarda só a referência; ver resolveShared em sales/pages.js).
 const pool = require("../config/database");
+const { withTransaction } = require("../lib/transaction");
 const { SHAREABLE, validateSharedData, mediaIds } = require("../sales/blocks");
 const { PageInputError, loadDraftForRender } = require("../sales/pages");
 const { renderSalesPage } = require("../sales/render");
 const { baseUrl } = require("../lib/base-url");
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { UUID } = require("../lib/ids");
 const NOT_FOUND = { error: "Bloco salvo não encontrado." };
 
 // "usage": páginas de vendas que usam o bloco (no rascunho ou na versão publicada).
@@ -48,20 +49,15 @@ async function syncSharedBlockMedia(client, id, type, data) {
 // o banco recusa excluir uma imagem usada por um bloco salvo (ex.: foto do Autor). Devolve o id,
 // ou null se a imagem escolhida não existe mais.
 async function saveWithMedia(type, data, fn) {
-  const client = await pool.connect();
-  let broken; // ROLLBACK falhou (conexão caiu): o cliente é descartado em vez de voltar ao pool
   try {
-    await client.query("BEGIN");
-    const id = await fn(client);
-    await syncSharedBlockMedia(client, id, type, data);
-    await client.query("COMMIT");
-    return id;
+    return await withTransaction(async (client) => {
+      const id = await fn(client);
+      await syncSharedBlockMedia(client, id, type, data);
+      return id;
+    });
   } catch (error) {
-    await client.query("ROLLBACK").catch((rollbackError) => { broken = rollbackError; });
     if (error.code === "23503" && error.constraint === "shared_block_media_media_fkey") return null;
     throw error;
-  } finally {
-    client.release(broken);
   }
 }
 const MISSING_IMAGE = { error: "A imagem escolhida não existe mais. Escolha outra." };

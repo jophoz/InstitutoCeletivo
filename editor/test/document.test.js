@@ -41,6 +41,15 @@ test("move troca a ordem sem alterar o documento original", () => {
   assert.deepEqual(titles(doc), ["A", "B", "C"]);
 });
 
+test("set com o mesmo valor não cria passo no histórico nem marca como não salvo", () => {
+  const doc = page();
+  assert.equal(reducer(doc, { type: "set", path: ["sections", 0, "title"], value: "A" }), doc);
+  const state = historyReducer(historyReducer(initialHistory, { type: "load", doc }),
+    { type: "set", path: ["sections", 0, "title"], value: "A", time: 1 });
+  assert.equal(state.doc, state.saved);
+  assert.equal(state.past.length, 0);
+});
+
 test("remove tira só o bloco indicado", () => {
   assert.deepEqual(titles(reducer(page(), { type: "remove", path: ["sections"], index: 1 })), ["A", "C"]);
 });

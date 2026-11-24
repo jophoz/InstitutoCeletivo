@@ -4,7 +4,7 @@ const pool = require("../config/database");
 const box = require("../lib/crypto-box");
 const kiwify = require("../lib/kiwify");
 const { requireAccount } = require("../lib/kiwify-sync");
-const { UUID } = require("../lib/brand-input");
+const { UUID } = require("../lib/ids");
 
 const { KiwifyError } = kiwify;
 const NOT_FOUND = { error: "Empresa não encontrada." };

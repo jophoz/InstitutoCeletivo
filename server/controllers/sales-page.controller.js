@@ -6,7 +6,7 @@ const { PageInputError, savePage, publishPage, getPage, loadDraftForRender } = r
 const { renderSalesPage } = require("../sales/render");
 const { baseUrl } = require("../lib/base-url");
 
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { UUID } = require("../lib/ids");
 const INVALID_ID = { error: "ID de produto inválido." };
 const NOT_FOUND = { error: "Produto não encontrado." };
 
@@ -27,13 +27,13 @@ function getBlockSchema(_req, res) {
 }
 
 async function getAdminSalesPage(req, res) {
-  if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json(INVALID_ID);
+  if (!UUID.test(req.params.id)) return res.status(400).json(INVALID_ID);
   if (!(await productExists(req.params.id))) return res.status(404).json(NOT_FOUND);
   return res.json({ data: await getPage(req.params.id) }); // null = página ainda não criada
 }
 
 async function saveAdminSalesPage(req, res) {
-  if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json(INVALID_ID);
+  if (!UUID.test(req.params.id)) return res.status(400).json(INVALID_ID);
   if (!(await productExists(req.params.id))) return res.status(404).json(NOT_FOUND);
   try {
     const { page, created } = await savePage(req.params.id, req.body);
@@ -46,7 +46,7 @@ async function saveAdminSalesPage(req, res) {
 
 // Publica: a versão pública passa a ser o rascunho SALVO (o editor salva antes, se preciso).
 async function publishAdminSalesPage(req, res) {
-  if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json(INVALID_ID);
+  if (!UUID.test(req.params.id)) return res.status(400).json(INVALID_ID);
   if (!(await productExists(req.params.id))) return res.status(404).json(NOT_FOUND);
   const page = await publishPage(req.params.id);
   if (!page) return res.status(409).json({ error: "Salve a página antes de publicá-la." });
@@ -55,7 +55,7 @@ async function publishAdminSalesPage(req, res) {
 
 // Pré-visualização ao vivo do editor: devolve o HTML da página com os blocos ENVIADOS, sem salvar.
 async function previewAdminSalesPage(req, res) {
-  if (!UUID_PATTERN.test(req.params.id)) return res.status(400).json(INVALID_ID);
+  if (!UUID.test(req.params.id)) return res.status(400).json(INVALID_ID);
   try {
     const data = await loadDraftForRender(req.params.id, req.body);
     if (!data) return res.status(404).json(NOT_FOUND);
