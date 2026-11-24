@@ -10,7 +10,7 @@
 //                inserir/mover/remover blocos nem cores; "Salvar" muda todas as páginas que o usam.
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EditorContext } from "./state/context.js";
-import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText } from "./state/document.js";
+import { withKeys, stripKeys, carryKeys, newBlock, duplicateBlock, emptyValue, getIn, hasText, canRemoveBlock, ensureRequired, usedByStyle, blockDef } from "./state/document.js";
 import { historyReducer, initialHistory } from "./state/history.js";
 import { PRODUCT_STATUS, sizeHint } from "./labels.js";
 import { TopBar, SharedTopBar, ToolDock, PublishBadge, SharedBadge, publishState } from "./components/EditorHeader.jsx";
@@ -31,7 +31,7 @@ const imageFieldDef = (schema, block, field) => field.split(".").filter((p) => !
   .reduce((def, part) => (def?.item ?? def?.fields)?.[part], schema.blocks[block?.type]);
 // Bloco salvo -> documento do editor: o bloco (com os campos locais, como o fundo, no padrão) e o nome.
 function sharedDoc(saved, schema, theme) {
-  const def = schema.blocks[saved.type];
+  const def = blockDef(schema, saved.type);
   const local = Object.fromEntries((schema.shareable[saved.type] || []).map((n) => [n, def.fields[n].default ?? ""]));
   return { name: saved.name, sections: [{ type: saved.type, ...saved.data, ...local }], theme: theme || resolveTheme(null, schema) };
 }
@@ -142,7 +142,7 @@ export default function App({ productId, sharedId }) {
         document.title = `Página de vendas: ${product.title} — Painel administrativo`;
         if (saved) {
           dispatch({ type: "load", doc: {
-            sections: withKeys(saved.sections, schema),
+            sections: withKeys(ensureRequired(saved.sections, schema), schema),
             theme: resolveTheme(saved.theme, schema),
           } });
         }
@@ -211,7 +211,8 @@ export default function App({ productId, sharedId }) {
       select(copy._key, "canvas");
       reveal.current = { index: index + 1, edit: false };
     },
-    remove: (index) => !isShared && removeBlock(index),
+    canRemove: (index) => !isShared && canRemoveBlock(sections, index),
+    remove: (index) => canvas.canRemove(index) && removeBlock(index),
     configure(index) {
       select(sections[index]._key, "canvas");
       setPanel("block");
@@ -236,7 +237,7 @@ export default function App({ productId, sharedId }) {
       dispatch({ type: "set", path, value: chosen.id });
     },
     // Imagem da página que pode ser removida (o campo vira vazio)? Não vale para as obrigatórias
-    // (ex.: cada imagem da galeria: lá se remove o item inteiro, pelo × dele).
+    // (no carrossel, o botão nem aparece: lá se remove o slide inteiro, pelo × dele).
     canRemoveImage(index, field) {
       const def = imageFieldDef(schema, sections[index], field);
       return def?.type === "image" && !def.required;
@@ -247,10 +248,10 @@ export default function App({ productId, sharedId }) {
       revealBlock(index, "canvas");
       dispatch({ type: "set", path: fieldPath({ index, field }), value: null });
     },
-    // "Adicionar imagem" no fim da galeria: a imagem escolhida vira um item novo da lista.
+    // "Adicionar imagem" no fim do carrossel: a imagem escolhida vira um item novo da lista.
     async addImage(index, list) {
       const block = sections[index];
-      const field = block && schema.blocks[block.type].fields[list];
+      const field = block && blockDef(schema, block.type).fields[list];
       if (field?.type !== "list" || block[list].length >= field.max) return;
       revealBlock(index, "canvas");
       const [name, imageDef] = Object.entries(field.item).find(([, f]) => f.type === "image");
@@ -262,11 +263,11 @@ export default function App({ productId, sharedId }) {
     // "+ Adicionar …" no fim de uma lista da página: item novo no fim, já com o cursor no 1º texto.
     addItem(index, list) {
       const block = sections[index];
-      const field = block && schema.blocks[block.type].fields[list];
+      const field = block && blockDef(schema, block.type).fields[list];
       if (field?.type !== "list" || block[list].length >= field.max) return;
       revealBlock(index, "canvas");
       dispatch({ type: "insert", path: ["sections", index, list], value: emptyValue(field.item) });
-      const first = Object.entries(field.item).find(([, f]) => f.type === "text" || f.type === "textarea");
+      const first = Object.entries(field.item).find(([, f]) => (f.type === "text" || f.type === "textarea") && usedByStyle(f, block, schema));
       reveal.current = { index, edit: true, field: first && `${list}.${block[list].length}.${first[0]}` };
     },
     // × num item da página. Com texto digitado, pede confirmação (como no painel); Ctrl+Z desfaz.
@@ -276,7 +277,8 @@ export default function App({ productId, sharedId }) {
       const value = block?.[list]?.[Number(n)];
       if (!value) return;
       revealBlock(index, "canvas");
-      const field = schema.blocks[block.type].fields[list];
+      const field = blockDef(schema, block.type).fields[list];
+      if (!field) return;
       if (hasText(value, field.item) &&!(await window.Admin.confirm({
         title: `Remover ${field.noun} ${Number(n) + 1}?`, text: "O texto será perdido.", action: "Remover", danger: true,
       }))) return;
@@ -338,7 +340,7 @@ export default function App({ productId, sharedId }) {
 
   async function removeBlock(index) {
     const block = sections[index];
-    const label = schema.blocks[block.type].label;
+    const label = blockDef(schema, block.type).label;
     const ok = await window.Admin.confirm({
       title: `Remover o bloco “${label}”?`,
       text: "O conteúdo deste bloco será perdido quando você salvar (dá para desfazer com Ctrl+Z).",
@@ -351,7 +353,7 @@ export default function App({ productId, sharedId }) {
   }
 
   function start(fromTemplate) {
-    const initial = withKeys(fromTemplate ? structuredClone(schema.defaultSections) : [], schema);
+    const initial = withKeys(fromTemplate ? structuredClone(schema.defaultSections) : ensureRequired([], schema), schema);
     dispatch({ type: "start", doc: { sections: initial, theme: resolveTheme(null, schema) } });
     if (initial[0]) { setOpen(new Set([initial[0]._key])); select(initial[0]._key, "canvas"); }
     setMessage(fromTemplate

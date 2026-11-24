@@ -8,8 +8,20 @@ import { BlockIcon } from "../ui/BlockIcon.jsx";
 
 const GAP = 10, MARGIN = 8;
 
+// Tipos na ordem da página (grupos do esquema). Tipo fora dos grupos vai para "Outros", no fim.
+function groupedTypes(schema) {
+  const groups = (schema.blockGroups ?? [])
+    .map((g) => ({ label: g.label, types: g.types.filter((t) => Object.hasOwn(schema.blocks, t)) }))
+    .filter((g) => g.types.length);
+  const listed = new Set(groups.flatMap((g) => g.types));
+  const rest = Object.keys(schema.blocks).filter((t) => !listed.has(t));
+  if (rest.length) groups.push({ label: groups.length ? "Outros" : "", types: rest });
+  return groups;
+}
+
 export function BlockPicker({ position, anchor, total, onPick, onPickShared, onClose }) {
   const { schema, shared } = useEditor();
+  const knownShared = shared.list.filter((s) => Object.hasOwn(schema.blocks, s.type));
   const dialog = useRef(null);
   const isOpen = position !== null;
   const compact = isOpen && !!anchor;
@@ -42,21 +54,30 @@ export function BlockPicker({ position, anchor, total, onPick, onPickShared, onC
         <h2 id="block-picker-title">Inserir bloco {where}</h2>
         {!compact && <button type="button" className="btn btn-sm btn-outline" onClick={() => dialog.current.close()}>Fechar</button>}
       </div>
-      <div className="block-types">
-        {Object.entries(schema.blocks).map(([type, def]) => (
-          <button key={type} type="button" className="block-type" onClick={() => onPick(type)} title={compact ? def.help : undefined}>
-            <BlockIcon type={type} />
-            <strong>{def.label}</strong>
-            {!compact && <span className="muted small">{def.help}</span>}
-          </button>
-        ))}
-      </div>
+      {groupedTypes(schema).map((group) => (
+        <section key={group.label} className="block-group" aria-label={group.label || undefined}>
+          {group.label && <h3 className="block-types-title">{group.label}</h3>}
+          <div className="block-types">
+            {group.types.map((type) => {
+              const def = schema.blocks[type];
+              return (
+                <button key={type} type="button" className="block-type" onClick={() => onPick(type)} title={compact ? def.help : undefined}>
+                  <BlockIcon type={type} />
+                  <strong>{def.label}</strong>
+                  {!compact && <span className="muted small">{def.help}</span>}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      ))}
       {/* Blocos salvos (aba "Blocos salvos"): o conteúdo vem de lá e muda em todas as páginas. */}
-      {shared.list.length > 0 && (
+      {/* (Só os de tipos que existem: um bloco salvo de um tipo que saiu do sistema não entra.) */}
+      {knownShared.length > 0 && (
         <>
           <h3 className="block-types-title">Blocos salvos</h3>
           <div className="block-types">
-            {shared.list.map((s) => (
+            {knownShared.map((s) => (
               <button key={s.id} type="button" className="block-type" onClick={() => onPickShared(s)}
                 title={compact ? `${schema.blocks[s.type].label} · muda junto em todas as páginas que o usam` : undefined}>
                 <BlockIcon type={s.type} />

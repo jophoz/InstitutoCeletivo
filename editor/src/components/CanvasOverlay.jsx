@@ -9,6 +9,7 @@
 import { useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
+import { REQUIRED_HINT } from "../state/document.js";
 import { TextToolbar } from "./TextToolbar.jsx";
 
 const ICONS = {
@@ -121,17 +122,18 @@ export function CanvasOverlay({ doc, scale, canvas, selectedIndex }) {
           <ToolButton icon="duplicate" label={`Duplicar bloco ${n} (${label})`} disabled={full} onClick={() => canvas.duplicate(i)} />
         </>}
         <ToolButton icon="settings" label={`Configurar bloco ${n} (${label}): imagens, ícones e itens`} onClick={() => canvas.configure(i)} />
-        {!canvas.single && <ToolButton icon="remove" label={`Remover bloco ${n} (${label})`} danger onClick={() => canvas.remove(i)} />}
+        {!canvas.single && <ToolButton icon="remove" danger disabled={!canvas.canRemove(i)} onClick={() => canvas.remove(i)}
+          label={canvas.canRemove(i) ? `Remover bloco ${n} (${label})` : `Não dá para remover: ${REQUIRED_HINT}`} />}
       </div>
     );
   }
 
-  // X de "Remover imagem" no canto das imagens visíveis do bloco selecionado (as do carrossel fora
-  // da tela ficam sem botão; a galeria remove pelo × do item). Só aparece com o mouse sobre a
+  // X de "Remover imagem" no canto das imagens visíveis do bloco selecionado. O carrossel fica de
+  // fora: lá a imagem é o slide inteiro, que sai pelo × dele. Só aparece com o mouse sobre a
   // imagem (ou sobre o próprio X), ao chegar pelo Tab ou, em tela de toque, sempre.
   const imageButtons = [];
   if (selRect && sections[selectedIndex]) {
-    doc.querySelectorAll(`[data-block="${selectedIndex}"] img[data-image-field]`).forEach((img) => {
+    doc.querySelectorAll(`[data-block="${selectedIndex}"] img[data-image-field]:not(.slide-img)`).forEach((img) => {
       const field = img.dataset.imageField;
       const r = img.getBoundingClientRect();
       const visible = r.width > 24 && r.height > 24 && r.bottom > 0 && r.top < viewport

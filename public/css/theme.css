@@ -29,8 +29,9 @@
   --color-notice-text: #6b4a0a;
   --color-danger: #b42318;           /* Mensagens de erro e ações destrutivas */
   --color-warning: #9a5b00;          /* Avisos (ex.: ação com efeito colateral) */
-  --color-urgent: #c81e1e;           /* Urgência nas páginas de venda (faixa de oferta, contagem): igual em toda paleta */
-  --color-on-urgent: #ffffff;        /* Texto sobre a cor de urgência (5,9:1) */
+  --color-urgent: #dc1010;           /* Urgência nas páginas de venda (faixa de oferta, contagem): igual em toda paleta */
+  --color-urgent-deep: #b00808;      /* Tom mais escuro da urgência, para os degradês */
+  --color-on-urgent: #ffffff;        /* Texto sobre a cor de urgência (5,1:1) */
   color-scheme: light;
 
   --font-base: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;

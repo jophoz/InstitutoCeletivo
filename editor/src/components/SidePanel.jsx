@@ -9,6 +9,7 @@ import { useEditor } from "../state/context.js";
 import { BlockIcon } from "../ui/BlockIcon.jsx";
 import { InfoTip } from "../ui/InfoTip.jsx";
 import { BlockFormBody } from "./SharedBlock.jsx";
+import { blockDef } from "../state/document.js";
 
 const PANEL_LABELS = { block: "Bloco", structure: "Estrutura", page: "Cores" };
 
@@ -17,12 +18,12 @@ function BlockFields({ block, index, hidden, header }) {
   if (!block) {
     return <p className="hint panel-empty">Selecione um bloco na página (clique nele) para ver as imagens, os ícones e os itens dele.</p>;
   }
-  const def = schema.blocks[block.type];
+  const def = blockDef(schema, block.type);
   return (
     <div key={block._key} className="block-fields">
       {header}
       <h3 className="panel-block-title"><BlockIcon type={block.type} /> <span className="block-number">{index + 1}</span> {def.label}<InfoTip text={def.help} about={`o bloco ${def.label}`} /></h3>
-      {hidden && !block.shared && <p className="hint warn">Este bloco não aparece na página no momento: preencha o conteúdo principal (ex.: itens da lista ou imagens).</p>}
+      {hidden && !block.shared && !def.unknown && <p className="hint warn">Este bloco não aparece na página no momento: preencha o conteúdo principal (ex.: itens da lista ou imagens).</p>}
       <BlockFormBody block={block} index={index} />
     </div>
   );

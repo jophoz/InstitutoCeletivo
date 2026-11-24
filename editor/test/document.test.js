@@ -2,7 +2,7 @@
 // Rodar: npm test (node --test)
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { withKeys, stripKeys, duplicateBlock, reducer, newBlock, hasText, emptyValue } from "../src/state/document.js";
+import { withKeys, stripKeys, duplicateBlock, reducer, newBlock, hasText, emptyValue, canRemoveBlock, ensureRequired } from "../src/state/document.js";
 import { historyReducer, initialHistory } from "../src/state/history.js";
 
 // Esquema mínimo, no mesmo formato que /api/admin/sales-blocks devolve.
@@ -39,6 +39,15 @@ test("move troca a ordem sem alterar o documento original", () => {
   const next = reducer(doc, { type: "move", path: ["sections"], from: 0, to: 1 });
   assert.deepEqual(titles(next), ["B", "A", "C"]);
   assert.deepEqual(titles(doc), ["A", "B", "C"]);
+});
+
+test("set com o mesmo valor não cria passo no histórico nem marca como não salvo", () => {
+  const doc = page();
+  assert.equal(reducer(doc, { type: "set", path: ["sections", 0, "title"], value: "A" }), doc);
+  const state = historyReducer(historyReducer(initialHistory, { type: "load", doc }),
+    { type: "set", path: ["sections", 0, "title"], value: "A", time: 1 });
+  assert.equal(state.doc, state.saved);
+  assert.equal(state.past.length, 0);
 });
 
 test("remove tira só o bloco indicado", () => {
@@ -106,4 +115,14 @@ test("campo de link (url): começa vazio, e um item só com endereço não conta
   assert.deepEqual(item, { label: "", url: "" });
   assert.equal(hasText({ label: "", url: "https://x.com" }, fields), false);
   assert.equal(hasText({ label: "LinkedIn", url: "" }, fields), true);
+});
+
+test("seção de compra: a única Oferta final não sai; página sem ela ganha a do modelo", () => {
+  const one = [{ type: "hero" }, { type: "offer" }];
+  assert.equal(canRemoveBlock(one, 0), true);
+  assert.equal(canRemoveBlock(one, 1), false);
+  assert.equal(canRemoveBlock([...one, { type: "offer" }], 1), true);
+  const schema = { defaultSections: [{ type: "hero" }, { type: "offer", title: "Modelo" }] };
+  assert.deepEqual(ensureRequired([{ type: "hero" }], schema), [{ type: "hero" }, { type: "offer", title: "Modelo" }]);
+  assert.equal(ensureRequired(one, schema), one);
 });

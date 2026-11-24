@@ -68,18 +68,25 @@
     plain.className = "brand";
     while (oldBrand.firstChild) plain.appendChild(oldBrand.firstChild);
     oldBrand.replaceWith(plain);
-    // O link é o dos botões de compra da página (o servidor já põe o da oferta, se houver). Leva a
-    // classe btn-cta: o clique é contado e a origem (UTM) vai junto para a Kiwify (track.js).
+    // Com seção de compra (#oferta, a Oferta final), o botão SEMPRE rola até ela, como os botões
+    // dos blocos. Em páginas antigas, sem essa seção, vai ao checkout (o servidor já põe o da oferta,
+    // se houver). Só aparece se a página tem um botão de compra ativo (sem checkout: "Em breve").
+    // Leva a classe btn-cta: o clique no checkout é contado e a origem (UTM) vai junto para a
+    // Kiwify (track.js).
     var checkout = document.querySelector("main a.btn-cta[href]");
     if (checkout) {
       var buy = document.createElement("a"), note = document.createElement("span");
+      var href = document.getElementById("oferta") ? "#oferta" : checkout.getAttribute("href");
+      var local = href.charAt(0) === "#";
       buy.className = "btn-cta header-buy";
-      buy.href = checkout.getAttribute("href");
-      buy.target = "_blank";
-      buy.rel = "noopener noreferrer";
+      buy.href = href;
+      if (!local) {
+        buy.target = "_blank";
+        buy.rel = "noopener noreferrer";
+      }
       buy.textContent = "Comprar agora";
       note.className = "sr-only";
-      note.textContent = " (abre o pagamento em nova aba)";
+      note.textContent = local ? " (vai para a oferta)" : " (abre o pagamento em nova aba)";
       buy.appendChild(note);
       actions.appendChild(buy);
     }

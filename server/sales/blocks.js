@@ -227,32 +227,40 @@ const columns = () => choice("Colunas (no computador)", { auto: "Automático", t
 const BLOCKS = {
   hero: {
     label: "Abertura",
-    help: "Primeira dobra da página: título, chamada, selos, preço e botão de compra. Preço e link de checkout vêm do cadastro do produto.",
+    help: "Primeira dobra da página: rótulo, título, subtítulo, imagem ou vídeo e o botão que leva à seção de compra (Oferta final).",
+    // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
+    // "lista.campo": o campo saiu de cada item da lista.
+    removed: ["logo", "badges", "price_label", "stats", "image_label", "extra_images.label"],
+    // canvasOnly: textos editados só direto na página (não aparecem nos painéis Bloco e Estrutura).
     fields: {
-      logo: image("Logotipo (opcional)", { size: "400 × 120 px", tip: "PNG com fundo transparente" }),
-      eyebrow: eyebrow(),
-      title: text("Título", 200, { help: "Vazio = usa o título do produto." }),
-      lead: textarea("Chamada", 600),
-      layout: choice("Disposição", { split: "Texto e imagem lado a lado", center: "Centralizada (imagem entre o título e a chamada)" }, "split",
-        { help: "Centralizada: tudo numa coluna só, no meio da página, com a imagem logo abaixo do título." }),
-      bullets: list("Lista de pontos (com ícone)", 5, { icon: icon(), text: text("Texto", 100) }, "ponto"),
-      badges: list("Selos", 6, { strong: text("Destaque", 30), text: text("Complemento", 40) }, "selo"),
-      price_label: text("Texto acima do preço", 40, { placeholder: "Por apenas" }),
-      cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora" }),
-      note: text("Aviso abaixo do botão", 120, { help: "Opcional. Ex.: Você recebe o acesso na hora, no seu e-mail." }),
-      stats: list("Números em destaque", 4, {
-        value: text("Número", 12, { help: "Ex.: 6, 18h, 1 ano." }), label: text("Texto", 30, { help: "Ex.: módulos, de aula, de acesso." }),
-      }, "número"),
+      eyebrow: { ...eyebrow(), canvasOnly: true },
+      title: text("Título", 200, { canvasOnly: true }),
+      lead: textarea("Subtítulo", 600, { canvasOnly: true }),
+      layout: choice("Disposição", {
+        center: "Opção 1: tudo centralizado",
+        split: "Opção 2: texto à esquerda, imagem à direita",
+      }, "split", {
+        help: "Opção 1: rótulo, título, subtítulo, imagem, parágrafo, lista e botão numa coluna só, no meio da página. Opção 2: os textos e o botão à esquerda, a imagem ou o vídeo à direita.",
+        // Miniatura de cada disposição no editor (SVG 48×32, traço), como no estilo do visual.
+        previews: {
+          center: "M19 3h10M11 7h26M14 10.5h20M15 14h18v8H15zM17 25h14M20 28h8",
+          split: "M3 6h7M3 10h18M3 13.5h15M3 17h17M3 21h18M3 25h10M27 5h18v22H27z",
+        },
+      }),
+      text: textarea("Parágrafo", 600, { canvasOnly: true }),
+      bullets: list("Lista de pontos (com ícone)", 5, { icon: icon(), text: text("Texto", 100) }, "ponto", { canvasOnly: true }),
+      cta_label: text("Texto do botão", 60, { placeholder: "Comprar agora", canvasOnly: true }),
+      note: text("Texto abaixo do botão", 120, { canvasOnly: true }),
       visual: choice("Estilo do visual", {
         image: "Imagem única",
         book: "Livro / manual 3D",
         stack: "Composição 3D (várias imagens)",
         mosaic: "Mosaico (várias imagens)",
         screen: "Tela (moldura de janela)",
-        devices: "Notebook e celular",
+        devices: "Notebook, tablet e celular",
         video: "Vídeo (play)",
       }, "image", {
-        help: "Livro: a imagem principal vira a capa de um livro em 3D. Composição e mosaico: a principal e as imagens extras. Tela: a principal numa janela (telas de software). Notebook e celular: a principal no notebook e a 1ª imagem extra no celular. Vídeo: a principal como capa, com o botão de play do vídeo de apresentação.",
+        help: "Livro: a imagem principal vira a capa de um livro em 3D. Composição e mosaico: a principal e as imagens extras. Tela: a principal numa janela (telas de software). Notebook, tablet e celular: a principal no notebook, a 1ª imagem extra no celular e a 2ª no tablet (os dois são opcionais). Vídeo: a principal como capa, com o botão de play do vídeo de apresentação.",
         // Miniatura de cada estilo no editor (SVG 48×32, traço): as opções viram cartões.
         previews: {
           image: "M10 5h28v22H10zM10 22l8-7 6 6 4-4 10 9M31 11h.01",
@@ -260,93 +268,59 @@ const BLOCKS = {
           stack: "M6 11h14v18H6zM17 7h14v18H17zM29 3h13v17H29z",
           mosaic: "M6 4h17v11H6zM25 4h17v11H25zM6 17h17v11H6zM25 17h17v11H25z",
           screen: "M5 4h38v24H5zM5 9h38M9 6.5h.01M12 6.5h.01M15 6.5h.01",
-          devices: "M5 5h28v18H5zM1 26h36M36 11h9v18h-9zM39.5 26h2",
+          devices: "M12 4h24v16H12zM8 22h32M2 13h11v16H2zM37 12h8v17h-8z",
           video: "M5 4h38v24H5zM21 10l9 6-9 6z",
         },
       }),
       image: image("Imagem principal", { size: "1200 × 900 px", tip: "PNG com fundo transparente fica melhor" }),
-      image_label: text("Etiqueta da imagem principal", 30, { help: "Opcional. Ex.: Manual em PDF." }),
       // showIf: o editor só mostra o campo quando o estilo usa ele (o valor fica guardado igual).
       video_url: url("Vídeo de apresentação (YouTube ou Vimeo)", { help: "Ex.: youtube.com/watch?v=… ou vimeo.com/…",
         showIf: { field: "visual", in: ["video"] } }),
-      extra_images: list("Imagens extras (composição, celular, mosaico)", 3, {
+      extra_images: list("Imagens extras (composição, mosaico, celular e tablet)", 3, {
         image: image("Imagem", { size: "900 × 1200 px", tip: "capa, página do manual ou fluxograma" }),
-        label: text("Etiqueta", 30, { help: "Opcional. Ex.: Fluxogramas." }),
       }, "imagem", { showIf: { field: "visual", in: ["stack", "mosaic", "devices"] } }),
     },
   },
-  benefits: {
-    label: "Cartões de benefícios",
-    help: "Dois a quatro cartões com os principais benefícios.",
+  presentation: {
+    label: "Apresentação",
+    help: "Apresente o produto em itens, em um destes estilos: cartões de benefícios, grade de tópicos, linha do tempo (passo a passo) ou módulos que abrem e fecham.",
+    // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
+    removed: ["eyebrow"],
     fields: {
-      title: text("Título da seção (só para leitores de tela)", 120),
-      items: list("Cartões", 4, {
-        icon: icon(), title: text("Título", 80), text: textarea("Texto", 400), callout: text("Destaque", 200),
-      }, "cartão"),
-      background: background(),
-    },
-  },
-  topics: {
-    label: "Grade de tópicos",
-    help: "O que a pessoa vai encontrar no produto (módulos, capítulos, temas). Com fundo escuro, vira um painel de conteúdo.",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      items: list("Tópicos", 12, { icon: icon(), title: text("Título", 80), text: textarea("Texto", 300) }, "tópico"),
-      layout: choice("Formato", { grid: "Grade de cartões", timeline: "Linha do tempo (passo a passo)" }, "grid",
-        { help: "Linha do tempo: os tópicos viram passos numerados (01, 02…) ligados por uma linha. Bom para a metodologia." }),
-      columns: { ...columns(), showIf: { field: "layout", in: ["grid"] } },
-      background: background(),
-    },
-  },
-  gallery: {
-    label: "Galeria (carrossel)",
-    help: "Imagens do produto por dentro. Com título ou tópicos nas imagens, ao lado do carrossel aparece a lista do módulo que está na tela. Sem imagens, o bloco não aparece na página.",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      images: list("Imagens", 12, {
-        image: image("Imagem", { required: true, size: "1500 × 1000 px" }),
-        title: text("Título do módulo (opcional)", 80),
-        topics: textarea("Tópicos do módulo (um por linha)", 600),
-      }, "imagem"),
-      background: background(),
-    },
-  },
-  checklist: {
-    label: "Lista ✓ / ✗",
-    help: "O que o produto é e o que não é.",
-    fields: {
-      icon: icon(),
-      eyebrow: eyebrow(),
-      title: text("Título", 120),
-      intro: intro(),
-      items: list("Itens", 10, { text: text("Texto", 160), positive: bool("Positivo (✓)") }),
-      background: background(),
-    },
-  },
-  comparison: {
-    label: "Comparativo",
-    help: "Dois lados: a alternativa comum (✗) e o seu produto (✓).",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      left_title: text("Título do lado ✗", 80),
-      left_items: list("Itens do lado ✗", 8, { text: text("Texto", 160) }),
-      right_title: text("Título do lado ✓", 80),
-      right_items: list("Itens do lado ✓", 8, { text: text("Texto", 160) }),
+      style: choice("Estilo", {
+        cards: "Cartões de benefícios",
+        grid: "Grade de tópicos",
+        timeline: "Linha do tempo (passo a passo)",
+        modules: "Módulos (abre e fecha)",
+      }, "cards", {
+        help: "Cartões: dois por linha, com texto mais longo e um destaque opcional. Grade: tópicos curtos em colunas (módulos, capítulos, temas, para quem é o produto); com fundo escuro, vira um painel de conteúdo. Linha do tempo: os itens viram passos numerados (01, 02…) ligados por uma linha, bom para a metodologia. Módulos: cada item abre e fecha com a lista de aulas ou tópicos, muita informação sem deixar a página longa.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Abertura.
+        previews: {
+          cards: "M4 5h18v22H4zM26 5h18v22H26zM8 10h4M30 10h4M8 15h10M30 15h10M8 19h8M30 19h8",
+          grid: "M4 5h11v10H4zM18.5 5h11v10h-11zM33 5h11v10H33zM4 18h11v10H4zM18.5 18h11v10h-11zM33 18h11v10H33z",
+          timeline: "M8 12h32M8 12h.01M24 12h.01M40 12h.01M4 19h8M20 19h8M36 19h8M4 23h8M20 23h8M36 23h8",
+          modules: "M6 4h36v7H6zM6 14h36v7H6zM6 24h36v5H6zM36 7.5l1.5 1.5 1.5-1.5M36 17.5l1.5 1.5 1.5-1.5M10 7.5h14M10 17.5h14",
+        },
+      }),
+      columns: { ...columns(), showIf: { field: "style", in: ["grid"] } },
+      title: text("Título da seção", 120, { help: "Opcional: vazio, a seção fica sem título visível." }),
+      intro: text("Descrição no fim da seção", 280, { help: "Opcional. Texto curto e centralizado que aparece depois dos itens." }),
+      // showIf nos itens: o editor só mostra os campos que o estilo usa (os valores ficam guardados).
+      items: list("Itens", 20, {
+        icon: { ...icon(), showIf: { field: "style", in: ["cards", "grid"] } },
+        title: text("Título", 120),
+        text: textarea("Texto", 1500, { help: "Nos cartões, na grade e na linha do tempo, prefira poucas frases. Nos módulos, é o que aparece ao abrir: um tópico por linha." }),
+        callout: text("Destaque", 200, { help: "Opcional. Nos cartões, frase em destaque abaixo do texto; nos módulos, detalhe abaixo do título (ex.: 5 aulas · 2h10).", showIf: { field: "style", in: ["cards", "modules"] } }),
+      }, "item"),
       background: background(),
     },
   },
   author: {
     label: "Autor / Quem somos",
     help: "Quem criou o produto: uma pessoa ou a instituição (Quem somos). Pode levar o botão de compra.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
       photo: image("Foto", { size: "600 × 700 px" }),
-      eyebrow: eyebrow(),
       name: text("Nome", 120),
       role: text("Especialidade / cargo", 160),
       bio: textarea("Biografia", 1500),
@@ -359,26 +333,27 @@ const BLOCKS = {
       background: background(),
     },
   },
-  audience: {
-    label: "Público-alvo",
-    help: "Para quem é o produto.",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      items: list("Perfis", 8, {
-        icon: icon(), text: text("Texto", 60),
-        description: text("Descrição (opcional)", 160, { help: "Uma frase sobre o perfil. Com descrição, o perfil vira um cartão." }),
-      }, "perfil"),
-      columns: columns(),
-      background: background(),
-    },
-  },
   highlight: {
     label: "Destaque",
-    help: "Cartão escuro com chamada e lista (ex.: bônus, conteúdo extra).",
+    help: "Cartão escuro com título, parágrafo e lista (ex.: bônus, conteúdo extra), com ou sem imagem.",
+    removed: ["eyebrow"],
     fields: {
-      eyebrow: eyebrow(),
+      layout: choice("Formato", {
+        banner: "Sem imagem",
+        left: "Imagem à esquerda",
+        right: "Imagem à direita",
+        top: "Imagem no centro",
+      }, "banner", {
+        help: "Sem imagem: título e parágrafo à esquerda, lista à direita. Imagem à esquerda ou à direita: a imagem de um lado e, do outro, título, parágrafo e lista. Imagem no centro: título e parágrafo centralizados em cima, a imagem no meio e a lista embaixo.",
+        // Miniatura de cada formato no editor (SVG 48×32, traço), como na Abertura.
+        previews: {
+          banner: "M3 3h42v26H3zM8 11h14M8 15h16M8 19h12M28 11h2M32 11h9M28 16h2M32 16h9M28 21h2M32 21h9",
+          left: "M3 3h42v26H3zM7 7h16v18H7zM27 10h14M27 14h12M27 19h2M31 19h9M27 23h2M31 23h9",
+          right: "M3 3h42v26H3zM25 7h16v18H25zM7 10h14M7 14h12M7 19h2M11 19h9M7 23h2M11 23h9",
+          top: "M3 3h42v26H3zM17 6.5h14M14 9.5h20M15 12.5h18v9H15zM9 25h2M13 25h8M27 25h2M31 25h8",
+        },
+      }),
+      image: image("Imagem", { size: "1200 × 900 px", showIf: { field: "layout", in: ["left", "right", "top"] } }),
       title: text("Título", 120),
       text: textarea("Texto", 600),
       items: list("Itens", 8, { text: text("Texto", 160) }),
@@ -387,18 +362,18 @@ const BLOCKS = {
   },
   cta: {
     label: "Chamada intermediária",
-    help: "Faixa escura e compacta com o botão de compra, para usar no meio da página. Preço e link vêm do cadastro do produto.",
+    help: "Faixa escura e compacta com um título e um botão que leva até a oferta no fim da página. Use no meio da página.",
+    removed: ["eyebrow"],
     fields: {
-      eyebrow: eyebrow(),
-      title: text("Texto", 160),
+      title: text("Título", 160),
       cta_label: text("Texto do botão", 60, { placeholder: "Quero garantir" }),
     },
   },
   testimonials: {
     label: "Depoimentos",
     help: "O que clientes dizem do produto. Use só depoimentos reais. Depoimentos sem texto não aparecem.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
-      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Depoimentos", 9, {
@@ -415,8 +390,8 @@ const BLOCKS = {
   faq: {
     label: "Perguntas frequentes",
     help: "Funciona sem JavaScript (cada pergunta abre e fecha).",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
-      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Perguntas", 20, { question: text("Pergunta", 200), answer: textarea("Resposta", 1500) }, "pergunta"),
@@ -425,22 +400,21 @@ const BLOCKS = {
   },
   guarantee: {
     label: "Garantia",
-    help: "Faixa de confiança: selo de garantia, texto com as condições e selos de compra segura.",
+    help: "Selo de garantia à esquerda; à direita, o título e um parágrafo com as condições.",
+    // Saíram: o rótulo acima do título, a descrição e os selos (os de compra segura ficam na Oferta final).
+    removed: ["eyebrow", "intro", "items"],
     fields: {
-      image: image("Selo de garantia (opcional)", { size: "400 × 400 px", tip: "PNG com fundo transparente" }),
-      eyebrow: eyebrow(),
+      image: image("Selo de garantia", { size: "400 × 400 px", tip: "PNG com fundo transparente" }),
       title: text("Título", 120),
-      intro: intro(),
-      text: textarea("Texto da garantia", 800, { help: "Opcional. Explique o prazo e como pedir o reembolso." }),
-      items: list("Selos", 4, { icon: icon(), text: text("Texto", 80) }, "selo"),
+      text: textarea("Texto da garantia", 800, { help: "Explique o prazo e como pedir o reembolso." }),
       background: background(),
     },
   },
   social: {
     label: "Redes sociais",
     help: "Botões com os links das suas redes. Só aparecem as redes com link; sem nenhuma, o bloco não aparece na página.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
-      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Redes", 9, {
@@ -453,90 +427,100 @@ const BLOCKS = {
   },
   offer: {
     label: "Oferta final",
-    help: "Última chamada: texto e benefícios à esquerda, cartão de compra à direita. Preço e link vêm do cadastro do produto.",
+    help: "Última chamada, em um destes estilos: simples (texto e benefícios à esquerda, cartão de compra à direita) ou dupla (a oferta normal e a Melhor opção lado a lado, a Melhor opção em destaque). Preço e link vêm do cadastro do produto.",
     fields: {
+      style: choice("Estilo", {
+        single: "Oferta simples",
+        double: "Oferta dupla",
+      }, "single", {
+        help: "Simples: texto e benefícios à esquerda, cartão de compra à direita. Dupla: título no topo e dois cartões — a oferta normal e a Melhor opção (ex.: curso com bônus), cada um com o seu botão. O preço e o link da Melhor opção ficam no cadastro do produto (Editar produto › Ofertas); sem eles, a página mostra só a oferta normal.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Abertura.
+        previews: {
+          single: "M3 8h18M3 12h14M3 16h16M3 20h12M27 4h18v24H27zM31 18h10",
+          double: "M14 3h20M5 8h17v21H5zM26 6h17v23H26zM9 23h9M30 23h9",
+        },
+      }),
       image: image("Imagem (topo do cartão de compra)", { size: "1000 × 750 px", tip: "PNG com fundo transparente fica melhor" }),
       eyebrow: eyebrow(),
       title: text("Título", 200),
       text: textarea("Descrição", 600),
-      items: list("Benefícios", 4, { icon: icon(), text: text("Texto", 100) }, "benefício"),
-      proof_icon: icon("Ícone do cartão de credibilidade"),
-      proof_title: text("Credibilidade: destaque", 80),
-      proof_text: text("Credibilidade: texto", 200),
-      price_label: text("Texto acima do preço", 40, { placeholder: "Oferta especial" }),
+      items: list("Benefícios", 4, { icon: icon(), text: text("Texto", 100) }, "benefício", { showIf: { field: "style", in: ["single"] } }),
+      proof_icon: { ...icon("Ícone do cartão de credibilidade"), showIf: { field: "style", in: ["single"] } },
+      proof_title: text("Credibilidade: destaque", 80, { showIf: { field: "style", in: ["single"] } }),
+      proof_text: text("Credibilidade: texto", 200, { showIf: { field: "style", in: ["single"] } }),
+      card_title: text("Cartão da oferta normal: título", 80, { placeholder: "Ex.: Curso completo", showIf: { field: "style", in: ["double"] } }),
+      price_label: text("Texto acima do preço", 40, { placeholder: "Ex.: Acesso completo" }),
       conditions: list("Condições de acesso", 6, { text: text("Texto", 120) }, "condição"),
-      guarantee_title: text("Garantia: título", 80, { placeholder: "Garantia de 7 dias" }),
-      guarantee_text: text("Garantia: texto", 300),
+      guarantee_title: text("Garantia: título", 80, { placeholder: "Garantia de 7 dias", showIf: { field: "style", in: ["single"] } }),
+      guarantee_text: text("Garantia: texto", 300, { showIf: { field: "style", in: ["single"] } }),
       cta_label: text("Texto do botão", 60, { placeholder: "Garantir agora" }),
-      note: text("Aviso abaixo do botão", 160, { help: "Vazio = \"Pagamento processado com segurança pela Kiwify.\"" }),
-      seals: list("Selos de compra segura", 4, { icon: icon(), text: text("Texto", 40) }, "selo"),
-    },
-  },
-  curriculum: {
-    label: "Currículo (módulos)",
-    help: "Módulos que abrem e fecham, cada um com a lista de aulas ou tópicos. Muita informação sem deixar a página longa.",
-    fields: {
-      eyebrow: eyebrow(),
-      title: text("Título da seção", 120),
-      intro: intro(),
-      items: list("Módulos", 20, {
-        title: text("Título do módulo", 120),
-        meta: text("Detalhe (opcional)", 60, { help: "Ex.: 5 aulas · 2h10." }),
-        topics: textarea("Tópicos (um por linha)", 1500),
-      }, "módulo"),
-      background: background(),
+      note: text("Aviso abaixo do botão", 160, { help: "Vazio = \"Pagamento processado com segurança pela Kiwify.\" Na oferta dupla, fica abaixo dos dois cartões." }),
+      seals: list("Selos de compra segura", 4, { icon: icon(), text: text("Texto", 40) }, "selo", { showIf: { field: "style", in: ["single"] } }),
+      // Oferta dupla: o cartão da Melhor opção (preço e link: cadastro do produto, Ofertas).
+      special_badge: text("Melhor opção: selo de destaque", 30, { placeholder: "Melhor opção", showIf: { field: "style", in: ["double"] } }),
+      special_image: image("Melhor opção: imagem", { size: "1000 × 750 px", tip: "PNG com fundo transparente fica melhor", showIf: { field: "style", in: ["double"] } }),
+      special_title: text("Melhor opção: título", 80, { placeholder: "Ex.: Curso + bônus", showIf: { field: "style", in: ["double"] } }),
+      special_price_label: text("Melhor opção: texto acima do preço", 40, { showIf: { field: "style", in: ["double"] } }),
+      special_items: list("Melhor opção: o que vem junto", 8, { icon: icon(), text: text("Texto", 120) }, "item", { showIf: { field: "style", in: ["double"] } }),
+      special_cta_label: text("Melhor opção: texto do botão", 60, { placeholder: "Quero a melhor opção", showIf: { field: "style", in: ["double"] } }),
     },
   },
   demo: {
     label: "Demonstração",
-    help: "Mostre o produto por dentro em abas (ex.: Manual, Aula, Fluxograma). Abas sem imagem não aparecem.",
+    help: "Mostre o produto por dentro, em um destes estilos: carrossel de imagens, abas (uma imagem grande por aba) ou linhas de texto e imagem.",
+    // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
+    removed: ["eyebrow", "intro", "items.eyebrow"],
     fields: {
-      eyebrow: eyebrow(),
+      style: choice("Estilo", {
+        carousel: "Carrossel de imagens",
+        tabs: "Abas (ex.: Manual, Aula)",
+        rows: "Texto e imagem alternados",
+      }, "carousel", {
+        help: "Carrossel: as imagens passam uma a uma; com título ou lista no item, ela aparece ao lado. Abas: uma imagem grande com legenda por aba. Texto e imagem: linhas com o texto de um lado e a imagem do outro, alternando o lado. No carrossel e nas abas, itens sem imagem não aparecem na página.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Abertura.
+        previews: {
+          carousel: "M10 5h28v19H10zM3 10v9M45 10v9M19 28h.01M24 28h.01M29 28h.01",
+          tabs: "M10 3h9v5h-9zM21 3h9v5h-9zM32 3h7v5h-7zM8 11h32v19H8z",
+          rows: "M3 3h18v12H3zM27 5h18M27 9h14M27 13h16M27 19h18v11H27zM3 21h18M3 25h14M3 29h16",
+        },
+      }),
       title: text("Título da seção", 120),
-      intro: intro(),
-      items: list("Abas", 4, {
-        label: text("Nome da aba", 30),
+      // showIf nos itens: o editor só mostra os campos que o estilo usa (os valores ficam guardados).
+      items: list("Itens", 12, {
+        label: text("Nome da aba", 30, { showIf: { field: "style", in: ["tabs"] } }),
         image: image("Imagem", { size: "1500 × 1000 px" }),
-        caption: textarea("Legenda", 300),
-      }, "aba"),
+        title: text("Título", 120, { showIf: { field: "style", in: ["carousel", "rows"] } }),
+        text: textarea("Texto", 800, { showIf: { field: "style", in: ["tabs", "rows"] } }),
+        bullets: textarea("Lista (um item por linha)", 600, { showIf: { field: "style", in: ["carousel"] } }),
+      }, "item"),
       background: background(),
     },
   },
-  feature: {
-    label: "Texto e imagem",
-    help: "Linhas com texto de um lado e imagem do outro, alternando o lado a cada linha.",
+  timer: {
+    label: "Cronômetro",
+    help: "O prazo da oferta cadastrada no produto, em um destes estilos: faixa de urgência (fina e chamativa, normalmente no topo da página) ou contagem regressiva (seção com o cronômetro grande e o botão de compra). Só aparece enquanto há oferta ativa; a contagem precisa de oferta com prazo.",
     fields: {
-      items: list("Linhas", 6, {
-        eyebrow: text("Rótulo acima do título", 40),
-        title: text("Título", 120),
-        text: textarea("Texto", 800),
-        bullets: textarea("Lista (um item por linha)", 600),
-        image: image("Imagem", { size: "1200 × 900 px" }),
-      }, "linha"),
-      background: background(),
-    },
-  },
-  urgency: {
-    label: "Faixa de urgência",
-    help: "Faixa fina e chamativa, normalmente no topo da página, com o cronômetro da oferta. Só aparece enquanto há oferta ativa no cadastro do produto.",
-    fields: {
-      text: text("Texto", 80, { placeholder: "Oferta especial por tempo limitado" }),
-    },
-  },
-  countdown: {
-    label: "Contagem regressiva",
-    help: "Seção com o cronômetro grande (dias, horas, minutos e segundos) e o botão de compra. Usa o prazo da oferta cadastrada no produto; sem oferta com prazo, não aparece.",
-    fields: {
-      title: text("Título", 120),
-      text: text("Texto", 200),
-      cta_label: text("Texto do botão", 60, { placeholder: "Quero aproveitar" }),
+      style: choice("Estilo", {
+        bar: "Faixa de urgência",
+        countdown: "Contagem regressiva",
+      }, "bar", {
+        help: "Faixa: uma linha com o texto e o tempo que falta; como primeiro bloco, fica acima do menu. Contagem regressiva: título, texto, caixas de dias, horas, minutos e segundos e o botão de compra.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Apresentação.
+        previews: {
+          bar: "M3 11h42v10H3zM8 16h18M31 14h10v4H31z",
+          countdown: "M12 5h24M16 9h16M5 14h8v9H5zM15 14h8v9h-8zM25 14h8v9h-8zM35 14h8v9h-8zM17 27h14",
+        },
+      }),
+      title: text("Título", 120, { showIf: { field: "style", in: ["countdown"] } }),
+      text: text("Texto", 200, { help: "Na faixa, poucas palavras (ex.: Oferta especial por tempo limitado)." }),
+      cta_label: text("Texto do botão", 60, { placeholder: "Quero aproveitar", showIf: { field: "style", in: ["countdown"] } }),
     },
   },
   bonus: {
     label: "Bônus",
     help: "Cartões numerados (Bônus #1, #2…) com imagem, nome, descrição e o valor que a pessoa leva de graça.",
+    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
     fields: {
-      eyebrow: eyebrow(),
       title: text("Título da seção", 120),
       intro: intro(),
       items: list("Bônus", 6, {
@@ -548,20 +532,35 @@ const BLOCKS = {
       background: background(),
     },
   },
-  table: {
-    label: "Comparativo em tabela",
-    help: "Tabela critério a critério: a alternativa comum (✗) de um lado e o seu produto (✓) do outro.",
+  compare: {
+    label: "Comparação",
+    help: "Compare a alternativa comum (✗) com o seu produto (✓), em um destes estilos: dois lados (VS) ou tabela critério a critério.",
+    // Campos que existiam e saíram: descartados em silêncio ao ler páginas antigas.
+    removed: ["eyebrow"],
     fields: {
-      eyebrow: eyebrow(),
+      style: choice("Estilo", {
+        columns: "Dois lados (VS)",
+        table: "Tabela (critério a critério)",
+      }, "columns", {
+        help: "Dois lados: um cartão com os itens da alternativa (✗) e outro com os do produto (✓), separados por \"VS\". Tabela: uma linha por critério, a alternativa (✗) de um lado e o produto (✓) do outro; no celular, cada linha vira um cartão.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Apresentação.
+        previews: {
+          columns: "M3 5h17v22H3zM28 5h17v22H28zM7 11h9M7 16h9M7 21h6M32 11h9M32 16h9M32 21h6M22.5 16h3",
+          table: "M4 5h40v22H4zM4 11h40M4 19h40M16 5v22M30 5v22",
+        },
+      }),
       title: text("Título da seção", 120),
       intro: intro(),
-      left_title: text("Título da coluna ✗", 60),
-      right_title: text("Título da coluna ✓", 60),
+      left_title: text("Título do lado ✗", 80),
+      right_title: text("Título do lado ✓", 80),
+      // Cada estilo tem os seus itens; os do outro estilo ficam guardados (trocar e voltar não perde nada).
+      left_items: list("Itens do lado ✗", 8, { text: text("Texto", 160) }, "item", { showIf: { field: "style", in: ["columns"] } }),
+      right_items: list("Itens do lado ✓", 8, { text: text("Texto", 160) }, "item", { showIf: { field: "style", in: ["columns"] } }),
       rows: list("Linhas", 8, {
         label: text("Critério", 40, { help: "Ex.: Atendimento, Preço, Suporte." }),
         left: text("Coluna ✗", 160),
         right: text("Coluna ✓", 160),
-      }, "linha"),
+      }, "linha", { showIf: { field: "style", in: ["table"] } }),
       background: background(),
     },
   },
@@ -595,8 +594,18 @@ function normalizeUrl(value) {
 
 const { plain, canonical } = require("./richtext");
 
+// Ordem do "Adicionar bloco" no editor: segue o caminho de uma página de vendas, de cima para baixo.
+// Todo tipo de BLOCKS aparece em um grupo (o teste confere).
+const BLOCK_GROUPS = [
+  { label: "Topo", types: ["hero"] },
+  { label: "O produto", types: ["presentation", "demo", "highlight", "compare"] },
+  { label: "Confiança", types: ["author", "testimonials"] },
+  { label: "Compra", types: ["cta", "bonus", "guarantee", "timer", "offer"] },
+  { label: "Fechamento", types: ["faq", "social"] },
+];
+
 const MAX_BLOCKS = 30;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { UUID } = require("../lib/ids");
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 // Nome definido no próprio objeto (o operador "in" aceitaria também "constructor", "toString"...).
 const has = (obj, key) => typeof key === "string" && Object.hasOwn(obj, key);
@@ -667,6 +676,24 @@ function validateFields(input, fields, where) {
   return out;
 }
 
+// Tira os campos que o tipo de bloco já teve e não tem mais (BLOCKS[type].removed): páginas e
+// blocos salvos antigos continuam válidos, sem o campo que saiu.
+function dropRemoved(type, fields) {
+  const removed = BLOCKS[type].removed;
+  if (!removed || !isObject(fields)) return fields;
+  const out = Object.fromEntries(Object.entries(fields).filter(([name]) => !removed.includes(name)));
+  for (const path of removed.filter((r) => r.includes("."))) {
+    const [list, name] = path.split(".");
+    if (!Array.isArray(out[list])) continue;
+    out[list] = out[list].map((item) => {
+      if (!isObject(item)) return item;
+      const { [name]: _gone, ...rest } = item;
+      return rest;
+    });
+  }
+  return out;
+}
+
 // Referência a um bloco salvo: só o ID e os campos locais (o conteúdo não pode vir junto).
 function validateSharedRef({ type, shared, ...fields }, where) {
   if (!has(SHAREABLE, type)) throw new ValidationError(`${where}: este tipo de bloco não pode ser um bloco salvo.`);
@@ -678,7 +705,7 @@ function validateSharedRef({ type, shared, ...fields }, where) {
 function validateSharedData(type, data) {
   try {
     if (!has(SHAREABLE, type)) throw new ValidationError("Tipo de bloco inválido.");
-    return { data: validateFields(data ?? {}, sharedFields(type), BLOCKS[type].label) };
+    return { data: validateFields(dropRemoved(type, data ?? {}), sharedFields(type), BLOCKS[type].label) };
   } catch (error) {
     if (error instanceof ValidationError) return { error: error.message };
     throw error;
@@ -698,7 +725,7 @@ function validateSections(sections) {
       const { type, ...fields } = block;
       const where = `Bloco ${i + 1} (${BLOCKS[type].label})`;
       if (Object.hasOwn(block, "shared")) return validateSharedRef(block, where);
-      return { type, ...validateFields(fields, BLOCKS[type].fields, where) };
+      return { type, ...validateFields(dropRemoved(type, fields), BLOCKS[type].fields, where) };
     });
     return { sections: out };
   } catch (error) {
@@ -707,14 +734,26 @@ function validateSections(sections) {
   }
 }
 
-// Blocos já gravados, validados UM A UM: um bloco inválido (ex.: dado antigo, de antes de uma
-// mudança no esquema) é descartado sozinho, em vez de invalidar a página inteira. Cada item
-// guarda a posição ORIGINAL do bloco: { index, block }.
-function validBlocks(sections) {
-  return (Array.isArray(sections) ? sections : [])
-    .map((block, index) => ({ index, block: isObject(block) && has(BLOCKS, block.type) ? validateSections([block]).sections?.[0] : null }))
-    .filter((x) => x.block);
+// Seção de compra (bloco "Oferta final", próprio ou de um bloco salvo): o botão da abertura leva
+// até ela, então toda página salva precisa de uma.
+const hasOffer = (sections) => Array.isArray(sections) && sections.some((b) => isObject(b) && b.type === "offer");
+
+// Cada bloco de uma lista, validado UM A UM: { index, block } se válido, { index, error } se não.
+// index é a posição ORIGINAL; error explica o problema sem o "Bloco 1 (…) ›" da validação avulsa.
+function checkBlocks(sections) {
+  return (Array.isArray(sections) ? sections : []).map((block, index) => {
+    if (!isObject(block) || !has(BLOCKS, block.type)) {
+      const type = isObject(block) && typeof block.type === "string" ? ` (“${block.type.slice(0, 40)}”)` : "";
+      return { index, error: `este tipo de bloco${type} não existe mais` };
+    }
+    const { sections: ok, error } = validateSections([block]);
+    return ok ? { index, block: ok[0] } : { index, error: error.replace(/^Bloco 1 \([^)]*\)(: | › )/, "") };
+  });
 }
+
+// Blocos já gravados, sem os inválidos (ex.: dado antigo, de antes de uma mudança no esquema): um
+// bloco inválido é descartado sozinho, em vez de invalidar a página inteira. { index, block }.
+const validBlocks = (sections) => checkBlocks(sections).filter((x) => x.block);
 
 // IDs de todas as imagens usadas nos blocos (para buscar URLs e registrar o uso).
 function mediaIds(sections) {
@@ -733,49 +772,44 @@ function mediaIds(sections) {
 // conteúdo, bônus, garantia, oferta), com textos de orientação.
 function defaultSections() {
   return [
-    { type: "urgency", text: "Oferta especial por tempo limitado" },
+    { type: "timer", style: "bar", text: "Oferta especial por tempo limitado" },
     { type: "hero", eyebrow: "Material profissional", lead: "Uma frase que resume a transformação que o produto entrega.",
       bullets: [{ icon: "checkcircle", text: "Primeiro resultado que a pessoa alcança" },
         { icon: "checkcircle", text: "Segundo resultado que a pessoa alcança" },
         { icon: "checkcircle", text: "Terceiro resultado que a pessoa alcança" }],
-      badges: [{ strong: "PDF", text: "Prático" }, { strong: "Acesso", text: "Imediato" }],
-      stats: [{ value: "6", label: "módulos" }, { value: "18h", label: "de aula" }, { value: "1 ano", label: "de acesso" }],
-      price_label: "Por apenas", cta_label: "Comprar agora", note: "Você recebe o acesso na hora, no seu e-mail." },
-    { type: "gallery", eyebrow: "Por dentro", title: "Conheça por dentro", images: [] },
-    { type: "benefits", title: "Benefícios", items: [
+      cta_label: "Comprar agora", note: "Você recebe o acesso na hora, no seu e-mail." },
+    { type: "demo", style: "carousel", title: "Conheça por dentro", items: [] },
+    { type: "presentation", style: "cards", items: [
       { icon: "bolt", title: "Primeiro benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" },
       { icon: "doc", title: "Segundo benefício", text: "Explique o benefício em uma ou duas frases.", callout: "" }] },
-    { type: "countdown", title: "Aproveite o preço promocional por tempo limitado", text: "Depois do prazo, o preço volta ao normal.", cta_label: "Quero aproveitar" },
-    { type: "audience", title: "Ideal para você que deseja", items: [
-      { icon: "target", text: "Primeiro perfil", description: "Uma frase sobre o que essa pessoa busca." },
-      { icon: "user", text: "Segundo perfil", description: "Uma frase sobre o que essa pessoa busca." },
-      { icon: "rocket", text: "Terceiro perfil", description: "Uma frase sobre o que essa pessoa busca." }] },
-    { type: "topics", eyebrow: "Passo a passo", title: "Como você vai aprender", layout: "timeline", items: [
+    { type: "timer", style: "countdown", title: "Aproveite o preço promocional por tempo limitado", text: "Depois do prazo, o preço volta ao normal.", cta_label: "Quero aproveitar" },
+    { type: "presentation", style: "grid", title: "Ideal para você que deseja", items: [
+      { icon: "target", title: "Primeiro perfil", text: "Uma frase sobre o que essa pessoa busca." },
+      { icon: "user", title: "Segundo perfil", text: "Uma frase sobre o que essa pessoa busca." },
+      { icon: "rocket", title: "Terceiro perfil", text: "Uma frase sobre o que essa pessoa busca." }] },
+    { type: "presentation", style: "timeline", title: "Como você vai aprender", items: [
       { icon: "video", title: "Assista", text: "Aulas curtas e objetivas, organizadas por módulos." },
       { icon: "doc", title: "Estude o material", text: "Manual em PDF para estudo e consulta." },
       { icon: "eye", title: "Visualize", text: "Fluxogramas que mostram o processo de forma visual." },
       { icon: "target", title: "Aplique", text: "Casos práticos para usar no dia a dia." }] },
-    { type: "demo", eyebrow: "Demonstração", title: "Veja o que você recebe", items: [
-      { label: "Manual", caption: "Uma página do manual." }, { label: "Aula", caption: "Um trecho de aula." }] },
-    { type: "feature", items: [
-      { eyebrow: "Na prática", title: "Um diferencial do produto", text: "Explique o diferencial em poucas frases.", bullets: "Primeiro ponto\nSegundo ponto" },
-      { eyebrow: "Para consultar", title: "Outro diferencial", text: "Explique o diferencial em poucas frases.", bullets: "" }] },
-    { type: "curriculum", eyebrow: "Conteúdo", title: "O que você vai estudar", items: [
-      { title: "Módulo de introdução", meta: "3 aulas", topics: "Primeiro tópico\nSegundo tópico" },
-      { title: "Segundo módulo", meta: "4 aulas", topics: "Primeiro tópico\nSegundo tópico" }] },
+    { type: "demo", style: "tabs", title: "Veja o que você recebe", items: [
+      { label: "Manual", text: "Uma página do manual." }, { label: "Aula", text: "Um trecho de aula." }] },
+    { type: "demo", style: "rows", items: [
+      { title: "Um diferencial do produto", text: "Explique o diferencial em poucas frases." },
+      { title: "Outro diferencial", text: "Explique o diferencial em poucas frases." }] },
+    { type: "presentation", style: "modules", title: "O que você vai estudar", items: [
+      { title: "Módulo de introdução", callout: "3 aulas", text: "Primeiro tópico\nSegundo tópico" },
+      { title: "Segundo módulo", callout: "4 aulas", text: "Primeiro tópico\nSegundo tópico" }] },
     { type: "cta", title: "Pronto para começar? O acesso é imediato.", cta_label: "Quero garantir" },
-    { type: "bonus", eyebrow: "E não para por aí", title: "Você também vai receber", items: [
+    { type: "bonus", title: "Você também vai receber", items: [
       { title: "Nome do primeiro bônus", text: "Explique o que é e por que ajuda.", value: "" },
       { title: "Nome do segundo bônus", text: "Explique o que é e por que ajuda.", value: "" }] },
-    { type: "checklist", icon: "shield", title: "Conteúdo focado no que importa", items: [
-      { text: "O que o produto não é", positive: false }, { text: "O que o produto entrega", positive: true }] },
-    { type: "table", eyebrow: "Diferenciais", title: "Por que este material", left_title: "Alternativa comum", right_title: "Este produto",
+    { type: "compare", style: "table", title: "Por que este material", left_title: "Alternativa comum", right_title: "Este produto",
       rows: [{ label: "Primeiro critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" },
         { label: "Segundo critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" }] },
-    { type: "author", eyebrow: "Quem ensina", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },
-    { type: "guarantee", title: "Garantia de 7 dias", text: "Se por qualquer motivo você achar que o material não é para você, é só pedir o reembolso dentro do prazo.",
-      items: [{ icon: "lock", text: "Pagamento seguro" }, { icon: "refresh", text: "Reembolso sem burocracia" }] },
-    { type: "faq", eyebrow: "Dúvidas", title: "Dúvidas mais frequentes", items: [
+    { type: "author", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },
+    { type: "guarantee", title: "Garantia de 7 dias", text: "Se por qualquer motivo você achar que o material não é para você, é só pedir o reembolso dentro do prazo." },
+    { type: "faq", title: "Dúvidas mais frequentes", items: [
       { question: "Em que formato recebo o produto?", answer: "Explique o formato e como acessar." },
       { question: "Tem garantia?", answer: "Explique a política de garantia." }] },
     { type: "offer", eyebrow: "Oferta", title: "Garanta agora o seu acesso",
@@ -783,7 +817,7 @@ function defaultSections() {
       items: [{ icon: "bolt", text: "Acesso imediato" }, { icon: "doc", text: "Conteúdo prático" },
         { icon: "refresh", text: "Atualizações incluídas" }, { icon: "headset", text: "Suporte por e-mail" }],
       proof_icon: "award", proof_title: "Feito por especialista", proof_text: "Material criado por quem vive o assunto na prática.",
-      price_label: "Oferta especial",
+      price_label: "Acesso completo",
       conditions: [{ text: "Pagamento único" }, { text: "Acesso imediato após a compra" }],
       guarantee_title: "Garantia de 7 dias", guarantee_text: "Se não gostar, devolvemos o seu dinheiro.",
       cta_label: "Quero me matricular agora",
@@ -792,6 +826,6 @@ function defaultSections() {
 }
 
 module.exports = {
-  ICONS, ICON_GROUPS, NETWORKS, BLOCKS, MAX_BLOCKS, SHAREABLE,
-  validateSections, validBlocks, mediaIds, defaultSections, validateSharedData, sharedIds,
+  ICONS, ICON_GROUPS, NETWORKS, BLOCKS, BLOCK_GROUPS, MAX_BLOCKS, SHAREABLE,
+  validateSections, validBlocks, checkBlocks, mediaIds, defaultSections, validateSharedData, sharedIds, hasOffer,
 };

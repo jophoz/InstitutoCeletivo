@@ -3,8 +3,10 @@
 // de todos os produtos dela (eles leem a empresa ao desenhar a página; nada fica copiado).
 const pool = require("../config/database");
 const storage = require("../lib/storage");
-const { UUID, normalizeBrandBody } = require("../lib/brand-input");
+const { normalizeBrandBody } = require("../lib/brand-input");
+const { UUID } = require("../lib/ids");
 const defaultBrand = require("../lib/default-brand");
+const { withTransaction, rollbackWith } = require("../lib/transaction");
 
 const NOT_FOUND = { error: "Empresa não encontrada." };
 const MISSING_LOGO = { error: "A imagem escolhida para o logo ou o ícone não existe mais. Escolha outra." };
@@ -51,18 +53,13 @@ async function listBrands(_req, res) {
 // Grava numa transação: marcar uma empresa como padrão desmarca a anterior (só pode haver uma).
 // write(client) faz o INSERT/UPDATE e devolve o id (ou null se a empresa não existe).
 async function saveBrand(value, write) {
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-    if (value.isDefault) await client.query("UPDATE brands SET is_default = false WHERE is_default");
-    const id = await write(client);
-    await client.query(id ? "COMMIT" : "ROLLBACK");
-    return id;
-  } catch (err) {
-    await client.query("ROLLBACK").catch(() => {});
-    throw err;
+    return await withTransaction(async (client) => {
+      if (value.isDefault) await client.query("UPDATE brands SET is_default = false WHERE is_default");
+      const id = await write(client);
+      return id || rollbackWith(null); // empresa não existe: desfaz o "desmarcar a padrão"
+    });
   } finally {
-    client.release();
     defaultBrand.invalidate(); // menu e ícone da aba das páginas do site
   }
 }

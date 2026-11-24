@@ -17,19 +17,29 @@ function day(offsetDays = 0) {
   return new Date(Date.now() + offsetDays * 864e5).toLocaleDateString("en-CA", { timeZone: TIME_ZONE });
 }
 
+const BATCH = 500; // vendas por INSERT (a revisão de 90 dias pode trazer milhares)
+
+// Grava em lotes: um INSERT por lote em vez de um por venda (cada ida ao banco custa mais que a
+// gravação em si). O mesmo pedido duas vezes no lote faria o ON CONFLICT falhar ("cannot affect
+// row a second time"; acontece se uma venda muda de página na Kiwify durante a busca): fica a última.
 async function saveSales(brandId, sales) {
-  for (const s of sales) {
+  const unique = [...new Map(sales.map((s) => [s.order_id, s])).values()];
+  for (let i = 0; i < unique.length; i += BATCH) {
     await pool.query(
       `INSERT INTO kiwify_sales (order_id, brand_id, kiwify_product_id, product_name, status, payment_method,
          charge_cents, net_cents, created_at, approved_at, utm_source, utm_medium, utm_campaign)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+       SELECT s.order_id, $1, s.kiwify_product_id, s.product_name, s.status, s.payment_method,
+              s.charge_cents, s.net_cents, s.created_at, s.approved_at, s.utm_source, s.utm_medium, s.utm_campaign
+         FROM jsonb_to_recordset($2::jsonb) AS s (
+           order_id text, kiwify_product_id text, product_name text, status text, payment_method text,
+           charge_cents integer, net_cents integer, created_at timestamptz, approved_at timestamptz,
+           utm_source text, utm_medium text, utm_campaign text)
        ON CONFLICT (order_id) DO UPDATE SET
          status = EXCLUDED.status, payment_method = EXCLUDED.payment_method,
          charge_cents = EXCLUDED.charge_cents, net_cents = EXCLUDED.net_cents,
          approved_at = EXCLUDED.approved_at, product_name = EXCLUDED.product_name,
          synced_at = CURRENT_TIMESTAMP`,
-      [s.order_id, brandId, s.kiwify_product_id, s.product_name, s.status, s.payment_method,
-        s.charge_cents, s.net_cents, s.created_at, s.approved_at, s.utm_source, s.utm_medium, s.utm_campaign]);
+      [brandId, JSON.stringify(unique.slice(i, i + BATCH))]);
   }
 }
 

@@ -56,7 +56,7 @@ export function Preview({ previewUrl, payload, renderKey, canvas, selectedIndex,
           htmlRef.current = result;
           showHtml(html);
         }
-        // Quais blocos o servidor de fato desenhou: os que faltam "não aparecem" (ex.: galeria sem imagens).
+        // Quais blocos o servidor de fato desenhou: os que faltam "não aparecem" (ex.: carrossel sem imagens).
         // (data-hidden marca o aviso que o servidor desenha no lugar desses blocos.)
         onVisibleRef.current?.(new Set([...result.matchAll(/data-block="(\d+)"(?! data-hidden)/g)].map((m) => Number(m[1]))));
         setStatus({ kind: "ok", text: "Atualizada" });

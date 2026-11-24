@@ -1,12 +1,12 @@
 // Monta o HTML da página de vendas a partir dos blocos. A marcação segue a página original do
 // Manual (mesmas classes de public/css/venda.css), então o visual é o mesmo.
 const { html } = require("../lib/html");
-const { BLOCKS, ICONS, NETWORKS, validBlocks } = require("./blocks");
+const { BLOCKS, ICONS, NETWORKS, checkBlocks, hasOffer } = require("./blocks");
 const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
 const { assetUrl } = require("../lib/assets"); // ?v= nos CSS/JS: cache longo no navegador
 const { headerAttrs } = require("../lib/site-brand");
-const { effectiveOffer, formatEnd } = require("../lib/offer");
+const { effectiveOffer, specialOffer, savings, formatEnd } = require("../lib/offer");
 
 // Largura em que cada tipo de imagem aparece na tela (atributo sizes; ver venda.css). Com isso e
 // o srcset, o navegador baixa a menor versão que fica nítida naquela tela.
@@ -19,16 +19,19 @@ const IMAGE_SIZES = {
   "book-img": "(min-width: 860px) 340px, 60vw",
   "laptop-img": "(min-width: 1100px) 480px, (min-width: 860px) 44vw, calc(100vw - 2rem)",
   "phone-img": "160px",
+  "tablet-img": "220px",
   "mosaic-img": "(min-width: 860px) 260px, 45vw",
   "demo-img": "(min-width: 1100px) 1000px, calc(100vw - 2rem)",
   "feature-img": "(min-width: 1100px) 520px, (min-width: 860px) 46vw, calc(100vw - 2rem)",
-  "v-logo": "200px",
   "quote-photo": "52px",
   "bonus-img": "(min-width: 900px) 320px, (min-width: 600px) 45vw, calc(100vw - 4rem)",
   "seal-img": "200px",
+  "banner-img": "(min-width: 1100px) 520px, (min-width: 760px) 46vw, calc(100vw - 4rem)",
 };
 
-const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+// Um formatador só (criar um a cada preço, como faz toLocaleString, custa bem mais).
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const brl = (cents) => BRL.format(cents / 100);
 
 // Textos dos blocos podem ter formatação (negrito, cor, alinhamento: ver richtext.js). Antes de
 // desenhar, cada texto vira HTML seguro já formatado, guardando o original em .raw: assim os
@@ -150,7 +153,7 @@ function brandAttrs(data) {
 // Contexto de uma renderização: produto, imagens e contadores (ids de títulos, fundo alternado).
 // live = true: pré-visualização dentro do editor, com os textos marcados para edição direta.
 function createContext(data, { live = false } = {}) {
-  let sectionCount = 0, headingCount = 0, heroCount = 0;
+  let sectionCount = 0, headingCount = 0, heroCount = 0, offerCount = 0;
   const ctx = {
     product: data,
     live,
@@ -202,7 +205,7 @@ function createContext(data, { live = false } = {}) {
       const responsive = m.srcset && IMAGE_SIZES[cls] ? html` srcset="${m.srcset}" sizes="${IMAGE_SIZES[cls]}"` : null;
       return html`<img class="${cls}" src="${m.url}"${responsive} alt="${m.alt_text || ""}" width="${m.width}" height="${m.height}" ${priority ? html`fetchpriority="high"` : html`loading="lazy"`} decoding="async"${editable ? html` data-image-field="${path}"` : null}>`;
     },
-    // Espaço de imagem vazia (só no editor). add: lista onde a imagem escolhida entra (galeria).
+    // Espaço de imagem vazia (só no editor). add: lista onde a imagem escolhida entra (carrossel).
     imageSlot(cls, path, { optional = false, add = null } = {}) {
       const field = schemaField(ctx.type, path);
       const size = field?.size ? `${field.size}${field.tip ? ` · ${field.tip}` : ""}` : "";
@@ -229,15 +232,31 @@ function createContext(data, { live = false } = {}) {
     // Botão de compra: o link vem SEMPRE do cadastro do produto (fonte única).
     // label: texto do bloco (vazio = usa o fallback); path: o campo, para a edição no editor.
     // icon: ícone antes do texto (ex.: o cadeado do cartão de compra).
-    cta(label, fallback, path, { icon = null } = {}) {
-      if (!data.checkout_url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
-      const text = ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
-      return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${text}<span class="sr-only"> (abre em nova aba)</span></a>`;
+    // url: outro link de compra (ex.: o da Melhor opção); padrão, o do produto.
+    cta(label, fallback, path, { icon = null, url = data.checkout_url } = {}) {
+      if (!url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
+      return html`<a class="btn-cta" href="${url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${ctx.ctaText(label, fallback, path)}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
+    ctaText(label, fallback, path) {
+      return ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
+    },
+    // Botão que rola a página até a seção de compra (#oferta). Página sem Oferta final (salva antes
+    // da regra) ou ainda sem checkout: o mesmo botão dos outros blocos.
+    scrollCta(label, fallback, path) {
+      if (!ctx.hasOffer || !data.checkout_url) return ctx.cta(label, fallback, path);
+      return html`<a class="btn-cta" href="#${OFFER_ANCHOR}">${ctx.ctaText(label, fallback, path)}</a>`;
+    },
+    // A âncora #oferta fica só no primeiro bloco Oferta final.
+    firstOffer: () => offerCount++ === 0,
     // Preço que vale agora. Com oferta ativa: "de R$ X por R$ Y" e, com prazo, o cronômetro.
     price(label, path) {
       if (data.price_cents === null || data.price_cents === undefined) return null;
-      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${ctx.amount()}</p>${ctx.timer()}`;
+      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${ctx.amount()}</p>${ctx.save(data.offer.compare_cents, data.price_cents)}${ctx.timer()}`;
+    },
+    // Quanto custa a menos com o "de/por" (promoção ou Melhor opção): "R$ 62,00 a menos".
+    save(compare, price) {
+      const diff = savings(compare, price);
+      return diff && html`<p class="price-save">${brl(diff)} a menos</p>`;
     },
     amount() {
       const was = data.offer.compare_cents;
@@ -276,6 +295,9 @@ function authorLinks(b, ctx) {
   return html`<ul class="link-list author-links">${links.map(([x, i]) => linkItem(ctx, "links", i, x, linkKind(x.url)))}${ctx.addItem("links", b.links)}</ul>`;
 }
 
+// Âncora da seção de compra (bloco Oferta final): o botão da abertura e o do cabeçalho levam até ela.
+const OFFER_ANCHOR = "oferta";
+
 // Triângulo do botão de play (dentro do círculo laranja; o ícone "play" do sprite já tem círculo).
 const PLAY = html`<svg class="v-play-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 6.5l10 5.5-10 5.5z" fill="currentColor"/></svg>`;
 
@@ -304,20 +326,19 @@ function videoEmbed(url) {
 //   stack   -> composição 3D com a principal e as extras (mesmas peças da página inicial);
 //   mosaic  -> grade com a principal e as extras;
 //   screen  -> a principal dentro de uma janela (barra com três pontos), para telas de software;
-//   devices -> a principal num notebook e a 1ª extra num celular à frente;
+//   devices -> a principal num notebook, a 1ª extra num celular e a 2ª num tablet, à frente;
 //   video   -> a principal como capa, com o botão de play do vídeo de apresentação.
-// As etiquetas viram "chips" sobre as imagens. Sem imagem nenhuma: null (o texto ocupa a largura).
+// Sem imagem nenhuma: null (o texto ocupa a largura).
 function heroVisual(b, ctx) {
-  const chip = (path, label) => ctx.show(label) && html`<span class="v-chip"${ctx.field(path, label)}>${label}</span>`;
   // Principal + extras com imagem (no editor, extras vazias viram o espaço clicável de imagem).
   const pieces = (cls) => [
-    { img: ctx.img(b.image, cls, { priority: true, path: "image" }), chip: chip("image_label", b.image_label), i: null },
+    { img: ctx.img(b.image, cls, { priority: true, path: "image" }), i: null },
     ...b.extra_images.map((x, i) => ({
       img: ctx.img(x.image, cls, { path: `extra_images.${i}.image` }), // só a principal tem prioridade de download
-      chip: chip(`extra_images.${i}.label`, x.label), i,
+      i,
     })),
   ].filter((x) => x.img);
-  const piece = (x, cls) => html`<figure class="${cls}"${x.i !== null && ctx.item("extra_images", x.i)}>${x.img}${x.chip}${x.i !== null && ctx.remove("extra_images", x.i)}</figure>`;
+  const piece = (x, cls) => html`<figure class="${cls}"${x.i !== null && ctx.item("extra_images", x.i)}>${x.img}${x.i !== null && ctx.remove("extra_images", x.i)}</figure>`;
   const addExtra = () => ctx.addItem("extra_images", b.extra_images, "div");
 
   if (b.visual === "stack" || b.visual === "mosaic") {
@@ -333,19 +354,24 @@ function heroVisual(b, ctx) {
   if (b.visual === "book") {
     const cover = ctx.img(b.image, "book-img", { priority: true, path: "image" });
     if (!cover) return null;
-    return html`<figure class="v-visual v-book"><div class="v-book-3d">${cover}</div>${chip("image_label", b.image_label)}</figure>`;
+    return html`<figure class="v-visual v-book"><div class="v-book-3d">${cover}</div></figure>`;
   }
 
+  // Notebook (principal), celular à frente à direita (1ª extra) e tablet à frente à esquerda (2ª extra).
   if (b.visual === "devices") {
     const screen = ctx.img(b.image, "laptop-img", { priority: true, path: "image" });
     if (!screen) return null;
-    const x = b.extra_images[0];
-    const phone = x && ctx.img(x.image, "phone-img", { path: "extra_images.0.image" });
-    return html`<div class="v-visual-wrap"><figure class="v-visual v-devices${phone ? " has-phone" : ""}">
+    const device = (i, cls) => {
+      const x = b.extra_images[i];
+      const img = x && ctx.img(x.image, `${cls}-img`, { path: `extra_images.${i}.image` });
+      return img && html`<div class="v-${cls}"${ctx.item("extra_images", i)}>${img}${ctx.remove("extra_images", i)}</div>`;
+    };
+    const phone = device(0, "phone");
+    const tablet = device(1, "tablet");
+    return html`<div class="v-visual-wrap"><figure class="v-visual v-devices${phone ? " has-phone" : ""}${tablet ? " has-tablet" : ""}">
       <div class="v-laptop"><div class="v-laptop-screen">${screen}</div><span class="v-laptop-base" aria-hidden="true"></span></div>
-      ${phone && html`<div class="v-phone"${ctx.item("extra_images", 0)}>${phone}${chip("extra_images.0.label", x.label)}${ctx.remove("extra_images", 0)}</div>`}
-      ${chip("image_label", b.image_label)}
-    </figure>${!phone && addExtra()}</div>`;
+      ${tablet}${phone}
+    </figure>${!(phone && tablet) && addExtra()}</div>`;
   }
 
   if (b.visual === "video") {
@@ -356,15 +382,15 @@ function heroVisual(b, ctx) {
     const play = b.video_url
       ? html`<a class="v-play" href="${b.video_url}" target="_blank" rel="noopener noreferrer"${embed ? html` data-embed="${embed}"` : null} aria-label="Assistir ao vídeo de apresentação (abre o vídeo)">${PLAY}</a>`
       : ctx.live && html`<span class="v-play is-empty" title="Defina o link do vídeo em Configurar bloco ⚙">${PLAY}</span>`;
-    return html`<figure class="v-visual v-video">${cover}${play}${chip("image_label", b.image_label)}</figure>`;
+    return html`<figure class="v-visual v-video">${cover}${play}</figure>`;
   }
 
   const img = ctx.img(b.image, "v-media", { priority: true, path: "image" });
   if (!img) return null;
   if (b.visual === "screen") {
-    return html`<figure class="v-visual v-screen"><span class="v-screen-bar" aria-hidden="true"><i></i><i></i><i></i></span>${img}${chip("image_label", b.image_label)}</figure>`;
+    return html`<figure class="v-visual v-screen"><span class="v-screen-bar" aria-hidden="true"><i></i><i></i><i></i></span>${img}</figure>`;
   }
-  return html`<figure class="v-visual">${img}${chip("image_label", b.image_label)}</figure>`;
+  return html`<figure class="v-visual">${img}</figure>`;
 }
 
 const RENDERERS = {
@@ -373,20 +399,19 @@ const RENDERERS = {
     const Title = ctx.firstHero() ? "h1" : "h2"; // só um <h1> por página
     const title = b.title || ctx.product.title;
     const titleField = ctx.field("title", b.title, { fallback: true });
-    // Centralizada: uma coluna só, com a imagem entre o título e a chamada.
+    // Centralizada: uma coluna só, no meio, com a imagem entre o subtítulo e o parágrafo.
+    // Lado a lado: o texto à esquerda e a imagem à direita.
     const center = b.layout === "center";
     return html`<section class="v-hero"${ctx.mark()}>
   <div class="container v-hero-grid${center ? " is-center" : media ? "" : " no-media"}">
-    <div>
-      ${ctx.img(b.logo, "v-logo", { priority: true, path: "logo", optional: true })}
+    <div class="v-hero-text">
       ${ctx.eyebrow(b)}
       ${Title === "h1" ? html`<h1${titleField}>${title}</h1>` : html`<h2${titleField}>${title}</h2>`}
-      ${center && media}
       ${ctx.show(b.lead) && html`<p class="lead"${ctx.field("lead", b.lead)}>${b.lead}</p>`}
+      ${center && media}
+      ${ctx.paras("text", b.text, "v-hero-para")}
       ${(b.bullets.length > 0 || ctx.live) && html`<ul class="v-bullets">${b.bullets.map((x, i) => html`<li${ctx.item("bullets", i)}>${ctx.icon(`bullets.${i}.icon`, x.icon)}${ctx.text(`bullets.${i}.text`, x.text)}${ctx.remove("bullets", i)}</li>`)}${ctx.addItem("bullets", b.bullets)}</ul>`}
-      ${(b.stats.length > 0 || ctx.live) && html`<ul class="v-stats" aria-label="Números do produto">${b.stats.map((x, i) => html`<li${ctx.item("stats", i)}><strong${ctx.field(`stats.${i}.value`, x.value)}>${x.value}</strong> <span${ctx.field(`stats.${i}.label`, x.label)}>${x.label}</span>${ctx.remove("stats", i)}</li>`)}${ctx.addItem("stats", b.stats)}</ul>`}
-      ${(b.badges.length > 0 || ctx.live) && html`<ul class="badges" aria-label="Resumo do material">${b.badges.map((x, i) => html`<li${ctx.item("badges", i)}>${ctx.show(x.strong) && html`<strong${ctx.field(`badges.${i}.strong`, x.strong)}>${x.strong}</strong>`} ${ctx.text(`badges.${i}.text`, x.text)}${ctx.remove("badges", i)}</li>`)}${ctx.addItem("badges", b.badges)}</ul>`}
-      <div class="offer">${ctx.price(b.price_label, "price_label")}${ctx.cta(b.cta_label, "Comprar agora", "cta_label")}</div>
+      <p class="v-hero-cta">${ctx.scrollCta(b.cta_label, "Comprar agora", "cta_label")}</p>
       ${ctx.show(b.note) && html`<p class="cta-note"${ctx.field("note", b.note)}>${b.note}</p>`}
     </div>
     ${!center && media}
@@ -394,72 +419,17 @@ const RENDERERS = {
 </section>`;
   },
 
-  benefits(b, ctx) {
-    // Lista vazia: some da página; no editor fica só com o botão de adicionar.
+  // Apresentação: itens com ícone, título e texto, no estilo escolhido (ver PRESENTATION_STYLES).
+  // Sem título, a seção leva um h2 só para leitores de tela. Lista vazia: some da página; no editor
+  // fica só com o botão de adicionar.
+  presentation(b, ctx) {
     if (!b.items.length && !ctx.live) return null;
     const id = ctx.headingId();
+    const { fallback, body } = PRESENTATION_STYLES[b.style];
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
-  <h2 id="${id}" class="sr-only">${b.title || "Benefícios"}</h2>
-  <div class="two">${b.items.map((x, i) => html`<article class="v-card"${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.callout) && html`<p class="callout"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</p>`}${ctx.remove("items", i)}</article>`)}${ctx.addItem("items", b.items, "div")}</div>
-</div></section>`;
-  },
-
-  topics(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  ${b.layout === "timeline"
-    ? html`<ol class="v-steps" data-count="${b.items.length}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}><span class="v-step-num" aria-hidden="true">${pad2(i + 1)}</span><strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ol>`
-    : html`<ul class="grid8${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
-</div></section>`;
-  },
-
-  gallery(b, ctx) {
-    const slides = b.images.map((x, i) => ({ img: ctx.img(x.image, "slide-img", { path: `images.${i}.image` }), i })).filter((s) => s.img);
-    // No editor, um último slide "Adicionar imagem" (a escolhida entra no fim da lista). Sem nenhuma
-    // imagem a galeria não aparece na página, mas no editor fica só com esse slide, para começar.
-    const filled = b.images.some((x) => ctx.product.media.get(x.image));
-    if (ctx.live && b.images.length < BLOCKS.gallery.fields.images.max) slides.push({ img: ctx.imageSlot("slide-img", "images.0.image", { add: "images" }), i: null });
-    if (!slides.length) return null;
-    const id = ctx.headingId();
-    // Com título ou tópicos nas imagens: ao lado do carrossel, o painel do slide atual (venda.js
-    // mostra só o do slide na tela; sem JavaScript aparecem todos).
-    const real = slides.filter((x) => x.i !== null);
-    const panels = real.some((x) => b.images[x.i].title || b.images[x.i].topics) && html`<div class="module-panels" aria-live="polite">${real.map((x, n) => {
-      const item = b.images[x.i];
-      return html`<div class="module-panel" data-slide="${n}"><p class="module-num"><strong>${pad2(n + 1)}</strong> / ${pad2(real.length)}</p>${ctx.show(item.title) && html`<h3${ctx.field(`images.${x.i}.title`, item.title)}>${item.title}</h3>`}${ctx.lines(`images.${x.i}.topics`, item.topics)}</div>`;
-    })}</div>`;
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  ${panels ? html`<div class="gallery-split">` : null}
-  <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
-    <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
-    <ul class="track">${slides.map((s, n) => html`<li class="slide" aria-label="Slide ${n + 1} de ${slides.length}"${s.i !== null && ctx.item("images", s.i)}>${s.img}${s.i !== null && ctx.remove("images", s.i)}</li>`)}</ul>
-    <button class="car-btn next" type="button" aria-label="Próximo slide" hidden>›</button>
-    <div class="dots" hidden></div>
-  </div>
-  ${panels ? html`${panels}</div>` : null}
-</div></section>`;
-  },
-
-  checklist(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container narrow">
-  <div class="v-card center">${ctx.icon("icon", b.icon, "ico big")}${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-    <ul class="mini">${b.items.map((x, i) => html`<li class="${x.positive ? "yes" : "no"}"${ctx.item("items", i)}>${mark(x.positive)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
-  </div>
-</div></section>`;
-  },
-
-  comparison(b, ctx) {
-    const id = ctx.headingId();
-    const side = (prefix, title, items, positive) => html`<article class="v-card${positive ? " dark" : ""}"><h3${ctx.field(`${prefix}_title`, title)}>${title}</h3>
-      <ul class="mini">${items.map((x, i) => html`<li class="${positive ? "yes" : "no"}"${ctx.item(`${prefix}_items`, i)}>${mark(positive)}${ctx.text(`${prefix}_items.${i}.text`, x.text)}${ctx.remove(`${prefix}_items`, i)}</li>`)}${ctx.addItem(`${prefix}_items`, items)}</ul></article>`;
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <div class="versus">${side("left", b.left_title, b.left_items, false)}<div class="vs" aria-hidden="true">VS</div>${side("right", b.right_title, b.right_items, true)}</div>
+  ${ctx.show(b.title) ? html`<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>` : html`<h2 id="${id}" class="sr-only">${fallback}</h2>`}
+  ${body(b, ctx)}
+  ${ctx.show(b.intro) && html`<p class="v-intro is-last"${ctx.field("intro", b.intro)}>${b.intro}</p>`}
 </div></section>`;
   },
 
@@ -469,40 +439,37 @@ const RENDERERS = {
     const photo = ctx.img(b.photo, "author-photo", { path: "photo" });
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container author${photo ? "" : " no-media"}">
   ${photo}
-  <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}${b.show_cta && html`<p class="author-cta">${ctx.cta(b.cta_label, "Quero começar agora", "cta_label")}</p>`}</div>
+  <div><h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}${b.show_cta && html`<p class="author-cta">${ctx.scrollCta(b.cta_label, "Quero começar agora", "cta_label")}</p>`}</div>
 </div></section>`;
   },
 
-  audience(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    const cards = b.items.some((x) => x.description);
-    const body = (x, i) => (ctx.show(x.description)
-      ? html`<div class="who-text"><strong${ctx.field(`items.${i}.text`, x.text)}>${x.text}</strong><span class="who-desc"${ctx.field(`items.${i}.description`, x.description)}>${x.description}</span></div>`
-      : ctx.text(`items.${i}.text`, x.text));
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <ul class="who${cols(b)}${cards ? " is-cards" : ""}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${body(x, i)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>
-</div></section>`;
-  },
-
+  // Cartão escuro. Sem imagem: título e parágrafo à esquerda, lista à direita. Imagem à esquerda
+  // ou à direita: a imagem de um lado, os textos e a lista do outro (sem imagem, uma coluna só).
+  // Imagem no centro: título e parágrafo centralizados, a imagem e a lista embaixo.
   highlight(b, ctx) {
     const id = ctx.headingId();
+    const head = html`<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.paras("text", b.text)}`;
+    const list = (b.items.length > 0 || ctx.live) && html`<ul class="mini">${b.items.map((x, i) => html`<li class="yes"${ctx.item("items", i)}>${mark(true)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`;
+    const layout = b.layout || "banner";
+    const img = layout !== "banner" && ctx.img(b.image, "banner-img", { path: "image" });
+    let inner;
+    if (layout === "banner") {
+      inner = html`<div class="banner"><div>${head}</div>${list}</div>`;
+    } else if (layout === "top") {
+      inner = html`<div class="banner is-top"><div class="banner-head">${head}</div>${img}${list}</div>`;
+    } else {
+      inner = html`<div class="banner is-side${layout === "right" ? " is-right" : ""}${img ? "" : " no-media"}">${img}<div>${head}${list}</div></div>`;
+    }
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
-  <div class="banner">
-    <div>${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.paras("text", b.text)}</div>
-    ${(b.items.length > 0 || ctx.live) && html`<ul class="mini">${b.items.map((x, i) => html`<li class="yes"${ctx.item("items", i)}>${mark(true)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
-  </div>
+  ${inner}
 </div></section>`;
   },
 
-  // Faixa compacta de compra no meio da página: texto à esquerda, preço e botão à direita.
+  // Faixa compacta no meio da página: título à esquerda e, à direita, o botão que leva à oferta final.
   cta(b, ctx) {
-    const price = ctx.product.price_cents === null || ctx.product.price_cents === undefined ? null
-      : html`<span class="v-strip-price">${ctx.amount()}</span>`;
     return html`<section class="v-strip" aria-label="Chamada para compra"${ctx.mark()}><div class="container v-strip-row">
-  <div>${ctx.eyebrow(b)}${ctx.show(b.title) && html`<p class="v-strip-text"${ctx.field("title", b.title)}>${b.title}</p>`}</div>
-  <div class="v-strip-action">${price}${ctx.cta(b.cta_label, "Quero garantir", "cta_label")}${price && ctx.timer()}</div>
+  ${ctx.show(b.title) && html`<p class="v-strip-text"${ctx.field("title", b.title)}>${b.title}</p>`}
+  <div class="v-strip-action">${ctx.scrollCta(b.cta_label, "Quero garantir", "cta_label")}</div>
 </div></section>`;
   },
 
@@ -514,7 +481,7 @@ const RENDERERS = {
     if (!items.length && !ctx.live) return null;
     const id = ctx.headingId();
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   <div class="quotes">${items.map(([x, i]) => html`<figure class="v-quote"${ctx.item("items", i)}>${ctx.remove("items", i)}${x.stars !== "none" && stars(Number(x.stars))}
     <blockquote>${ctx.paras(`items.${i}.quote`, x.quote)}</blockquote>
     <figcaption>${ctx.img(x.photo, "quote-photo", { path: `items.${i}.photo`, optional: true })}<span>${ctx.show(x.name) && html`<strong${ctx.field(`items.${i}.name`, x.name)}>${x.name}</strong>`}${ctx.show(x.role) && html`<span class="muted"${ctx.field(`items.${i}.role`, x.role)}>${x.role}</span>`}</span></figcaption>
@@ -527,91 +494,256 @@ const RENDERERS = {
     const id = ctx.headingId();
     // No editor as respostas ficam abertas, para serem editáveis.
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container narrow">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
   ${b.items.map((x, i) => html`<details class="faq"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary>${ctx.text(`items.${i}.question`, x.question)}</summary>${ctx.paras(`items.${i}.answer`, x.answer)}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}
 </div></section>`;
   },
 
-  // Garantia: com o selo (imagem), ele fica à esquerda e o texto à direita; sem selo, tudo centralizado.
+  // Garantia: selo (imagem) à esquerda; à direita, o título e o parágrafo. No editor o espaço da
+  // imagem sempre aparece; na página pública, sem selo, o texto fica centralizado.
   guarantee(b, ctx) {
     const id = ctx.headingId();
-    const hasSeal = !!ctx.product.media.get(b.image);
+    const hasSeal = ctx.live || !!ctx.product.media.get(b.image);
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center${hasSeal ? " has-seal" : ""}">${ctx.img(b.image, "seal-img", { path: "image", optional: true })}<div class="guarantee-body">${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}${ctx.paras("text", b.text)}
-    ${(b.items.length > 0 || ctx.live) && html`<ul class="seals">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
-  </div></div>
+  <div class="v-card center${hasSeal ? " has-seal" : ""}">${ctx.img(b.image, "seal-img", { path: "image" })}<div class="guarantee-body"><h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.paras("text", b.text)}</div></div>
 </div></section>`;
   },
 
-  // Oferta final: texto, benefícios e credibilidade à esquerda; cartão de compra à direita.
+  // Oferta final: o estilo escolhido (ver OFFER_STYLES).
+  offer: (b, ctx) => OFFER_STYLES[b.style](b, ctx),
+
+  // Demonstração: o produto por dentro, no estilo escolhido (ver DEMO_STYLES).
+  demo: (b, ctx) => DEMO_STYLES[b.style](b, ctx),
+
+  // Cronômetro: o prazo da oferta como faixa de urgência ou contagem regressiva (ver TIMER_STYLES).
+  timer: (b, ctx) => TIMER_STYLES[b.style](b, ctx),
+
+  // Bônus: cartões numerados com imagem, nome, descrição e o valor que sai de graça.
+  bonus(b, ctx) {
+    if (!b.items.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="bonus-grid" data-count="${b.items.length}">${b.items.map((x, i) => html`<article class="bonus-card"${ctx.item("items", i)}><p class="v-tag">Bônus #${i + 1}</p>${ctx.img(x.image, "bonus-img", { path: `items.${i}.image`, optional: true })}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.value) && html`<p class="bonus-value">Valor: <s${ctx.field(`items.${i}.value`, x.value)}>${x.value}</s> <strong>Grátis</strong></p>`}${ctx.remove("items", i)}</article>`)}${ctx.addItem("items", b.items, "div")}</div>
+</div></section>`;
+  },
+
+  // Comparação: dois lados (VS) ou tabela critério a critério (ver COMPARE_STYLES).
+  compare(b, ctx) {
+    return COMPARE_STYLES[b.style](b, ctx);
+  },
+
+  // Redes sociais: botões em pílula centralizados. Página pública: só as redes com link.
+  social(b, ctx) {
+    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || x.url);
+    if (!items.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.some((x) => x.url) })}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Acompanhe nas redes"}</h2>${ctx.intro(b)}
+  <ul class="link-list social-links">${items.map(([x, i]) => linkItem(ctx, "items", i, x, { icon: `net-${x.network}`, label: NETWORKS[x.network].label }))}${ctx.addItem("items", b.items)}</ul>
+</div></section>`;
+  },
+};
+
+// Estilos do bloco Apresentação: o h2 de leitor de tela (seção sem título) e a lista de itens.
+const PRESENTATION_STYLES = {
+  // Cartões de benefícios, dois por linha, com destaque opcional.
+  cards: {
+    fallback: "Benefícios",
+    body: (b, ctx) => html`<div class="two">${b.items.map((x, i) => html`<article class="v-card"${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.callout) && html`<p class="callout"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</p>`}${ctx.remove("items", i)}</article>`)}${ctx.addItem("items", b.items, "div")}</div>`,
+  },
+  // Grade de tópicos curtos, com o número de colunas escolhido.
+  grid: {
+    fallback: "Tópicos",
+    body: (b, ctx) => html`<ul class="grid8${cols(b)}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}<strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`,
+  },
+  // Linha do tempo: passos numerados (01, 02…) ligados por uma linha.
+  timeline: {
+    fallback: "Passo a passo",
+    body: (b, ctx) => html`<ol class="v-steps" data-count="${b.items.length}">${b.items.map((x, i) => html`<li${ctx.item("items", i)}><span class="v-step-num" aria-hidden="true">${pad2(i + 1)}</span><strong${ctx.field(`items.${i}.title`, x.title)}>${x.title}</strong><span${ctx.field(`items.${i}.text`, x.text)}>${x.text}</span>${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ol>`,
+  },
+  // Módulos que abrem e fecham (mesmo acordeão do FAQ): "Módulo 01", o título, o destaque como
+  // detalhe (ex.: "5 aulas") e, ao abrir, o texto com um tópico por linha. No editor ficam abertos.
+  modules: {
+    fallback: "Módulos",
+    body: (b, ctx) => html`<div class="v-modules narrow">${b.items.map((x, i) => html`<details class="faq module"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary><span class="module-head"><span class="module-tag">Módulo ${pad2(i + 1)}</span>${ctx.text(`items.${i}.title`, x.title)}${ctx.show(x.callout) && html`<small class="module-meta"${ctx.field(`items.${i}.callout`, x.callout)}>${x.callout}</small>`}</span></summary>${ctx.lines(`items.${i}.text`, x.text, "module-topics")}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}</div>`,
+  },
+};
+
+// Estilos do bloco Comparação.
+const COMPARE_STYLES = {
+  // Dois lados: um cartão com a alternativa (✗) e outro, escuro, com o produto (✓), separados por "VS".
+  columns(b, ctx) {
+    const id = ctx.headingId();
+    const side = (prefix, title, items, positive) => html`<article class="v-card${positive ? " dark" : ""}"><h3${ctx.field(`${prefix}_title`, title)}>${title}</h3>
+      <ul class="mini">${items.map((x, i) => html`<li class="${positive ? "yes" : "no"}"${ctx.item(`${prefix}_items`, i)}>${mark(positive)}${ctx.text(`${prefix}_items.${i}.text`, x.text)}${ctx.remove(`${prefix}_items`, i)}</li>`)}${ctx.addItem(`${prefix}_items`, items)}</ul></article>`;
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="versus">${side("left", b.left_title, b.left_items, false)}<div class="vs" aria-hidden="true">VS</div>${side("right", b.right_title, b.right_items, true)}</div>
+</div></section>`;
+  },
+
+  // Tabela: uma linha por critério, a alternativa (✗) e o produto (✓) lado a lado.
+  // No celular cada linha vira um cartão: o critério em cima e as duas colunas embaixo (CSS).
+  table(b, ctx) {
+    if (!b.rows.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    const cell = (path, value, positive, extra = null) => html`<td class="${positive ? "yes" : "no"}"><span class="v-compare-cell">${mark(positive)}<span${ctx.field(path, value)}>${value}</span></span>${extra}</td>`;
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.rows.length })}><div class="container">
+  <h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
+  <div class="v-compare-wrap"><table class="v-compare" aria-labelledby="${id}">
+    <thead><tr><td></td><th scope="col" class="no"${ctx.field("left_title", b.left_title)}>${b.left_title}</th><th scope="col" class="yes"${ctx.field("right_title", b.right_title)}>${b.right_title}</th></tr></thead>
+    <tbody>${b.rows.map((x, i) => html`<tr${ctx.item("rows", i)}><th scope="row"${ctx.field(`rows.${i}.label`, x.label)}>${x.label}</th>${cell(`rows.${i}.left`, x.left, false)}${cell(`rows.${i}.right`, x.right, true, ctx.remove("rows", i))}</tr>`)}</tbody>
+  </table></div>${ctx.addItem("rows", b.rows, "div")}
+</div></section>`;
+  },
+};
+
+// Estilos do bloco Demonstração. Página pública: o carrossel e as abas só mostram itens com imagem.
+const demoHeading = (b, ctx, id) => html`<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>`;
+const DEMO_STYLES = {
+  // Carrossel. Com título ou lista nos itens: ao lado, o painel do slide atual (venda.js mostra só o
+  // do slide na tela; sem JavaScript aparecem todos). No editor, um último slide "Adicionar imagem"
+  // (a escolhida entra no fim da lista), que é o que aparece quando ainda não há imagens.
+  carousel(b, ctx) {
+    const slides = b.items.map((x, i) => ({ img: ctx.img(x.image, "slide-img", { path: `items.${i}.image` }), i })).filter((s) => s.img);
+    const filled = b.items.some((x) => ctx.product.media.get(x.image));
+    if (ctx.live && b.items.length < BLOCKS.demo.fields.items.max) slides.push({ img: ctx.imageSlot("slide-img", "items.0.image", { add: "items" }), i: null });
+    if (!slides.length) return null;
+    const id = ctx.headingId();
+    const real = slides.filter((x) => x.i !== null);
+    const panels = real.some((x) => b.items[x.i].title || b.items[x.i].bullets) && html`<div class="module-panels" aria-live="polite">${real.map((x, n) => {
+      const item = b.items[x.i];
+      return html`<div class="module-panel" data-slide="${n}"><p class="module-num"><strong>${pad2(n + 1)}</strong> / ${pad2(real.length)}</p>${ctx.show(item.title) && html`<h3${ctx.field(`items.${x.i}.title`, item.title)}>${item.title}</h3>`}${ctx.lines(`items.${x.i}.bullets`, item.bullets)}</div>`;
+    })}</div>`;
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
+  ${demoHeading(b, ctx, id)}
+  ${panels ? html`<div class="gallery-split">` : null}
+  <div class="carousel" role="region" aria-roledescription="carrossel" aria-labelledby="${id}">
+    <button class="car-btn prev" type="button" aria-label="Slide anterior" hidden>‹</button>
+    <ul class="track">${slides.map((s, n) => html`<li class="slide" aria-label="Slide ${n + 1} de ${slides.length}"${s.i !== null && ctx.item("items", s.i)}>${s.img}${s.i !== null && ctx.remove("items", s.i)}</li>`)}</ul>
+    <button class="car-btn next" type="button" aria-label="Próximo slide" hidden>›</button>
+    <div class="dots" hidden></div>
+  </div>
+  ${panels ? html`${panels}</div>` : null}
+</div></section>`;
+  },
+
+  // Abas com uma imagem grande e legenda (venda.js liga as abas; sem JavaScript e no editor, os
+  // painéis ficam um embaixo do outro).
+  tabs(b, ctx) {
+    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || ctx.product.media.get(x.image));
+    if (!items.length && !ctx.live) return null;
+    const id = ctx.headingId();
+    const filled = b.items.some((x) => ctx.product.media.get(x.image));
+    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
+  ${demoHeading(b, ctx, id)}
+  <div class="demo" data-demo>
+    <div class="demo-tabs" role="tablist" aria-labelledby="${id}" hidden>${items.map(([x], n) => html`<button type="button" role="tab" id="${id}-tab-${n}" aria-controls="${id}-panel-${n}" aria-selected="${n === 0}"${n ? html` tabindex="-1"` : null}>${x.label || `Parte ${n + 1}`}</button>`)}</div>
+    ${items.map(([x, i], n) => html`<figure class="demo-panel" role="tabpanel" id="${id}-panel-${n}" aria-labelledby="${id}-tab-${n}"${ctx.item("items", i)}>${ctx.live ? html`<p class="demo-label"${ctx.field(`items.${i}.label`, x.label)}>${x.label}</p>` : null}${ctx.img(x.image, "demo-img", { path: `items.${i}.image` })}${ctx.show(x.text) && html`<figcaption${ctx.field(`items.${i}.text`, x.text)}>${x.text}</figcaption>`}${ctx.remove("items", i)}</figure>`)}${ctx.addItem("items", b.items, "div")}
+  </div>
+</div></section>`;
+  },
+
+  // Texto e imagem: linhas em duas colunas que alternam o lado da imagem (CSS: :nth-child(even)).
+  // O título da seção é opcional; sem ele, o título de cada linha é o título principal (h2).
+  rows(b, ctx) {
+    if (!b.items.length && !ctx.live) return null;
+    const head = ctx.show(b.title);
+    const id = head && ctx.headingId();
+    const h = head ? "h3" : "h2";
+    return html`<section class="${ctx.sectionClass(b)}"${head ? html` aria-labelledby="${id}"` : html` aria-label="Destaques"`}${ctx.mark({ hidden: !b.items.length })}><div class="container">
+  ${head ? demoHeading(b, ctx, id) : null}
+  <div class="features-alt">${b.items.map((x, i) => {
+    const img = ctx.img(x.image, "feature-img", { path: `items.${i}.image` });
+    return html`<article class="feature-row${img ? "" : " no-media"}"${ctx.item("items", i)}><div class="feature-text"><${h}${ctx.field(`items.${i}.title`, x.title)}>${x.title}</${h}>${ctx.paras(`items.${i}.text`, x.text)}</div>${img}${ctx.remove("items", i)}</article>`;
+  })}${ctx.addItem("items", b.items, "div")}</div>
+</div></section>`;
+  },
+};
+
+// Estilos do bloco Oferta final. A âncora #oferta (destino de todos os botões de compra da página
+// e do menu) fica só no primeiro bloco Oferta final.
+const offerSection = (b, ctx, cls, id, content) => html`<section class="${cls}"${ctx.firstOffer() ? html` id="${OFFER_ANCHOR}"` : null} aria-labelledby="${id}"${ctx.mark()}>
+${content}
+</section>`;
+const offerTitle = (b, ctx, id) => html`${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || ctx.product.title}</h2>
+      ${ctx.paras("text", b.text, "lead")}`;
+const offerNote = (b, ctx) => html`<p class="buy-note"${ctx.field("note", b.note, { fallback: true })}>${b.note || "Pagamento processado com segurança pela Kiwify."}</p>`;
+const offerConditions = (b, ctx) => (b.conditions.length > 0 || ctx.live) && html`<ul class="mini buy-conditions">${b.conditions.map((x, i) => html`<li class="yes"${ctx.item("conditions", i)}>${mark(true)}${ctx.text(`conditions.${i}.text`, x.text)}${ctx.remove("conditions", i)}</li>`)}${ctx.addItem("conditions", b.conditions)}</ul>`;
+
+const OFFER_STYLES = {
+  // Simples: texto, benefícios e credibilidade à esquerda; cartão de compra à direita.
   // Os cartões opcionais (credibilidade, garantia) só aparecem preenchidos; no editor, vazios,
   // levam data-empty (aparecem só com o bloco selecionado, como os textos vazios).
-  offer(b, ctx) {
+  single(b, ctx) {
     const id = ctx.headingId();
     const card = (filled, cls, content) => (filled || ctx.live)
       && html`<div class="${cls}"${!filled ? html` data-empty` : null}>${content}</div>`;
     const pair = (titlePath, title, textPath, text) => html`<p>${ctx.show(title) && html`<strong${ctx.field(titlePath, title)}>${title}</strong>`}${ctx.show(text) && html`<span${ctx.field(textPath, text)}>${text}</span>`}</p>`;
-    return html`<section class="v-final" aria-labelledby="${id}"${ctx.mark()}>
-  <div class="container offer-grid">
+    return offerSection(b, ctx, "v-final", id, html`  <div class="container offer-grid">
     <div class="offer-main">
-      ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || ctx.product.title}</h2>
-      ${ctx.paras("text", b.text, "lead")}
+      ${offerTitle(b, ctx, id)}
       ${(b.items.length > 0 || ctx.live) && html`<ul class="offer-benefits">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
       ${card(b.proof_title || b.proof_text, "offer-proof", html`${ctx.icon("proof_icon", b.proof_icon)}${pair("proof_title", b.proof_title, "proof_text", b.proof_text)}`)}
     </div>
     <div class="buy-card">
       ${ctx.img(b.image, "buy-media", { path: "image", optional: true })}
       ${ctx.price(b.price_label, "price_label")}
-      ${(b.conditions.length > 0 || ctx.live) && html`<ul class="mini buy-conditions">${b.conditions.map((x, i) => html`<li class="yes"${ctx.item("conditions", i)}>${mark(true)}${ctx.text(`conditions.${i}.text`, x.text)}${ctx.remove("conditions", i)}</li>`)}${ctx.addItem("conditions", b.conditions)}</ul>`}
+      ${offerConditions(b, ctx)}
       ${card(b.guarantee_title || b.guarantee_text, "buy-guarantee", html`${svg("shield")}${pair("guarantee_title", b.guarantee_title, "guarantee_text", b.guarantee_text)}`)}
       ${ctx.cta(b.cta_label, "Garantir agora", "cta_label", { icon: "lock" })}
-      <p class="buy-note"${ctx.field("note", b.note, { fallback: true })}>${b.note || "Pagamento processado com segurança pela Kiwify."}</p>
+      ${offerNote(b, ctx)}
       ${(b.seals.length > 0 || ctx.live) && html`<ul class="buy-seals" aria-label="Compra segura">${b.seals.map((x, i) => html`<li${ctx.item("seals", i)}>${ctx.icon(`seals.${i}.icon`, x.icon, "seal-ico")}${ctx.text(`seals.${i}.text`, x.text)}${ctx.remove("seals", i)}</li>`)}${ctx.addItem("seals", b.seals)}</ul>`}
     </div>
-  </div>
-</section>`;
+  </div>`);
   },
 
-  // Currículo: módulos que abrem e fecham (mesmo acordeão do FAQ), com a lista de tópicos.
-  curriculum(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
+  // Dupla: título no topo e dois cartões — a oferta normal e a Melhor opção
+  // (preço e link do cadastro do produto). Sem Melhor opção cadastrada, a página mostra só o
+  // cartão normal; no editor, o especial aparece com o aviso. No celular, o especial vem primeiro.
+  double(b, ctx) {
     const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container narrow">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  ${b.items.map((x, i) => html`<details class="faq module"${ctx.live ? html` open` : null}${ctx.item("items", i)}><summary><span class="module-head"><span class="module-tag">Módulo ${pad2(i + 1)}</span>${ctx.text(`items.${i}.title`, x.title)}${ctx.show(x.meta) && html`<small class="module-meta"${ctx.field(`items.${i}.meta`, x.meta)}>${x.meta}</small>`}</span></summary>${ctx.lines(`items.${i}.topics`, x.topics, "module-topics")}${ctx.remove("items", i)}</details>`)}${ctx.addItem("items", b.items, "div")}
-</div></section>`;
+    const special = ctx.product.special;
+    const showSpecial = !!special || ctx.live;
+    const specialPrice = special
+      ? html`<p class="price-big">${ctx.show(b.special_price_label) && html`<span class="muted-on-dark"${ctx.field("special_price_label", b.special_price_label)}>${b.special_price_label}</span>`} ${special.compare_cents
+        ? html`<s class="price-was"><span class="sr-only">De </span>${brl(special.compare_cents)}</s> <span class="sr-only">por </span>${brl(special.price_cents)}`
+        : brl(special.price_cents)}</p>${ctx.save(special.compare_cents, special.price_cents)}`
+      : html`<p class="price-big">${html`<span class="muted-on-dark"${ctx.field("special_price_label", b.special_price_label)}>${b.special_price_label}</span>`} R$ —</p>`;
+    const specialCard = showSpecial && html`<div class="buy-card is-special${special ? "" : " is-missing"}">
+      <p class="offer-badge"${ctx.field("special_badge", b.special_badge, { fallback: true })}>${b.special_badge || "Melhor opção"}</p>
+      ${ctx.img(b.special_image, "buy-media", { path: "special_image", optional: true })}
+      ${ctx.show(b.special_title) && html`<h3 class="buy-title"${ctx.field("special_title", b.special_title)}>${b.special_title}</h3>`}
+      ${specialPrice}
+      ${(b.special_items.length > 0 || ctx.live) && html`<ul class="special-items">${b.special_items.map((x, i) => html`<li${ctx.item("special_items", i)}>${ctx.icon(`special_items.${i}.icon`, x.icon)}${ctx.text(`special_items.${i}.text`, x.text)}${ctx.remove("special_items", i)}</li>`)}${ctx.addItem("special_items", b.special_items)}</ul>`}
+      ${ctx.cta(b.special_cta_label, "Quero a melhor opção", "special_cta_label", { icon: "lock", url: special?.checkout_url ?? null })}
+      ${!special && html`<p class="offer-missing" role="note">Ligue a Melhor opção no cadastro do produto (Editar produto › Ofertas). Sem ela, este cartão não aparece na página.</p>`}
+    </div>`;
+    return offerSection(b, ctx, "v-final is-double", id, html`  <div class="container">
+    <div class="offer-head">
+      ${offerTitle(b, ctx, id)}
+    </div>
+    <div class="offer-cards${showSpecial ? "" : " is-alone"}">
+      <div class="buy-card">
+        ${ctx.img(b.image, "buy-media", { path: "image", optional: true })}
+        ${ctx.show(b.card_title) && html`<h3 class="buy-title"${ctx.field("card_title", b.card_title)}>${b.card_title}</h3>`}
+        ${ctx.price(b.price_label, "price_label")}
+        ${offerConditions(b, ctx)}
+        ${ctx.cta(b.cta_label, "Garantir agora", "cta_label", { icon: "lock" })}
+      </div>
+      ${specialCard}
+    </div>
+    ${offerNote(b, ctx)}
+  </div>`);
   },
+};
 
-  // Demonstração: abas com uma imagem grande e legenda (venda.js liga as abas; sem JavaScript e no
-  // editor, os painéis ficam um embaixo do outro). Página pública: só as abas com imagem.
-  demo(b, ctx) {
-    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || ctx.product.media.get(x.image));
-    if (!items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    const filled = b.items.some((x) => ctx.product.media.get(x.image));
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !filled })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <div class="demo" data-demo>
-    <div class="demo-tabs" role="tablist" aria-labelledby="${id}" hidden>${items.map(([x], n) => html`<button type="button" role="tab" id="${id}-tab-${n}" aria-controls="${id}-panel-${n}" aria-selected="${n === 0}"${n ? html` tabindex="-1"` : null}>${x.label || `Parte ${n + 1}`}</button>`)}</div>
-    ${items.map(([x, i], n) => html`<figure class="demo-panel" role="tabpanel" id="${id}-panel-${n}" aria-labelledby="${id}-tab-${n}"${ctx.item("items", i)}>${ctx.live ? html`<p class="demo-label"${ctx.field(`items.${i}.label`, x.label)}>${x.label}</p>` : null}${ctx.img(x.image, "demo-img", { path: `items.${i}.image` })}${ctx.show(x.caption) && html`<figcaption${ctx.field(`items.${i}.caption`, x.caption)}>${x.caption}</figcaption>`}${ctx.remove("items", i)}</figure>`)}${ctx.addItem("items", b.items, "div")}
-  </div>
-</div></section>`;
-  },
-
-  // Texto e imagem: linhas em duas colunas que alternam o lado da imagem (CSS: :nth-child(even)).
-  feature(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    return html`<section class="${ctx.sectionClass(b)}" aria-label="Destaques"${ctx.mark({ hidden: !b.items.length })}><div class="container features-alt">
-  ${b.items.map((x, i) => {
-    const img = ctx.img(x.image, "feature-img", { path: `items.${i}.image` });
-    return html`<article class="feature-row${img ? "" : " no-media"}"${ctx.item("items", i)}><div class="feature-text">${ctx.show(x.eyebrow) && html`<p class="v-eyebrow"${ctx.field(`items.${i}.eyebrow`, x.eyebrow)}>${x.eyebrow}</p>`}<h2${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h2>${ctx.paras(`items.${i}.text`, x.text)}${ctx.lines(`items.${i}.bullets`, x.bullets, "feature-list")}</div>${img}${ctx.remove("items", i)}</article>`;
-  })}${ctx.addItem("items", b.items, "div")}
-</div></section>`;
-  },
-
-  // Faixa de urgência: texto curto e o cronômetro da oferta. Só existe com oferta ativa no cadastro
-  // do produto (nada de "só hoje" sem prazo de verdade); no editor aparece sempre, marcada como oculta.
-  urgency(b, ctx) {
+// Estilos do bloco Cronômetro. Só existem com oferta ativa no cadastro do produto (a contagem, com
+// prazo): nada de "só hoje" sem prazo de verdade. No editor aparecem sempre, marcados como ocultos.
+const TIMER_STYLES = {
+  // Faixa de urgência: texto curto e o cronômetro da oferta (oferta sem prazo: só o texto).
+  bar(b, ctx) {
     const active = ctx.product.offer.active;
     if (!active && !ctx.live) return null;
     return html`<section class="v-urgent" aria-label="Oferta por tempo limitado"${ctx.mark({ hidden: !active })}><div class="container v-urgent-row">
@@ -631,43 +763,7 @@ const RENDERERS = {
   ${ends
     ? html`<div class="v-count" data-count-ends="${ends}" data-now="${new Date(ctx.product.now).toISOString()}"><p class="v-count-date">Oferta válida até ${formatEnd(ends)}</p>${countBoxes(true)}</div>`
     : html`<div class="v-count">${countBoxes(false)}</div>`}
-  ${ctx.cta(b.cta_label, "Quero aproveitar", "cta_label")}
-</div></section>`;
-  },
-
-  // Bônus: cartões numerados com imagem, nome, descrição e o valor que sai de graça.
-  bonus(b, ctx) {
-    if (!b.items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.length })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <div class="bonus-grid" data-count="${b.items.length}">${b.items.map((x, i) => html`<article class="bonus-card"${ctx.item("items", i)}><p class="v-tag">Bônus #${i + 1}</p>${ctx.img(x.image, "bonus-img", { path: `items.${i}.image`, optional: true })}<h3${ctx.field(`items.${i}.title`, x.title)}>${x.title}</h3>${ctx.paras(`items.${i}.text`, x.text)}${ctx.show(x.value) && html`<p class="bonus-value">Valor: <s${ctx.field(`items.${i}.value`, x.value)}>${x.value}</s> <strong>Grátis</strong></p>`}${ctx.remove("items", i)}</article>`)}${ctx.addItem("items", b.items, "div")}</div>
-</div></section>`;
-  },
-
-  // Comparativo em tabela: uma linha por critério, a alternativa (✗) e o produto (✓) lado a lado.
-  // No celular cada linha vira um cartão: o critério em cima e as duas colunas embaixo (CSS).
-  table(b, ctx) {
-    if (!b.rows.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    const cell = (path, value, positive, extra = null) => html`<td class="${positive ? "yes" : "no"}"><span class="v-compare-cell">${mark(positive)}<span${ctx.field(path, value)}>${value}</span></span>${extra}</td>`;
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.rows.length })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}
-  <div class="v-compare-wrap"><table class="v-compare" aria-labelledby="${id}">
-    <thead><tr><td></td><th scope="col" class="no"${ctx.field("left_title", b.left_title)}>${b.left_title}</th><th scope="col" class="yes"${ctx.field("right_title", b.right_title)}>${b.right_title}</th></tr></thead>
-    <tbody>${b.rows.map((x, i) => html`<tr${ctx.item("rows", i)}><th scope="row"${ctx.field(`rows.${i}.label`, x.label)}>${x.label}</th>${cell(`rows.${i}.left`, x.left, false)}${cell(`rows.${i}.right`, x.right, true, ctx.remove("rows", i))}</tr>`)}</tbody>
-  </table></div>${ctx.addItem("rows", b.rows, "div")}
-</div></section>`;
-  },
-
-  // Redes sociais: botões em pílula centralizados. Página pública: só as redes com link.
-  social(b, ctx) {
-    const items = b.items.map((x, i) => [x, i]).filter(([x]) => ctx.live || x.url);
-    if (!items.length && !ctx.live) return null;
-    const id = ctx.headingId();
-    return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark({ hidden: !b.items.some((x) => x.url) })}><div class="container">
-  ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || "Acompanhe nas redes"}</h2>${ctx.intro(b)}
-  <ul class="link-list social-links">${items.map(([x, i]) => linkItem(ctx, "items", i, x, { icon: `net-${x.network}`, label: NETWORKS[x.network].label }))}${ctx.addItem("items", b.items)}</ul>
+  ${ctx.scrollCta(b.cta_label, "Quero aproveitar", "cta_label")}
 </div></section>`;
   },
 };
@@ -675,12 +771,10 @@ const RENDERERS = {
 // Por que um bloco não aparece na página (aviso exibido só no editor).
 const HIDDEN_REASON = {
   testimonials: "escreva pelo menos um depoimento",
-  gallery: "adicione imagens",
   author: "preencha o nome do autor",
   social: "coloque o link de pelo menos uma rede",
-  demo: "adicione uma imagem em pelo menos uma aba",
-  urgency: "cadastre uma oferta no produto",
-  countdown: "cadastre uma oferta com prazo no produto",
+  demo: "adicione pelo menos uma imagem",
+  timer: "cadastre uma oferta com prazo no produto",
 };
 
 // Cores da página: só inclui a folha de estilo quando não é a paleta padrão (que já está no venda.css).
@@ -700,11 +794,20 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   // Preço e link que valem agora: os da oferta (se ativa) ou os normais. Nada da oferta encerrada
   // (nem o link promocional) chega à página.
   const offer = effectiveOffer(product, now);
-  const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, ...rest } = product;
-  const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer, now };
+  const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, offer_compare_cents: _c,
+    special_price_cents: _sp, special_checkout_url: _su, special_compare_cents: _sc, ...rest } = product;
+  const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer,
+    special: specialOffer(product), now };
   const ctx = createContext(data, { live });
-  // Blocos inválidos são ignorados um a um; index (posição original) liga a seção ao bloco do editor.
-  const rendered = validBlocks(data.sections).map(({ block, index }) => {
+  ctx.hasOffer = hasOffer(data.sections);
+  // Blocos inválidos são ignorados um a um (no editor, viram um aviso com o motivo, para a pessoa
+  // achar e remover o bloco); index (posição original) liga a seção ao bloco do editor.
+  const rendered = checkBlocks(data.sections).map(({ block, index, error }) => {
+    if (!block) {
+      return live ? { type: null, section: html`<section class="editor-hidden-block is-invalid" data-block="${index}" data-hidden><div class="container">
+  <p><strong>Bloco inválido</strong> — não aparece na página: ${error}. Corrija ou remova o bloco para poder salvar.</p>
+</div></section>` } : null;
+    }
     // Bloco que vem de um bloco salvo: no editor é desenhado como na página pública (sem textos
     // editáveis), com a etiqueta data-shared; o conteúdo se edita na aba "Blocos salvos".
     const shared = data.shared?.get(index);
@@ -716,7 +819,7 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
       : null);
     ctx.type = block.type;
     const section = RENDERERS[block.type](richFields(block, BLOCKS[block.type].fields), ctx);
-    if (section) return { type: block.type, section };
+    if (section) return { type: block.type, style: block.style, section };
     // No editor, um bloco que não aparece na página vira um aviso selecionável (senão ficaria inalcançável).
     if (live) {
       const reason = shared ? `o bloco salvo “${shared.name}” está vazio (preencha na aba Blocos salvos)`
@@ -729,7 +832,7 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   }).filter(Boolean);
   // A faixa de urgência, quando é o primeiro bloco da página, fica acima do menu (fora do <main>):
   // o menu flutua sobre a primeira seção, e cobriria uma faixa fina.
-  const topBar = rendered[0]?.type === "urgency" ? rendered.shift().section : null;
+  const topBar = rendered[0]?.type === "timer" && rendered[0].style === "bar" ? rendered.shift().section : null;
   const body = rendered.map((x) => x.section);
 
   const title = data.title;

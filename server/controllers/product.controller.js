@@ -3,8 +3,9 @@ const storage = require("../lib/storage");
 const { normalizeCategory } = require("../lib/categories");
 const { AREAS, normalizeArea } = require("../lib/areas");
 const kiwify = require("../lib/kiwify");
-const { fetchCheckout, fetchOffer, syncProduct, errorText } = require("../lib/kiwify-sync");
+const { fetchCheckout, fetchOffer, joinWarnings, syncProduct, errorText } = require("../lib/kiwify-sync");
 const { effectiveOffer } = require("../lib/offer");
+const { isUuid } = require("../lib/ids");
 
 // Colunas do produto (alias "p") + dados da capa (alias "m") e da empresa (alias "b", aba Empresas)
 // com o logo dela (alias "bl"). brand_name / brand_logo_id / brand_logo mantêm os nomes de quando
@@ -28,13 +29,15 @@ const selectFrom = (source, extra = "") => `SELECT ${COLUMNS}${extra} FROM ${sou
 // Só no painel: vínculo com a Kiwify e situação da última atualização automática.
 const ADMIN_EXTRA = `,
   p.kiwify_product_id, p.kiwify_link_id, p.kiwify_synced_at, p.kiwify_sync_error,
-  p.offer_kiwify_link_id, p.offer_price_cents, p.offer_checkout_url, p.offer_ends_at`;
+  p.offer_kiwify_link_id, p.offer_price_cents, p.offer_checkout_url, p.offer_ends_at, p.offer_compare_cents,
+  p.special_kiwify_product_id, p.special_kiwify_link_id, p.special_price_cents, p.special_checkout_url,
+  p.special_compare_cents`;
 
 // Site público: o produto tem página de vendas PUBLICADA? (o catálogo leva direto para /p/endereco)
 // Também traz a oferta, que publicResponse troca pelo preço e link que valem agora.
 const HAS_SALES_PAGE = `,
   EXISTS (SELECT 1 FROM sales_pages sp WHERE sp.product_id = p.id AND sp.published_sections IS NOT NULL) AS has_sales_page,
-  p.offer_price_cents, p.offer_checkout_url, p.offer_ends_at`;
+  p.offer_price_cents, p.offer_checkout_url, p.offer_ends_at, p.offer_compare_cents`;
 
 // Troca a chave interna do arquivo pela URL pública (capa e logo da marca). A capa também leva o
 // srcset (versões menores, ver lib/images.js) para os cards do catálogo.
@@ -52,7 +55,7 @@ function toResponse(row) {
 // offer_ends_at. O link promocional nunca sai daqui depois que a oferta acaba.
 function publicResponse(row) {
   const offer = effectiveOffer(row);
-  const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, ...rest } = toResponse(row);
+  const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, offer_compare_cents: _c, ...rest } = toResponse(row);
   return { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url,
     compare_price_cents: offer.compare_cents, offer_ends_at: offer.ends_at };
 }
@@ -76,11 +79,19 @@ const KIWIFY_FIELDS = ["kiwify_product_id", "kiwify_link_id"];
 
 // Oferta (preço "de/por" e prazo): com Kiwify, o preço e o link vêm do link promocional
 // (offer_kiwify_link_id); sem Kiwify, são digitados.
-const OFFER_FIELDS = ["offer_price_cents", "offer_checkout_url", "offer_kiwify_link_id", "offer_ends_at"];
+// Promoção sem link (offer_compare_cents): só o valor "de", maior que o preço normal; o cliente paga
+// o preço normal pelo link normal. É um tipo ou outro: com o "de", sem link nem preço promocional.
+const OFFER_FIELDS = ["offer_price_cents", "offer_checkout_url", "offer_kiwify_link_id", "offer_ends_at", "offer_compare_cents"];
+
+// Melhor opção (segunda opção de compra; estilo Oferta dupla da Oferta final): com Kiwify, preço e link vêm de um link
+// da conta da empresa (do mesmo produto ou de outro); sem Kiwify, são digitados. O valor "de"
+// (special_compare_cents) é sempre digitado.
+const SPECIAL_FIELDS = ["special_price_cents", "special_checkout_url", "special_compare_cents",
+  "special_kiwify_product_id", "special_kiwify_link_id"];
 
 const FIELDS = new Set([
   "title", "slug", "status", "category", "area", "featured", "card_badge", "price_cents", "checkout_url",
-  ...IMAGE_FIELDS, ...Object.keys(OPTIONAL_TEXT), ...KIWIFY_FIELDS, ...OFFER_FIELDS,
+  ...IMAGE_FIELDS, ...Object.keys(OPTIONAL_TEXT), ...KIWIFY_FIELDS, ...OFFER_FIELDS, ...SPECIAL_FIELDS,
 ]);
 
 const PRICE_ERROR = "deve ser um valor inteiro em centavos, entre 0 e 100000000, ou null.";
@@ -93,7 +104,8 @@ function checkoutUrlInput(value, field) {
   if (!raw) return { value: null };
   const url = parseHttpsUrl(raw);
   if (!url || url.length > 2048) {
-    return { error: `O link ${field === "checkout_url" ? "de checkout" : "da oferta"} deve ser um endereço https:// válido.` };
+    const name = { checkout_url: "de checkout", offer_checkout_url: "da oferta", special_checkout_url: "da Melhor opção" }[field];
+    return { error: `O link ${name} deve ser um endereço https:// válido.` };
   }
   return { value: url };
 }
@@ -174,8 +186,20 @@ function normalizeProductInput(body, isCreate = false) {
     if (!isPrice(body.offer_price_cents)) return { error: `O preço da oferta ${PRICE_ERROR}` };
     values.offer_price_cents = body.offer_price_cents;
   }
+  if ("offer_compare_cents" in body) {
+    if (!isPrice(body.offer_compare_cents)) return { error: `O valor "de" da promoção ${PRICE_ERROR}` };
+    values.offer_compare_cents = body.offer_compare_cents;
+  }
+  if (values.offer_compare_cents != null && (values.offer_price_cents != null || body.offer_checkout_url || body.offer_kiwify_link_id)) {
+    return { error: "A promoção é com link promocional ou só com o valor \"de\": escolha um dos dois." };
+  }
+  for (const [field, name] of [["special_price_cents", "O preço da Melhor opção"], ["special_compare_cents", "O valor \"de\" da Melhor opção"]]) {
+    if (!(field in body)) continue;
+    if (!isPrice(body[field])) return { error: `${name} ${PRICE_ERROR}` };
+    values[field] = body[field];
+  }
 
-  for (const field of ["checkout_url", "offer_checkout_url"]) {
+  for (const field of ["checkout_url", "offer_checkout_url", "special_checkout_url"]) {
     if (!(field in body)) continue;
     const { value, error } = checkoutUrlInput(body[field], field);
     if (error) return { error };
@@ -184,6 +208,20 @@ function normalizeProductInput(body, isCreate = false) {
   if (("offer_price_cents" in values || "offer_checkout_url" in values)
     && ((values.offer_price_cents ?? null) === null) !== ((values.offer_checkout_url ?? null) === null)) {
     return { error: "Informe o preço e o link da oferta juntos (ou deixe os dois vazios)." };
+  }
+  if (("special_price_cents" in values || "special_checkout_url" in values)
+    && ((values.special_price_cents ?? null) === null) !== ((values.special_checkout_url ?? null) === null)) {
+    return { error: "Informe o preço e o link da Melhor opção juntos (ou deixe os dois vazios)." };
+  }
+
+  // Link da Melhor opção na Kiwify: produto e link sempre juntos (ou os dois null).
+  if ("special_kiwify_product_id" in body || "special_kiwify_link_id" in body) {
+    const productId = body.special_kiwify_product_id ?? null, linkId = body.special_kiwify_link_id ?? null;
+    if ((productId !== null || linkId !== null) && !(kiwify.isId(productId) && kiwify.isId(linkId))) {
+      return { error: "Escolha o produto e o link da Melhor opção na Kiwify (ou nenhum dos dois)." };
+    }
+    values.special_kiwify_product_id = productId;
+    values.special_kiwify_link_id = linkId;
   }
 
   if ("offer_kiwify_link_id" in body) {
@@ -232,12 +270,12 @@ function parseHttpsUrl(value) {
   }
 }
 
-function isValidId(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
+const isValidId = isUuid;
 
 const isDuplicateSlug = (error) => error.code === "23505" && error.constraint === "products_slug_key";
 const isMissingImage = (error) => error.code === "23503" && error.constraint === "products_image_id_fkey";
+const isOfferKind = (error) => error.code === "23514" && error.constraint === "products_offer_kind";
+const OFFER_KIND = { error: "A promoção é com link promocional ou só com o valor \"de\": escolha um dos dois." };
 const isMissingBrand = (error) => error.code === "23503" && error.constraint === "products_brand_id_fkey";
 const DUPLICATE_SLUG = { error: "Já existe um produto com este endereço (slug)." };
 const MISSING_IMAGE = { error: "A imagem escolhida não existe mais. Escolha outra." };
@@ -246,14 +284,18 @@ const INVALID_ID = { error: "ID de produto inválido." };
 const NOT_FOUND = { error: "Produto não encontrado." };
 
 // Vínculo com a Kiwify ao salvar: preço e link vêm da Kiwify (sobrepõem os digitados), e os da
-// oferta vêm do link promocional (com Kiwify, a oferta não é digitada à mão).
+// oferta e da Melhor opção vêm dos links escolhidos para elas (com Kiwify, não são digitados).
 //  - vínculo novo ou trocado: a Kiwify precisa responder, senão o produto não é salvo;
 //  - vínculo igual ao gravado: se a Kiwify falhar, salva o resto e mantém o último preço/link;
 //  - trocar a empresa sem informar o vínculo desfaz o vínculo (a conta Kiwify é da empresa).
 // Devolve { error, status } para recusar o pedido.
+const LINK_FIELDS = ["kiwify_product_id", "kiwify_link_id", "offer_kiwify_link_id", "special_kiwify_product_id", "special_kiwify_link_id"];
+const KIWIFY_PRICES = ["price_cents", "checkout_url", "offer_price_cents", "offer_checkout_url",
+  "special_price_cents", "special_checkout_url", "kiwify_synced_at"];
+
 async function applyKiwify(values, productId) {
   const current = productId
-    ? (await pool.query("SELECT brand_id, kiwify_product_id, kiwify_link_id, offer_kiwify_link_id FROM products WHERE id = $1", [productId])).rows[0]
+    ? (await pool.query(`SELECT brand_id, ${LINK_FIELDS.join(", ")} FROM products WHERE id = $1`, [productId])).rows[0]
     : null;
   if (productId && !current) return {}; // não existe: o UPDATE responde 404
 
@@ -261,57 +303,111 @@ async function applyKiwify(values, productId) {
     Object.assign(values, { kiwify_product_id: null, kiwify_link_id: null });
   }
   const pick = (field) => (field in values ? values[field] : current?.[field] ?? null);
-  const [kiwifyProduct, linkId, offerLink] = ["kiwify_product_id", "kiwify_link_id", "offer_kiwify_link_id"].map(pick);
+  const [kiwifyProduct, linkId, offerLink, specialProduct, specialLink] = LINK_FIELDS.map(pick);
 
-  // Sem Kiwify: preço e oferta digitados. Uma oferta que vinha da Kiwify sai junto com o vínculo.
+  // Sem Kiwify: preço e ofertas digitados. Uma oferta que vinha da Kiwify sai junto com o vínculo.
   if (!kiwifyProduct) {
     if (values.offer_kiwify_link_id) return { status: 400, error: "Para usar um link promocional da Kiwify, vincule o produto à Kiwify." };
+    if (values.special_kiwify_link_id) return { status: 400, error: "Para usar um link da Kiwify na Melhor opção, vincule o produto à Kiwify." };
     if ("kiwify_product_id" in values) Object.assign(values, { kiwify_synced_at: null, kiwify_sync_error: null });
     if (current?.offer_kiwify_link_id && !("offer_price_cents" in values)) {
       Object.assign(values, { offer_price_cents: null, offer_checkout_url: null });
     }
     if (offerLink || "offer_kiwify_link_id" in values) values.offer_kiwify_link_id = null;
+    if (current?.special_kiwify_link_id && !("special_price_cents" in values)) {
+      Object.assign(values, { special_price_cents: null, special_checkout_url: null });
+    }
+    if (specialLink || "special_kiwify_link_id" in values) Object.assign(values, { special_kiwify_product_id: null, special_kiwify_link_id: null });
     return {};
   }
-  if (!("kiwify_product_id" in values) && !("offer_kiwify_link_id" in values)) return {};
+  if (!["kiwify_product_id", "offer_kiwify_link_id", "special_kiwify_link_id"].some((field) => field in values)) return {};
   if (offerLink && offerLink === linkId) return { status: 400, error: "O link promocional deve ser diferente do link de checkout normal." };
+  if (specialLink && specialProduct === kiwifyProduct && specialLink === linkId) {
+    return { status: 400, error: "O link da Melhor opção deve ser diferente do link de checkout normal." };
+  }
 
   const brandId = "brand_id" in values ? values.brand_id : current?.brand_id ?? null;
-  const unchanged = current && current.brand_id === brandId && current.kiwify_product_id === kiwifyProduct
-    && current.kiwify_link_id === linkId && current.offer_kiwify_link_id === offerLink;
-  const cache = new Map(); // uma consulta à Kiwify serve para os dois links
+  const sameBrand = !!current && current.brand_id === brandId;
+  const unchanged = sameBrand && current.kiwify_product_id === kiwifyProduct && current.kiwify_link_id === linkId;
+  const cache = new Map(); // uma consulta à Kiwify por produto serve para todos os links dele
+
+  // Link extra (promocional ou da Melhor opção). Novo: precisa estar ativo. O já gravado só gera
+  // aviso se foi desativado ou apagado (como na atualização automática).
+  async function extra(product, link, kind, known) {
+    if (!link) return { price_cents: null, checkout_url: null, warning: null };
+    if (known) return fetchOffer(brandId, product, link, cache, kind);
+    try {
+      return { ...(await fetchCheckout(brandId, product, link, cache)), warning: null };
+    } catch (error) {
+      if (!(error instanceof kiwify.KiwifyError)) throw error;
+      return { error: `${kind === "offer" ? "Link promocional" : "Melhor opção"}: ${error.message}`, status: error.status };
+    }
+  }
+
+  const offerKnown = unchanged && current.offer_kiwify_link_id === offerLink;
+  const specialKnown = sameBrand && current.special_kiwify_product_id === specialProduct && current.special_kiwify_link_id === specialLink;
   try {
     const checkout = await fetchCheckout(brandId, kiwifyProduct, linkId, cache);
-    Object.assign(values, checkout, { kiwify_synced_at: new Date(), kiwify_sync_error: null,
-      offer_kiwify_link_id: offerLink, offer_price_cents: null, offer_checkout_url: null });
-    if (offerLink) {
-      // Link promocional novo precisa estar ativo; o já gravado só gera aviso (como na atualização automática).
-      let offer;
-      try {
-        offer = unchanged ? await fetchOffer(brandId, kiwifyProduct, offerLink, cache)
-          : { ...(await fetchCheckout(brandId, kiwifyProduct, offerLink, cache)), warning: null };
-      } catch (error) {
-        if (!(error instanceof kiwify.KiwifyError) || unchanged) throw error;
-        return { status: error.status, error: `Link promocional: ${error.message}` };
-      }
-      Object.assign(values, { offer_price_cents: offer.price_cents, offer_checkout_url: offer.checkout_url, kiwify_sync_error: offer.warning });
-    }
+    const offer = await extra(kiwifyProduct, offerLink, "offer", offerKnown);
+    if (offer.error) return offer;
+    const special = await extra(specialProduct, specialLink, "special", specialKnown);
+    if (special.error) return special;
+    Object.assign(values, checkout, {
+      kiwify_synced_at: new Date(), kiwify_sync_error: joinWarnings(offer.warning, special.warning),
+      offer_kiwify_link_id: offerLink, offer_price_cents: offer.price_cents, offer_checkout_url: offer.checkout_url,
+      special_kiwify_product_id: specialProduct, special_kiwify_link_id: specialLink,
+      special_price_cents: special.price_cents, special_checkout_url: special.checkout_url,
+    });
   } catch (error) {
     if (!(error instanceof kiwify.KiwifyError)) throw error;
-    if (!unchanged) return { status: error.status, error: error.message };
-    // Mantém o último preço e link (normais e da oferta) da Kiwify.
-    for (const field of ["price_cents", "checkout_url", "offer_price_cents", "offer_checkout_url", "kiwify_synced_at"]) delete values[field];
+    if (!(unchanged && offerKnown && specialKnown)) return { status: error.status, error: error.message };
+    // Mantém o último preço e link (normais e das ofertas) da Kiwify.
+    for (const field of KIWIFY_PRICES) delete values[field];
     values.kiwify_sync_error = errorText(error);
   }
   return {};
 }
 
-// A oferta precisa ser mais barata que o preço normal (confere quando os dois vêm no pedido).
-function checkOfferPrice(values) {
-  const { price_cents: price, offer_price_cents: offer } = values;
-  if (price === null || price === undefined || offer === null || offer === undefined || offer < price) return null;
-  return `O preço da oferta (${(offer / 100).toFixed(2).replace(".", ",")}) deve ser menor que o preço normal (${(price / 100).toFixed(2).replace(".", ",")}).`;
+// A oferta precisa ser mais barata que o preço normal. Numa alteração que traz só um dos dois
+// preços, o outro vem do produto gravado (senão uma oferta mais cara passaria e o site a
+// ignoraria sem avisar).
+async function checkOfferPrice(values, productId = null) {
+  let { price_cents: price, offer_price_cents: offer, offer_compare_cents: compare } = values;
+  const touched = [price, offer, compare].some((v) => v !== undefined);
+  if (productId && touched && [price, offer, compare].some((v) => v === undefined)) {
+    const { rows } = await pool.query("SELECT price_cents, offer_price_cents, offer_compare_cents FROM products WHERE id = $1", [productId]);
+    if (rows[0]) {
+      if (price === undefined) price = rows[0].price_cents;
+      if (offer === undefined) offer = rows[0].offer_price_cents;
+      if (compare === undefined) compare = rows[0].offer_compare_cents;
+    }
+  }
+  if (price === null || price === undefined) return null;
+  if (offer !== null && offer !== undefined && offer >= price) {
+    return `O preço da promoção (${brl(offer)}) deve ser menor que o preço normal (${brl(price)}).`;
+  }
+  if (compare !== null && compare !== undefined && compare <= price) {
+    return `O valor "de" da promoção (${brl(compare)}) deve ser maior que o preço normal (${brl(price)}).`;
+  }
+  return null;
 }
+
+// O valor "de" da Melhor opção precisa ser maior que o preço dela. Como em checkOfferPrice, o
+// que não veio no pedido vem do produto gravado.
+async function checkSpecialCompare(values, productId = null) {
+  let { special_price_cents: price, special_compare_cents: compare } = values;
+  if (price === undefined && compare === undefined) return null;
+  if (productId && (price === undefined || compare === undefined)) {
+    const { rows } = await pool.query("SELECT special_price_cents, special_compare_cents FROM products WHERE id = $1", [productId]);
+    if (rows[0]) {
+      if (price === undefined) price = rows[0].special_price_cents;
+      if (compare === undefined) compare = rows[0].special_compare_cents;
+    }
+  }
+  if (price === null || price === undefined || compare === null || compare === undefined || compare > price) return null;
+  return `O valor "de" da Melhor opção (${brl(compare)}) deve ser maior que o preço dela (${brl(price)}).`;
+}
+const brl = (cents) => (cents / 100).toFixed(2).replace(".", ",");
 
 async function listPublicProducts(_req, res) {
   const result = await pool.query(
@@ -347,7 +443,7 @@ async function createProduct(req, res) {
   if (error) return res.status(400).json({ error });
   const linked = await applyKiwify(values, null);
   if (linked.error) return res.status(linked.status).json({ error: linked.error });
-  const offerError = checkOfferPrice(values);
+  const offerError = await checkOfferPrice(values, null) || await checkSpecialCompare(values, null);
   if (offerError) return res.status(400).json({ error: offerError });
 
   // Os nomes de coluna vêm da lista FIELDS (nunca do usuário); os valores vão como parâmetros.
@@ -367,6 +463,7 @@ async function createProduct(req, res) {
     if (isDuplicateSlug(error)) return res.status(409).json(DUPLICATE_SLUG);
     if (isMissingImage(error)) return res.status(400).json(MISSING_IMAGE);
     if (isMissingBrand(error)) return res.status(400).json(MISSING_BRAND);
+    if (isOfferKind(error)) return res.status(400).json(OFFER_KIND);
     throw error;
   }
 }
@@ -378,7 +475,7 @@ async function updateProduct(req, res) {
   if (error) return res.status(400).json({ error });
   const linked = await applyKiwify(values, req.params.id);
   if (linked.error) return res.status(linked.status).json({ error: linked.error });
-  const offerError = checkOfferPrice(values);
+  const offerError = await checkOfferPrice(values, req.params.id) || await checkSpecialCompare(values, req.params.id);
   if (offerError) return res.status(400).json({ error: offerError });
 
   const fields = Object.keys(values);
@@ -398,6 +495,7 @@ async function updateProduct(req, res) {
     if (isDuplicateSlug(error)) return res.status(409).json(DUPLICATE_SLUG);
     if (isMissingImage(error)) return res.status(400).json(MISSING_IMAGE);
     if (isMissingBrand(error)) return res.status(400).json(MISSING_BRAND);
+    if (isOfferKind(error)) return res.status(400).json(OFFER_KIND);
     throw error;
   }
 }

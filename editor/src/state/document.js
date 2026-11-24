@@ -44,6 +44,15 @@ export function carryKeys(fresh, old) {
   return fresh;
 }
 
+// Definição do tipo de um bloco (esquema do servidor). Bloco de um tipo que saiu do sistema (ex.:
+// página gravada antes de uma mudança, ainda sem a migração): uma definição vazia, para o editor
+// mostrar o bloco com o aviso e o botão de remover em vez de quebrar.
+export const UNKNOWN_BLOCK = Object.freeze({
+  label: "Bloco inválido", unknown: true, fields: {},
+  help: "Este tipo de bloco não existe mais. Remova o bloco para poder salvar a página.",
+});
+export const blockDef = (schema, type) => schema.blocks[type] || UNKNOWN_BLOCK;
+
 // Valor vazio de um conjunto de campos (conforme o esquema do servidor).
 export function emptyValue(fields) {
   const out = { _key: newKey() };
@@ -78,6 +87,32 @@ export function duplicateBlock(block, schema) {
   return withKeys([stripKeys(block)], schema)[0];
 }
 
+// Campo com showIf (esquema do servidor): só vale quando o outro campo do bloco tem um dos valores
+// (ex.: o link do vídeo só no estilo Vídeo). Serve também para os campos dos itens de lista (a
+// regra olha o campo do bloco). O valor de um campo escondido continua guardado.
+export function usedByStyle(field, block, schema) {
+  const rule = field.showIf;
+  if (!rule) return true;
+  const value = block[rule.field] ?? blockDef(schema, block.type).fields[rule.field]?.default;
+  return rule.in.includes(value);
+}
+
+/* ---------- Seção de compra obrigatória ---------- */
+// O botão da abertura leva à seção de compra (bloco "Oferta final"): a página precisa de uma.
+const REQUIRED_TYPE = "offer";
+export const REQUIRED_HINT = "A abertura leva a este bloco: a página precisa dele.";
+
+// Pode remover o bloco desta posição? Não, se for a única Oferta final da página.
+export function canRemoveBlock(sections, index) {
+  return sections[index]?.type !== REQUIRED_TYPE || sections.filter((b) => b.type === REQUIRED_TYPE).length > 1;
+}
+
+// Página sem Oferta final (salva antes da regra): ganha a do modelo padrão no fim.
+export function ensureRequired(sections, schema) {
+  if (sections.some((b) => b.type === REQUIRED_TYPE)) return sections;
+  return [...sections, structuredClone(schema.defaultSections.find((b) => b.type === REQUIRED_TYPE))];
+}
+
 /* ---------- Alterações por "caminho" (ex.: ["sections", 2, "items", 0, "question"]) ---------- */
 export function getIn(obj, path) {
   return path.reduce((value, key) => (value == null ? value : value[key]), obj);
@@ -97,6 +132,9 @@ const updateIn = (obj, path, fn) => setIn(obj, path, fn(getIn(obj, path)));
 export function reducer(doc, action) {
   switch (action.type) {
     case "set":
+      // Mesmo valor (ex.: escolheu de novo o ícone que já estava): devolve o MESMO objeto, e o
+      // histórico não ganha um passo vazio nem a página fica "não salva".
+      if (getIn(doc, action.path) === action.value) return doc;
       return setIn(doc, action.path, action.value);
     case "insert":
       return updateIn(doc, action.path, (list) => {

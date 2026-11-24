@@ -1,7 +1,7 @@
 // Testes do esquema de blocos (validação do que chega na API). Rodar: npm test (node --test)
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { BLOCKS, ICONS, ICON_GROUPS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections } = require("../sales/blocks");
+const { BLOCKS, BLOCK_GROUPS, ICONS, ICON_GROUPS, MAX_BLOCKS, validateSections, validBlocks, mediaIds, defaultSections } = require("../sales/blocks");
 const { createLimiter } = require("../lib/security");
 
 test("aceita o modelo padrão inteiro", () => {
@@ -12,7 +12,7 @@ test("aceita o modelo padrão inteiro", () => {
 
 test("preenche campos ausentes com valores padrão", () => {
   const { sections } = validateSections([{ type: "faq" }]);
-  assert.deepEqual(sections[0], { type: "faq", eyebrow: "", title: "", intro: "", items: [], background: "auto" });
+  assert.deepEqual(sections[0], { type: "faq", title: "", intro: "", items: [], background: "auto" });
 });
 
 test("recusa tipo desconhecido, inclusive nomes herdados de Object", () => {
@@ -44,7 +44,7 @@ test("guarda texto como texto (sem interpretar HTML) e corta espaços", () => {
 });
 
 test("recusa ícone e imagem inválidos", () => {
-  assert.match(validateSections([{ type: "topics", items: [{ icon: "constructor" }] }]).error, /ícone inválido/);
+  assert.match(validateSections([{ type: "presentation", items: [{ icon: "constructor" }] }]).error, /ícone inválido/);
   assert.match(validateSections([{ type: "author", photo: "../etc/passwd" }]).error, /imagem inválida/);
 });
 
@@ -73,7 +73,6 @@ test("fundo da seção: aceita só as opções, e vazio vira automático", () =>
 test("blocos salvos antes do visual novo (sem rótulo nem fundo) continuam válidos", () => {
   const { sections, error } = validateSections([{ type: "author", name: "Ana", role: "", bio: "", photo: null }]);
   assert.equal(error, undefined);
-  assert.equal(sections[0].eyebrow, "");
   assert.equal(sections[0].background, "auto");
 });
 
@@ -82,10 +81,20 @@ test("abertura, oferta e chamada são sempre escuras (sem escolha de fundo)", ()
   assert.match(validateSections([{ type: "cta", background: "dark" }]).error, /não suportado/);
 });
 
-test("chamada intermediária: texto e botão com limites", () => {
-  const ok = validateSections([{ type: "cta", title: "Pronto?", cta_label: "Quero" }]);
-  assert.deepEqual(ok.sections[0], { type: "cta", eyebrow: "", title: "Pronto?", cta_label: "Quero" });
-  assert.match(validateSections([{ type: "cta", eyebrow: "x".repeat(41) }]).error, /Rótulo acima do título: máximo de 40/);
+test("rótulo só na Abertura e na Oferta final; nos outros blocos, o de páginas antigas é descartado", () => {
+  const withEyebrow = Object.keys(BLOCKS).filter((t) => BLOCKS[t].fields.eyebrow);
+  assert.deepEqual(withEyebrow.sort(), ["hero", "offer"]);
+  for (const type of ["author", "testimonials", "faq", "guarantee", "social", "bonus"]) {
+    const { sections, error } = validateSections([{ type, eyebrow: "Antigo" }]);
+    assert.equal(error, undefined, type);
+    assert.ok(!("eyebrow" in sections[0]), type);
+  }
+});
+
+test("chamada intermediária: só título e botão; o rótulo de páginas antigas é descartado", () => {
+  const ok = validateSections([{ type: "cta", eyebrow: "Antigo", title: "Pronto?", cta_label: "Quero" }]);
+  assert.deepEqual(ok.sections[0], { type: "cta", title: "Pronto?", cta_label: "Quero" });
+  assert.match(validateSections([{ type: "cta", title: "x".repeat(161) }]).error, /Título: máximo de 160/);
 });
 
 test("ícones: todos têm nome e um desenho SVG válido (só comandos de caminho e números)", () => {
@@ -127,11 +136,9 @@ test("ícones: cada um está em exatamente um grupo do seletor", () => {
 });
 
 test("grades: colunas aceitam automático, 2, 3 ou 4 (two/three/four)", () => {
-  for (const type of ["topics", "audience"]) {
-    assert.equal(validateSections([{ type }]).sections[0].columns, "auto");
-    assert.equal(validateSections([{ type, columns: "four" }]).sections[0].columns, "four");
-    assert.match(validateSections([{ type, columns: "five" }]).error, /opção inválida/);
-  }
+  assert.equal(validateSections([{ type: "presentation" }]).sections[0].columns, "auto");
+  assert.equal(validateSections([{ type: "presentation", columns: "four" }]).sections[0].columns, "four");
+  assert.match(validateSections([{ type: "presentation", columns: "five" }]).error, /opção inválida/);
 });
 
 /* ---------- Blocos salvos ---------- */
@@ -195,4 +202,132 @@ test("qualquer tipo de bloco pode ser salvo; só o fundo fica em cada página", 
   assert.equal(faq.data.items[0].answer, "Sim.");
   assert.equal(validateSharedData("hero", { title: "Curso", badges: [{ strong: "PDF", text: "Prático" }] }).error, undefined);
   assert.deepEqual(validateSections([{ type: "hero", shared: SHARED_ID }]).sections[0], { type: "hero", shared: SHARED_ID });
+});
+
+test("seção de compra: a página precisa de uma Oferta final (própria ou de bloco salvo)", () => {
+  const { hasOffer } = require("../sales/blocks");
+  assert.ok(hasOffer(defaultSections()));
+  assert.ok(hasOffer([{ type: "offer", shared: SHARED_ID }]));
+  assert.ok(!hasOffer([{ type: "hero" }, { type: "cta" }]));
+  assert.ok(!hasOffer(undefined));
+});
+
+/* ---------- Galeria e Texto e imagem viraram estilos da Demonstração (migration) ---------- */
+const { convert } = require("../migrations/1730002300000_demo-block");
+test("migration: galeria, abas antigas e texto e imagem viram o bloco Demonstração, e continuam válidos", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const gallery = convert({ type: "gallery", title: "G", images: [{ image: ID, title: "M", topics: "a\nb" }], background: "soft" });
+  assert.deepEqual(gallery, { type: "demo", style: "carousel", title: "G", background: "soft", items: [{ image: ID, title: "M", bullets: "a\nb" }] });
+  const tabs = convert({ type: "demo", title: "D", items: [{ label: "Manual", image: null, caption: "Uma página" }] });
+  assert.deepEqual(tabs, { type: "demo", style: "tabs", title: "D", items: [{ label: "Manual", image: null, text: "Uma página" }] });
+  const rows = convert({ type: "feature", items: [{ title: "Um", text: "T", bullets: "x" }] });
+  assert.equal(rows.style, "rows");
+  const { error } = validateSections([gallery, tabs, rows]);
+  assert.equal(error, undefined);
+  // Referência a bloco salvo: só o tipo muda. Demonstração já no formato novo: nada muda.
+  assert.deepEqual(convert({ type: "gallery", shared: ID, background: "auto" }), { type: "demo", shared: ID, background: "auto" });
+  assert.equal(convert({ type: "demo", style: "tabs", items: [] }), null);
+  assert.equal(convert({ type: "faq", items: [] }), null);
+});
+
+/* ---------- Benefícios e Grade de tópicos viraram estilos da Apresentação; Comparativo saiu (migration) ---------- */
+const presentation = require("../migrations/1730002400000_presentation-block");
+test("migration: benefícios e tópicos viram o bloco Apresentação", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const cards = presentation.convert({ type: "benefits", title: "Só leitor de tela", items: [{ icon: "bolt", title: "B", text: "T", callout: "" }], background: "soft" });
+  assert.deepEqual(cards, { type: "presentation", style: "cards", items: [{ icon: "bolt", title: "B", text: "T", callout: "" }], background: "soft" });
+  const steps = presentation.convert({ type: "topics", title: "Como", layout: "timeline", columns: "auto", items: [] });
+  assert.deepEqual(steps, { type: "presentation", style: "timeline", title: "Como", columns: "auto", items: [] });
+  assert.equal(presentation.convert({ type: "topics", title: "T", items: [] }).style, "grid");
+  assert.equal(validateSections([cards, steps]).error, undefined);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(presentation.convert({ type: "benefits", shared: ID, background: "auto" }), { type: "presentation", shared: ID, background: "auto" });
+  assert.equal(presentation.convert({ type: "faq", items: [] }), null);
+  // O comparativo fica (vira estilo da Comparação na migration seguinte).
+  assert.equal(presentation.convertList([{ type: "faq", items: [] }, { type: "comparison", title: "X" }]), null);
+  assert.equal(presentation.convertList([{ type: "faq", items: [] }]), null);
+});
+
+/* ---------- Comparativo e Comparativo em tabela viraram estilos da Comparação; Lista ✓ / ✗ saiu (migration) ---------- */
+const compare = require("../migrations/1730002500000_compare-block");
+test("migration: comparativo e tabela viram o bloco Comparação, e a lista ✓ / ✗ sai das páginas", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const sides = compare.convert({ type: "comparison", title: "C", left_title: "A", left_items: [{ text: "x" }], right_title: "B", right_items: [], background: "soft" });
+  assert.deepEqual(sides, { type: "compare", style: "columns", title: "C", left_title: "A", left_items: [{ text: "x" }], right_title: "B", right_items: [], background: "soft" });
+  const table = compare.convert({ type: "table", title: "T", left_title: "A", right_title: "B", rows: [{ label: "C", left: "l", right: "r" }] });
+  assert.deepEqual(table, { type: "compare", style: "table", title: "T", left_title: "A", right_title: "B", rows: [{ label: "C", left: "l", right: "r" }] });
+  const { sections, error } = validateSections([sides, table]);
+  assert.equal(error, undefined);
+  assert.deepEqual(sections.map((b) => b.style), ["columns", "table"]);
+  // O rótulo saiu do bloco: o de páginas antigas é descartado ao ler.
+  assert.equal(validateSections([{ type: "compare", eyebrow: "Diferenciais" }]).sections[0].eyebrow, undefined);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(compare.convert({ type: "table", shared: ID, background: "auto" }), { type: "compare", shared: ID, background: "auto" });
+  assert.equal(compare.convert({ type: "faq", items: [] }), null);
+  assert.deepEqual(compare.convert({ type: "comparison", shared: ID }), { type: "compare", shared: ID });
+  const page = compare.convertList([{ type: "faq", items: [] }, { type: "checklist", items: [] }, { type: "checklist", shared: ID }]);
+  assert.deepEqual(page, [{ type: "faq", items: [] }]);
+  assert.equal(compare.convert({ type: "checklist", items: [] }), null);
+  assert.equal(compare.convertList([{ type: "faq", items: [] }]), null);
+});
+
+const timer = require("../migrations/1730002600000_timer-block");
+test("migration: faixa de urgência e contagem regressiva viram o bloco Cronômetro", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const bar = timer.convert({ type: "urgency", text: "Só hoje" });
+  assert.deepEqual(bar, { type: "timer", style: "bar", text: "Só hoje" });
+  const big = timer.convert({ type: "countdown", title: "T", text: "x", cta_label: "Quero" });
+  assert.deepEqual(big, { type: "timer", style: "countdown", title: "T", text: "x", cta_label: "Quero" });
+  const { sections, error } = validateSections([bar, big]);
+  assert.equal(error, undefined);
+  assert.deepEqual(sections.map((b) => b.style), ["bar", "countdown"]);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(timer.convert({ type: "countdown", shared: ID }), { type: "timer", shared: ID });
+  assert.equal(timer.convert({ type: "faq", items: [] }), null);
+  assert.deepEqual(timer.convertList([{ type: "faq", items: [] }, { type: "urgency", text: "a" }]),
+    [{ type: "faq", items: [] }, { type: "timer", style: "bar", text: "a" }]);
+  assert.equal(timer.convertList([{ type: "faq", items: [] }]), null);
+});
+
+const modules = require("../migrations/1730002700000_modules-style");
+test("migration: currículo vira a Apresentação em módulos, sem o rótulo; detalhe e tópicos viram destaque e texto", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const block = modules.convert({ type: "curriculum", eyebrow: "Conteúdo", title: "O que você vai estudar", intro: "x",
+    items: [{ title: "Introdução", meta: "3 aulas", topics: "A\nB" }, { title: "Sem detalhe", topics: "" }], background: "soft" });
+  const items = [{ title: "Introdução", callout: "3 aulas", text: "A\nB" }, { title: "Sem detalhe", callout: "", text: "" }];
+  assert.deepEqual(block, { type: "presentation", style: "modules", title: "O que você vai estudar", intro: "x", items, background: "soft" });
+  const { sections, error } = validateSections([block]);
+  assert.equal(error, undefined);
+  assert.deepEqual(sections[0].items.map(({ title, callout, text }) => ({ title, callout, text })), items);
+  // Apresentação em módulos ainda com meta/topics (formato de transição): só os itens mudam.
+  assert.deepEqual(modules.convert({ type: "presentation", style: "modules", items: [{ title: "M", meta: "2 aulas", topics: "T" }] }),
+    { type: "presentation", style: "modules", items: [{ title: "M", callout: "2 aulas", text: "T" }] });
+  assert.equal(modules.convert({ type: "presentation", style: "cards", items: [{ title: "C", text: "T" }] }), null);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(modules.convert({ type: "curriculum", shared: ID, background: "auto" }), { type: "presentation", shared: ID, background: "auto" });
+  assert.equal(modules.convert({ type: "faq", items: [] }), null);
+  assert.equal(modules.convertList([{ type: "faq", items: [] }]), null);
+  assert.equal(validateSections([{ type: "curriculum", items: [] }]).error, "Bloco 1: tipo inválido.");
+});
+
+const audience = require("../migrations/1730002800000_audience-grid");
+test("migration: público-alvo vira a Apresentação em grade (perfil vira título; descrição, texto)", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  const block = audience.convert({ type: "audience", eyebrow: "Para quem", title: "Ideal para você", intro: "x", columns: "three", background: "soft",
+    items: [{ icon: "user", text: "Iniciante", description: "Quer começar do zero." }, { icon: "target", text: "Sem descrição" }] });
+  assert.deepEqual(block, { type: "presentation", style: "grid", title: "Ideal para você", intro: "x", columns: "three", background: "soft",
+    items: [{ icon: "user", title: "Iniciante", text: "Quer começar do zero." }, { icon: "target", title: "Sem descrição", text: "" }] });
+  assert.equal(validateSections([block]).error, undefined);
+  // Referência a bloco salvo: só o tipo muda.
+  assert.deepEqual(audience.convert({ type: "audience", shared: ID, background: "auto" }), { type: "presentation", shared: ID, background: "auto" });
+  assert.equal(audience.convert({ type: "faq", items: [] }), null);
+  assert.equal(audience.convertList([{ type: "faq", items: [] }]), null);
+  assert.equal(validateSections([{ type: "audience", items: [] }]).error, "Bloco 1: tipo inválido.");
+});
+
+test("grupos do Adicionar bloco: cada tipo aparece uma vez, sem tipo inexistente", () => {
+  const listed = BLOCK_GROUPS.flatMap((g) => g.types);
+  assert.deepEqual([...listed].sort(), Object.keys(BLOCKS).sort());
+  assert.equal(new Set(listed).size, listed.length);
+  assert.equal(listed[0], "hero");
 });

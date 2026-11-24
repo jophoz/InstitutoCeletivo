@@ -371,13 +371,9 @@
   // (editor/src/ui/BlockIcon.jsx lê daqui). Tipo sem ícone próprio usa o genérico.
   var BLOCK_ICONS = {
     hero: "M3 4h18v10H3zM7 18h10M9 21h6",                                  // tela com destaque
-    benefits: "M3 5h8v14H3zM13 5h8v14h-8zM6 9h2M16 9h2",                   // dois cartões
-    topics: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",           // grade
-    gallery: "M3 5h18v14H3zM3 16l5-5 4 4 3-3 6 6M15.5 9.5h.01",            // imagem
-    checklist: "M4 6l2 2 3-3M4 13l2 2 3-3M12 7h8M12 14h8M4 19h16",         // lista ✓
-    comparison: "M3 4h7v16H3zM14 4h7v16h-7zM10.5 12h3",                    // duas colunas
+    presentation: "M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z",     // grade
+    compare: "M3 4h7v16H3zM14 4h7v16h-7zM10.5 12h3",                       // duas colunas (Comparação)
     author: "M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.5-6 8-6s8 2 8 6", // pessoa
-    audience: "M9 10a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3 3-5 7-5s7 2 7 5M17 4a3 3 0 0 1 0 6M19 15c2 .7 3 2.3 3 5", // pessoas
     highlight: "M3 11v2l13 5V6zM16 9a3 3 0 0 1 0 6M6 13l1 6h3l-1-5",       // megafone
     cta: "M3 8h18v8H3zM13 12h5M16 10l2 2-2 2",                            // faixa com seta
     testimonials: "M4 5h16v11H10l-5 4v-4H4zM8 9h8M8 12h5",                 // balão de fala
@@ -385,13 +381,9 @@
     guarantee: "M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM8.5 12l2.5 2.5 4.5-5", // escudo ✓
     offer: "M3 12V4h8l10 10-8 8zM7.5 7.5h.01",                              // etiqueta de preço
     social: "M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4", // compartilhar
-    curriculum: "M4 4h16v5H4zM4 11h16v5H4zM17 6.5h.01M17 13.5h.01M4 20h10",   // módulos empilhados
     demo: "M3 7h18v13H3zM3 7l2-3h5l2 3M8 13l3 2.5L16 11",                      // aba com imagem
-    feature: "M3 4h8v7H3zM14 5h7M14 8h5M13 14h8v7h-8zM3 15h7M3 18h5",          // texto e imagem alternados
-    urgency: "M3 5h18v5H3zM13 3l-3 5h4l-3 5M5 15h14M7 19h10",                  // faixa de topo com raio
-    countdown: "M3 7h4v10H3zM10 7h4v10h-4zM17 7h4v10h-4zM8.5 10.5h.01M8.5 13.5h.01M15.5 10.5h.01M15.5 13.5h.01", // caixas do cronômetro
+    timer: "M12 21a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM12 9v4l2.5 1.5M9 2h6M12 2v3", // cronômetro (faixa e contagem)
     bonus: "M4 11h16v10H4zM3 7h18v4H3zM12 7v14M12 7c-2-4-6-3-5 0M12 7c2-4 6-3 5 0", // presente
-    table: "M3 4h18v16H3zM3 9h18M3 14.5h18M9 4v16M15 4v16",                   // tabela
     _fallback: "M4 4h16v16H4zM8 9h8M8 13h8M8 17h5"
   };
   function blockIcon(type, className) {
@@ -457,6 +449,17 @@
     }
   });
   document.addEventListener("keydown", function (e) { if (e.key === "Escape") closePops(null); });
+  // O balão do "i" começa na borda esquerda da linha do título; no celular, a largura dele fica
+  // limitada ao espaço até a borda direita da tela, para não sair dela.
+  function fitInfo(e) {
+    var pop = e.target.closest && e.target.closest(".info-pop");
+    var text = pop && pop.querySelector(".info-text");
+    if (!text) return;
+    var row = pop.closest(".title-row, .label-row, .legend-info") || pop.parentElement;
+    text.style.maxWidth = Math.max(200, document.documentElement.clientWidth - row.getBoundingClientRect().left - 16) + "px";
+  }
+  document.addEventListener("pointerover", fitInfo);
+  document.addEventListener("focusin", fitInfo);
 
   // Busca das listas (Imagens, Blocos salvos, Empresas): sem diferenciar maiúsculas nem acentos
   // ("tributaria" encontra "Tributária"); todas as palavras digitadas precisam aparecer.

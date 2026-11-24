@@ -1,7 +1,7 @@
 (function () {
   "use strict";
   // Carrossel: setas e pontos são opcionais, a rolagem já funciona sozinha.
-  // Vale para todos os .carousel da página (uma página de vendas pode ter mais de uma galeria).
+  // Vale para todos os .carousel da página (uma página de vendas pode ter mais de um carrossel).
   var reduce =
     window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   // Dentro do editor do painel (<html data-editor>) a página é só uma prévia editável.
@@ -14,7 +14,7 @@
     var slides = [].slice.call(track.children);
     var prev = root.querySelector(".prev"),
       next = root.querySelector(".next");
-    // Painel do módulo ao lado (galeria com títulos/tópicos): mostra só o do slide atual.
+    // Painel do módulo ao lado (carrossel com títulos/listas): mostra só o do slide atual.
     var split = root.parentElement && root.parentElement.classList.contains("gallery-split") ? root.parentElement : null;
     var panels = split ? [].slice.call(split.querySelectorAll(".module-panel")) : [];
     function showPanel(i) {
@@ -28,13 +28,39 @@
     }
     prev.hidden = next.hidden = dots.hidden = false;
 
-    function go(i) {
+    // Giro contínuo: uma cópia das imagens antes e outra depois das reais. Quando a rolagem para
+    // numa cópia, a página pula (sem animação) para a imagem real equivalente, então sempre há
+    // imagens dos dois lados. No editor não há cópias (o slide "Adicionar imagem" e os × não
+    // podem se repetir): as setas só voltam ao começo.
+    var count = slides.length; // imagens reais
+    var loop = !editing;
+    if (loop) {
+      var copy = function (s) {
+        var c = s.cloneNode(true);
+        c.setAttribute("aria-hidden", "true"); // leitores de tela contam só as reais
+        c.removeAttribute("aria-label");
+        return c;
+      };
+      var before = slides.map(copy), after = slides.map(copy);
+      track.prepend.apply(track, before);
+      track.append.apply(track, after);
+      slides = before.concat(slides, after);
+    }
+    var base = loop ? count : 0; // posição da 1ª imagem real
+
+    function go(i, instant) {
       i = Math.max(0, Math.min(slides.length - 1, i));
       track.scrollTo({
         left:
           slides[i].offsetLeft - (track.clientWidth - slides[i].clientWidth) / 2,
-        behavior: reduce ? "auto" : "smooth",
+        behavior: reduce || instant ? "auto" : "smooth",
       });
+    }
+    // Parou numa cópia: pula para a real equivalente (mesma distância, só muda o trecho).
+    function recenter() {
+      var c = current();
+      var t = c < base ? c + count : c >= base + count ? c - count : c;
+      if (t !== c) track.scrollLeft += slides[t].offsetLeft - slides[c].offsetLeft;
     }
     function current() {
       var mid = track.scrollLeft + track.clientWidth / 2,
@@ -49,12 +75,12 @@
       });
       return best;
     }
-    var buttons = slides.map(function (_, i) {
+    var buttons = slides.slice(base, base + count).map(function (_, i) {
       var b = document.createElement("button");
       b.type = "button";
       b.setAttribute("aria-label", "Ir para o slide " + (i + 1));
       b.addEventListener("click", function () {
-        go(i);
+        go(base + i);
       });
       dots.append(b);
       return b;
@@ -126,12 +152,14 @@
       var c = Math.round(x);
       if (c === shown) return;
       shown = c;
-      showPanel(c);
+      showPanel(c % count);
       buttons.forEach(function (b, i) {
+        b.setAttribute("aria-current", String(i === c % count));
+      });
+      slides.forEach(function (s, i) {
         var d = i - c;
-        b.setAttribute("aria-current", String(d === 0));
-        if (d === 0) slides[i].removeAttribute("data-pos");
-        else slides[i].setAttribute("data-pos", (Math.abs(d) > 1 ? "far-" : "") + (d < 0 ? "prev" : "next"));
+        if (d === 0) s.removeAttribute("data-pos");
+        else s.setAttribute("data-pos", (Math.abs(d) > 1 ? "far-" : "") + (d < 0 ? "prev" : "next"));
       });
     }
     var pending = false;
@@ -149,21 +177,30 @@
         s.addEventListener("click", function () { if (i !== current()) go(i); });
       });
     }
-    prev.addEventListener("click", function () {
-      go(current() - 1);
-    });
-    next.addEventListener("click", function () {
-      go(current() + 1);
-    });
+    // Com as cópias, a seta sempre tem para onde ir; sem elas (editor), volta ao começo.
+    function move(d) {
+      var i = current() + d;
+      go(loop ? i : (i + count) % count);
+    }
+    prev.addEventListener("click", function () { move(-1); });
+    next.addEventListener("click", function () { move(1); });
+    // Fim da rolagem: "scrollend" onde existe; nos outros navegadores, uma pausa sem rolar.
+    var settle = 0;
     track.addEventListener(
       "scroll",
       function () {
         sync();
+        if (loop && !("onscrollend" in window)) {
+          clearTimeout(settle);
+          settle = setTimeout(recenter, 150);
+        }
       },
       { passive: true },
     );
+    if (loop && "onscrollend" in window) track.addEventListener("scrollend", recenter);
     track.tabIndex = 0; // permite usar as setas do teclado para rolar
     sync(true);
+    if (loop) go(base, true); // começa na 1ª imagem real, com a última à esquerda
     root.classList.add("is-ready");
   }
 
@@ -255,60 +292,6 @@
     });
   }
   if (!reduce && !editing) [].forEach.call(document.querySelectorAll("details.faq"), accordion);
-
-  // Animações ao rolar: títulos, cartões e itens surgem suavemente ao entrar na tela.
-  // Fora quando a pessoa pede menos movimento e dentro do editor do painel (<html data-editor>),
-  // onde a página é redesenhada a cada mudança e nada pode ficar escondido.
-  if (reduce || !("IntersectionObserver" in window) || editing) return;
-
-  var SELECTOR = [
-    ".v-section .v-eyebrow", ".v-section h2", ".v-section .v-intro", ".v-card", ".grid8 > li", ".who > li", ".v-quote",
-    ".faq", ".seals > li", ".banner", ".author-photo", ".carousel", ".v-strip-row", ".link-list > li",
-    ".offer-main > *", ".buy-card", ".v-steps > li", ".module-panels", ".demo", ".feature-row",
-    ".bonus-card", ".v-compare-wrap", ".v-countdown h2", ".v-count",
-  ].join(",");
-  // O cartão de compra (preço e botão) entra sem esperar a cascata dos outros itens.
-  var NO_DELAY = ".buy-card";
-  var STEP = 70, MAX_STEPS = 4;
-
-  // Entra quando o topo do item passa de 90% da altura da tela, qualquer que seja a altura dele
-  // (threshold 0: um bloco alto não fica vazio esperando uma fração dele aparecer).
-  // Cascata só entre os itens que entram JUNTOS, em ordem de posição (de cima para baixo, da
-  // esquerda para a direita): uma grade que aparece inteira entra em sequência; um item que
-  // entra sozinho ao rolar aparece na hora, sem atraso.
-  var observer = new IntersectionObserver(function (entries) {
-    var arriving = entries.filter(function (entry) { return entry.isIntersecting; });
-    arriving.sort(function (a, b) {
-      return a.boundingClientRect.top - b.boundingClientRect.top || a.boundingClientRect.left - b.boundingClientRect.left;
-    });
-    var step = 0;
-    arriving.forEach(function (entry) {
-      var el = entry.target;
-      observer.unobserve(el);
-      var delay = el.matches(NO_DELAY) ? 0 : Math.min(step++, MAX_STEPS) * STEP;
-      if (delay) el.style.setProperty("--reveal-delay", delay + "ms");
-      el.classList.add("is-in");
-    });
-  }, { rootMargin: "0px 0px -10% 0px", threshold: 0 });
-
-  // Terminada a entrada, a classe sai: os cartões voltam à própria transição (efeito ao passar o mouse).
-  function done(event) {
-    var el = event.currentTarget;
-    if (event.target !== el || !el.classList.contains("is-in")) return;
-    el.classList.remove("reveal", "is-in");
-    el.style.removeProperty("--reveal-delay");
-    el.removeEventListener("transitionend", done);
-  }
-
-  var fold = window.innerHeight;
-  [].forEach.call(document.querySelectorAll(SELECTOR), function (el) {
-    // O que já aparece ao abrir a página não é animado (não atrasa a primeira dobra).
-    if (el.getBoundingClientRect().top < fold) return;
-    if (el.parentElement && el.parentElement.closest(SELECTOR)) return; // já entra junto com o cartão em volta
-    el.classList.add("reveal");
-    el.addEventListener("transitionend", done);
-    observer.observe(el);
-  });
 })();
 
 // Cronômetro da oferta (<p class="offer-timer" data-ends-at> e o cronômetro grande do bloco

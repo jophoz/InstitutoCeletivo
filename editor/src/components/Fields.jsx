@@ -11,9 +11,10 @@ import { sizeHint } from "../labels.js";
 import { InfoTip } from "../ui/InfoTip.jsx";
 
 // compact: dentro de itens de lista (textos longos começam com 2 linhas em vez de 3).
-export function Field({ field, value, path, compact, inline }) {
+// shown (listas): quais campos do item aparecem (ex.: só os que o estilo do bloco usa).
+export function Field({ field, value, path, compact, inline, shown }) {
   switch (field.type) {
-    case "list": return <ListField field={field} items={value || []} path={path} />;
+    case "list": return <ListField field={field} items={value || []} path={path} shown={shown} />;
     case "image": return <ImageField field={field} value={value} path={path} />;
     case "bool": return <BoolField field={field} value={value} path={path} />;
     case "icon": return <IconField field={field} value={value} path={path} />;
@@ -159,9 +160,10 @@ function ImageField({ field, value, path }) {
   );
 }
 
-function ListField({ field, items, path }) {
+function ListField({ field, items, path, shown }) {
   const { dispatch, focusLater } = useEditor();
   const full = items.length >= field.max;
+  const visible = Object.entries(field.item).filter(([, sub]) => !shown || shown(sub));
 
   async function remove(index) {
     const item = items[index];
@@ -194,7 +196,7 @@ function ListField({ field, items, path }) {
       <legend>{field.label} ({items.length} de {field.max})</legend>
       <SortableList ids={ids} label={(key) => `Item ${ids.indexOf(key) + 1}`} onMove={moveTo}>
         {items.map((item, index) => (
-          <ListItem key={item._key} item={item} index={index} total={items.length} field={field} path={path}
+          <ListItem key={item._key} item={item} index={index} total={items.length} fields={visible} path={path}
             onMove={move} onRemove={remove} />
         ))}
       </SortableList>
@@ -204,11 +206,11 @@ function ListField({ field, items, path }) {
 }
 
 // Um item da lista (componente próprio: hooks como useSortableItem não podem ser chamados num laço).
-function ListItem({ item, index, total, field, path, onMove, onRemove }) {
+function ListItem({ item, index, total, fields: visible, path, onMove, onRemove }) {
   const { itemRef, itemStyle, isDragging, handleProps } = useSortableItem(item._key);
   // Itens só com campos curtos (texto de uma linha / liga-desliga) ficam numa linha só:
   // ⠿ [campos] [↑ ↓ ✕] — sem o título "Item N" ocupando uma linha a mais.
-  const inline = Object.values(field.item).every((f) => f.type === "text" || f.type === "url" || f.type === "bool");
+  const inline = visible.every(([, f]) => f.type === "text" || f.type === "url" || f.type === "bool");
 
   const tools = (
     <div className="tools">
@@ -222,7 +224,7 @@ function ListItem({ item, index, total, field, path, onMove, onRemove }) {
   const fields = (
     // Campos lado a lado (grade): curtos dividem a linha; textos longos, imagens e ícones ocupam a largura toda
     <div className={`item-fields${inline ? " inline" : ""}`}>
-      {Object.entries(field.item).map(([name, sub]) => (
+      {visible.map(([name, sub]) => (
         <Field key={name} field={sub} value={item[name]} path={[...path, index, name]} compact inline={inline} />
       ))}
     </div>

@@ -7,7 +7,7 @@ const { baseUrl } = require("../lib/base-url"); // prévias de link: og:url e og
 const { assetUrl } = require("../lib/assets");
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { UUID } = require("../lib/ids");
 
 function notFound(res, message = "A página que você procurou não existe ou não está mais disponível.") {
   res.status(404).type("html").send(html`<!DOCTYPE html>

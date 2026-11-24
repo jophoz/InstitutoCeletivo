@@ -2,6 +2,7 @@ const pool = require("../config/database");
 const defaultBrand = require("../lib/default-brand");
 const storage = require("../lib/storage");
 const { detectType, processImage } = require("../lib/images");
+const { isUuid: isValidId } = require("../lib/ids");
 
 // "usage": onde a imagem é usada — como capa de produto ("cover"), logo ou ícone da aba de uma
 // empresa ("brand" / "brand-icon", aba Empresas), dentro de uma página de vendas ("page") ou num
@@ -32,10 +33,6 @@ const USAGE_LABEL = { cover: "capa de", brand: "logo da empresa", "brand-icon": 
 // Troca a chave interna pela URL pública; o caminho no disco não sai do servidor.
 function toResponse({ storage_key, ...media }) {
   return { ...media, url: storage.publicUrl(storage_key) };
-}
-
-function isValidId(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function normalizeAlt(value) {
@@ -161,7 +158,13 @@ async function deleteMedia(req, res) {
     if (error.code !== "23503") throw error; // 23503: passou a ser usada no meio do caminho -> 409 abaixo
   }
   if (rows.length) {
-    await storage.remove(rows[0].storage_key, rows[0].variants);
+    // A imagem já saiu do banco: se o arquivo não puder ser apagado, fica só no log (sobra um
+    // arquivo órfão no disco), e o painel recebe sucesso — a exclusão de fato aconteceu.
+    try {
+      await storage.remove(rows[0].storage_key, rows[0].variants);
+    } catch (error) {
+      console.error(`Imagem ${req.params.id} excluída, mas o arquivo ficou no disco: ${error.message}`);
+    }
     return res.status(204).end();
   }
 

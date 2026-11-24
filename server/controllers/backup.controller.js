@@ -10,6 +10,8 @@ const pool = require("../config/database");
 const storage = require("../lib/storage");
 const { detectType, makeVariants } = require("../lib/images");
 const backup = require("../lib/backup");
+const defaultBrand = require("../lib/default-brand");
+const { withTransaction } = require("../lib/transaction");
 const { syncPageMedia } = require("../sales/pages");
 const { syncSharedBlockMedia } = require("./shared-block.controller");
 
@@ -128,35 +130,33 @@ async function importContent(req, res) {
     throw error;
   }
 
-  const client = await pool.connect();
-  let broken; // ROLLBACK falhou (conexão caiu): o cliente é descartado em vez de voltar ao pool
+  let counts;
   try {
-    await client.query("BEGIN");
-    // Só pode haver uma empresa padrão: a do arquivo substitui a deste site.
-    const def = data.brands.find((b) => b.is_default === true);
-    if (def) await client.query("UPDATE brands SET is_default = false WHERE is_default AND id <> $1", [def.id]);
+    counts = await withTransaction(async (client) => {
+      // Só pode haver uma empresa padrão: a do arquivo substitui a deste site.
+      const def = data.brands.find((b) => b.is_default === true);
+      if (def) await client.query("UPDATE brands SET is_default = false WHERE is_default AND id <> $1", [def.id]);
 
-    const counts = {};
-    for (const t of backup.TABLES) {
-      counts[t.key] = { created: 0, updated: 0 };
-      for (const row of data[t.key]) {
-        const q = backup.upsertQuery(t, row);
-        const { rows } = await client.query(`${q.text} RETURNING (xmax = 0) AS created`, q.values);
-        counts[t.key][rows[0].created ? "created" : "updated"]++;
+      const out = {};
+      for (const t of backup.TABLES) {
+        out[t.key] = { created: 0, updated: 0 };
+        for (const row of data[t.key]) {
+          const q = backup.upsertQuery(t, row);
+          const { rows } = await client.query(`${q.text} RETURNING (xmax = 0) AS created`, q.values);
+          out[t.key][rows[0].created ? "created" : "updated"]++;
+        }
       }
-    }
-    for (const b of data.sharedBlocks) await syncSharedBlockMedia(client, b.id, b.type, b.data);
-    for (const p of data.salesPages) await syncPageMedia(client, p.id);
-    await client.query("COMMIT");
-    return res.json({ data: { counts } });
+      for (const b of data.sharedBlocks) await syncSharedBlockMedia(client, b.id, b.type, b.data);
+      for (const p of data.salesPages) await syncPageMedia(client, p.id);
+      return out;
+    });
   } catch (error) {
-    await client.query("ROLLBACK").catch((rollbackError) => { broken = rollbackError; }); // mantém o erro original
     const message = backup.describeDbError(error);
     if (message) return res.status(409).json({ error: message });
     throw error;
-  } finally {
-    client.release(broken);
   }
+  defaultBrand.invalidate(); // a empresa padrão (ou o logo dela) pode ter mudado: menu e ícone do site
+  return res.json({ data: { counts } });
 }
 
 module.exports = { exportBackup, checkBackup, importMedia, importContent };

@@ -195,6 +195,10 @@ main p {
 .v-card.center .v-intro {
   margin-bottom: 1.5rem;
 }
+/* Descrição no fim da seção (Apresentação), depois dos itens. */
+.v-intro.is-last {
+  margin: 2rem auto 0;
+}
 .narrow {
   max-width: 780px;
 }
@@ -222,14 +226,6 @@ main p {
   border-radius: var(--v-radius-md);
   color: var(--v-accent-ink);
   background: color-mix(in srgb, var(--v-cta) 14%, transparent);
-}
-.ico.big {
-  display: block;
-  width: 64px;
-  height: 64px;
-  padding: 16px;
-  margin: 0 auto 1.25rem;
-  border-radius: var(--v-radius);
 }
 .muted-on-dark {
   display: block;
@@ -352,11 +348,6 @@ main p {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 1.5rem;
-}
-.v-strip-price {
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
 }
 @media (max-width: 599px) {
   .v-strip-action,
@@ -1171,6 +1162,18 @@ html[data-editor] .to-top {
   font-size: 0.75em;
   font-weight: 500;
   color: var(--color-muted);
+}
+/* "R$ 62,00 a menos": linha própria abaixo do preço com "de/por". */
+.price > .price-save {
+  display: block;
+  width: fit-content;
+  margin-top: 0.3rem;
+  padding: 0.1rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--tx-green);
+  background: color-mix(in srgb, var(--tx-green) 12%, transparent);
+  border-radius: 999px;
 }
 /* "Ver detalhes": botão cheio na cor de destaque, na largura do cartão. */
 .card-link {

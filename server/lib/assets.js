@@ -73,10 +73,14 @@ function isCurrentVersion(urlPath, v, root = PUBLIC_DIR) {
   return typeof v === "string" && VERSIONED.test(urlPath) && v === fileHash(urlPath, root);
 }
 
-// Página HTML da pasta pública com as versões nos links (ou null se não existe). Guarda o HTML
-// original e reescreve a cada pedido (os hashes já estão em memória): se só um CSS mudar, a página
-// passa a apontar para a versão nova dele.
+// Página HTML da pasta pública com as versões nos links (ou null se não existe).
+// Produção: nenhum arquivo muda com o app rodando, então a página já reescrita fica em memória.
+// Desenvolvimento: guarda o HTML original e reescreve a cada pedido (os hashes já estão em
+// memória): se só um CSS mudar, a página passa a apontar para a versão nova dele.
 function htmlPage(urlPath, root = PUBLIC_DIR) {
+  if (RECHECK_MS === Infinity) {
+    return cached("page", urlPath, root, (file) => rewriteHtml(fs.readFileSync(file, "utf8"), urlPath, root));
+  }
   const source = cached("html", urlPath, root, (file) => fs.readFileSync(file, "utf8"));
   return source === null ? null : rewriteHtml(source, urlPath, root);
 }
