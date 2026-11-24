@@ -16,13 +16,15 @@
     return typeof p === "number" ? p.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : null;
   };
 
-  // Preço do cartão e da página de detalhes: com oferta, "de R$ X" riscado antes do preço atual.
+  // Preço do cartão e da página de detalhes: com oferta, "de R$ X" riscado antes do preço atual e,
+  // embaixo, quanto custa a menos.
   function priceEl(c) {
     if (!brl(c.preco)) return "";
     if (!brl(c.precoDe)) return el("p", { "class": "price", text: brl(c.preco) });
     return el("p", { "class": "price" }, [
       el("s", { "class": "price-was" }, [el("span", { "class": "sr-only", text: "De " }), brl(c.precoDe)]),
-      el("span", { "class": "sr-only", text: " por " }), " " + brl(c.preco)
+      el("span", { "class": "sr-only", text: " por " }), " " + brl(c.preco),
+      c.economia ? el("span", { "class": "price-save", text: brl(c.economia) + " a menos" }) : ""
     ]);
   }
 
@@ -50,6 +52,9 @@
       preco: p.price_cents === null || p.price_cents === undefined ? null : p.price_cents / 100,
       // Com oferta ativa (cadastro do produto), o preço normal vem em compare_price_cents ("de").
       precoDe: typeof p.compare_price_cents === "number" ? p.compare_price_cents / 100 : null,
+      // Diferença em centavos (sem somar decimais), para o "R$ X a menos".
+      economia: typeof p.compare_price_cents === "number" && typeof p.price_cents === "number"
+        && p.compare_price_cents > p.price_cents ? (p.compare_price_cents - p.price_cents) / 100 : null,
       checkoutUrl: p.checkout_url || "",
       // Com página de vendas publicada, o cartão leva direto para ela.
       pagina: p.has_sales_page ? "/p/" + encodeURIComponent(p.slug) : null,

@@ -254,7 +254,7 @@ test("imagens: todo campo de imagem tem tamanho recomendado", () => {
 
 test("descrição abaixo do título: centralizada após o h2, só preenchida na página pública", () => {
   const types = Object.entries(BLOCKS).filter(([, b]) => b.fields.intro).map(([t]) => t);
-  assert.deepEqual(types.sort(), ["bonus", "compare", "faq", "guarantee", "presentation", "social", "testimonials"]);
+  assert.deepEqual(types.sort(), ["bonus", "compare", "faq", "presentation", "social", "testimonials"]);
   const sections = [{ type: "faq", title: "Dúvidas", intro: "Tudo o que você precisa saber.", items: [{ question: "Q", answer: "A" }] }];
   assert.match(render(sections, false), /Dúvidas<\/h2><p class="v-intro">Tudo o que você precisa saber\.<\/p>/);
   assert.match(render(sections, "live"), /<p class="v-intro" data-field="intro">Tudo o que você precisa saber\.<\/p>/);
@@ -302,8 +302,8 @@ test("listas: a página pública não leva os botões de adicionar e remover", (
 });
 
 test("listas: cheia, sem '+ Adicionar'; carrossel com × em cada imagem", () => {
-  const full = Array.from({ length: BLOCKS.guarantee.fields.items.max }, () => ({ icon: "check", text: "Selo" }));
-  const live = render([{ type: "guarantee", title: "G", items: full }], "live");
+  const full = Array.from({ length: BLOCKS.faq.fields.items.max }, () => ({ question: "P", answer: "R" }));
+  const live = render([{ type: "faq", title: "G", items: full }], "live");
   assert.ok(!live.includes("data-item-add"));
   assert.ok(live.includes(`data-item-remove="items.${full.length - 1}"`));
   const data = product([{ type: "demo", title: "G", items: [{ image: M1 }] }]);
@@ -747,6 +747,10 @@ test("garantia: selo à esquerda e texto longo; sem selo, o cartão centralizado
   const plain = render([{ type: "guarantee", title: "7 dias" }], false);
   assert.match(plain, /<div class="v-card center"><div class="guarantee-body"><h2/);
   assert.ok(!plain.includes("seal-img"));
+  // No editor, o espaço do selo aparece à esquerda mesmo sem imagem; selos e descrição antigos não aparecem.
+  const live = render([{ type: "guarantee", title: "7 dias", intro: "Antiga", items: [{ icon: "lock", text: "Seguro" }] }], "live");
+  assert.match(live, /<div class="v-card center has-seal"><span class="img-slot seal-img" data-image-field="image"/);
+  assert.ok(!/class="seals"|v-intro|Antiga/.test(live));
 });
 
 test("depoimentos: estrelas só quando escolhidas, com a nota em texto para leitores de tela", () => {
@@ -805,4 +809,16 @@ test("destaque: sem imagem (padrão), imagem ao lado ou no centro; sem imagem na
   // No editor, o espaço da imagem aparece antes dos textos (o CSS põe à direita quando é o caso).
   assert.match(render([{ ...base, layout: "left" }], "live"), /<div class="banner is-side"><span class="img-slot banner-img" data-image-field="image"/);
   assert.match(render([{ ...base, layout: "top" }], "live"), /<div class="banner is-top"><div class="banner-head"><h2[^>]*>Bônus<\/h2>.*?<\/div><\/div><span class="img-slot banner-img"[^>]*>.*?<\/span><ul class="mini">/);
+});
+
+test("todo botão de compra fora da Oferta final leva à seção de compra (#oferta)", () => {
+  const page = withOffer([
+    { type: "author", name: "Instituto", show_cta: true, cta_label: "Autor" },
+    { type: "timer", style: "countdown", title: "T", cta_label: "Contagem" },
+    { type: "offer", title: "Oferta", text: "", items: [], conditions: [], seals: [] },
+  ]);
+  assert.match(page, /<a class="btn-cta" href="#oferta">Autor<\/a>/);
+  assert.match(page, /<a class="btn-cta" href="#oferta">Contagem<\/a>/);
+  // o botão do próprio cartão de compra continua indo ao checkout
+  assert.match(page, /id="oferta"[\s\S]*<a class="btn-cta" href="https:\/\/pay\.example\.com[^"]*"/);
 });

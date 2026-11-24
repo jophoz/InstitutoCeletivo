@@ -400,14 +400,13 @@ const BLOCKS = {
   },
   guarantee: {
     label: "Garantia",
-    help: "Faixa de confiança: selo de garantia, texto com as condições e selos de compra segura.",
-    removed: ["eyebrow"], // o rótulo acima do título saiu (só a Abertura e a Oferta final têm)
+    help: "Selo de garantia à esquerda; à direita, o título e um parágrafo com as condições.",
+    // Saíram: o rótulo acima do título, a descrição e os selos (os de compra segura ficam na Oferta final).
+    removed: ["eyebrow", "intro", "items"],
     fields: {
-      image: image("Selo de garantia (opcional)", { size: "400 × 400 px", tip: "PNG com fundo transparente" }),
+      image: image("Selo de garantia", { size: "400 × 400 px", tip: "PNG com fundo transparente" }),
       title: text("Título", 120),
-      intro: intro(),
-      text: textarea("Texto da garantia", 800, { help: "Opcional. Explique o prazo e como pedir o reembolso." }),
-      items: list("Selos", 4, { icon: icon(), text: text("Texto", 80) }, "selo"),
+      text: textarea("Texto da garantia", 800, { help: "Explique o prazo e como pedir o reembolso." }),
       background: background(),
     },
   },
@@ -428,23 +427,42 @@ const BLOCKS = {
   },
   offer: {
     label: "Oferta final",
-    help: "Última chamada: texto e benefícios à esquerda, cartão de compra à direita. Preço e link vêm do cadastro do produto.",
+    help: "Última chamada, em um destes estilos: simples (texto e benefícios à esquerda, cartão de compra à direita) ou dupla (a oferta normal e a Melhor opção lado a lado, a Melhor opção em destaque). Preço e link vêm do cadastro do produto.",
     fields: {
+      style: choice("Estilo", {
+        single: "Oferta simples",
+        double: "Oferta dupla",
+      }, "single", {
+        help: "Simples: texto e benefícios à esquerda, cartão de compra à direita. Dupla: título no topo e dois cartões — a oferta normal e a Melhor opção (ex.: curso com bônus), cada um com o seu botão. O preço e o link da Melhor opção ficam no cadastro do produto (Editar produto › Ofertas); sem eles, a página mostra só a oferta normal.",
+        // Miniatura de cada estilo no editor (SVG 48×32, traço), como na Abertura.
+        previews: {
+          single: "M3 8h18M3 12h14M3 16h16M3 20h12M27 4h18v24H27zM31 18h10",
+          double: "M14 3h20M5 8h17v21H5zM26 6h17v23H26zM9 23h9M30 23h9",
+        },
+      }),
       image: image("Imagem (topo do cartão de compra)", { size: "1000 × 750 px", tip: "PNG com fundo transparente fica melhor" }),
       eyebrow: eyebrow(),
       title: text("Título", 200),
       text: textarea("Descrição", 600),
-      items: list("Benefícios", 4, { icon: icon(), text: text("Texto", 100) }, "benefício"),
-      proof_icon: icon("Ícone do cartão de credibilidade"),
-      proof_title: text("Credibilidade: destaque", 80),
-      proof_text: text("Credibilidade: texto", 200),
-      price_label: text("Texto acima do preço", 40, { placeholder: "Oferta especial" }),
+      items: list("Benefícios", 4, { icon: icon(), text: text("Texto", 100) }, "benefício", { showIf: { field: "style", in: ["single"] } }),
+      proof_icon: { ...icon("Ícone do cartão de credibilidade"), showIf: { field: "style", in: ["single"] } },
+      proof_title: text("Credibilidade: destaque", 80, { showIf: { field: "style", in: ["single"] } }),
+      proof_text: text("Credibilidade: texto", 200, { showIf: { field: "style", in: ["single"] } }),
+      card_title: text("Cartão da oferta normal: título", 80, { placeholder: "Ex.: Curso completo", showIf: { field: "style", in: ["double"] } }),
+      price_label: text("Texto acima do preço", 40, { placeholder: "Ex.: Acesso completo" }),
       conditions: list("Condições de acesso", 6, { text: text("Texto", 120) }, "condição"),
-      guarantee_title: text("Garantia: título", 80, { placeholder: "Garantia de 7 dias" }),
-      guarantee_text: text("Garantia: texto", 300),
+      guarantee_title: text("Garantia: título", 80, { placeholder: "Garantia de 7 dias", showIf: { field: "style", in: ["single"] } }),
+      guarantee_text: text("Garantia: texto", 300, { showIf: { field: "style", in: ["single"] } }),
       cta_label: text("Texto do botão", 60, { placeholder: "Garantir agora" }),
-      note: text("Aviso abaixo do botão", 160, { help: "Vazio = \"Pagamento processado com segurança pela Kiwify.\"" }),
-      seals: list("Selos de compra segura", 4, { icon: icon(), text: text("Texto", 40) }, "selo"),
+      note: text("Aviso abaixo do botão", 160, { help: "Vazio = \"Pagamento processado com segurança pela Kiwify.\" Na oferta dupla, fica abaixo dos dois cartões." }),
+      seals: list("Selos de compra segura", 4, { icon: icon(), text: text("Texto", 40) }, "selo", { showIf: { field: "style", in: ["single"] } }),
+      // Oferta dupla: o cartão da Melhor opção (preço e link: cadastro do produto, Ofertas).
+      special_badge: text("Melhor opção: selo de destaque", 30, { placeholder: "Melhor opção", showIf: { field: "style", in: ["double"] } }),
+      special_image: image("Melhor opção: imagem", { size: "1000 × 750 px", tip: "PNG com fundo transparente fica melhor", showIf: { field: "style", in: ["double"] } }),
+      special_title: text("Melhor opção: título", 80, { placeholder: "Ex.: Curso + bônus", showIf: { field: "style", in: ["double"] } }),
+      special_price_label: text("Melhor opção: texto acima do preço", 40, { showIf: { field: "style", in: ["double"] } }),
+      special_items: list("Melhor opção: o que vem junto", 8, { icon: icon(), text: text("Texto", 120) }, "item", { showIf: { field: "style", in: ["double"] } }),
+      special_cta_label: text("Melhor opção: texto do botão", 60, { placeholder: "Quero a melhor opção", showIf: { field: "style", in: ["double"] } }),
     },
   },
   demo: {
@@ -587,7 +605,7 @@ const BLOCK_GROUPS = [
 ];
 
 const MAX_BLOCKS = 30;
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const { UUID } = require("../lib/ids");
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 // Nome definido no próprio objeto (o operador "in" aceitaria também "constructor", "toString"...).
 const has = (obj, key) => typeof key === "string" && Object.hasOwn(obj, key);
@@ -790,8 +808,7 @@ function defaultSections() {
       rows: [{ label: "Primeiro critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" },
         { label: "Segundo critério", left: "Ponto fraco da alternativa", right: "Ponto forte do produto" }] },
     { type: "author", name: "Nome do autor", role: "Especialidade", bio: "Breve biografia." },
-    { type: "guarantee", title: "Garantia de 7 dias", text: "Se por qualquer motivo você achar que o material não é para você, é só pedir o reembolso dentro do prazo.",
-      items: [{ icon: "lock", text: "Pagamento seguro" }, { icon: "refresh", text: "Reembolso sem burocracia" }] },
+    { type: "guarantee", title: "Garantia de 7 dias", text: "Se por qualquer motivo você achar que o material não é para você, é só pedir o reembolso dentro do prazo." },
     { type: "faq", title: "Dúvidas mais frequentes", items: [
       { question: "Em que formato recebo o produto?", answer: "Explique o formato e como acessar." },
       { question: "Tem garantia?", answer: "Explique a política de garantia." }] },
@@ -800,7 +817,7 @@ function defaultSections() {
       items: [{ icon: "bolt", text: "Acesso imediato" }, { icon: "doc", text: "Conteúdo prático" },
         { icon: "refresh", text: "Atualizações incluídas" }, { icon: "headset", text: "Suporte por e-mail" }],
       proof_icon: "award", proof_title: "Feito por especialista", proof_text: "Material criado por quem vive o assunto na prática.",
-      price_label: "Oferta especial",
+      price_label: "Acesso completo",
       conditions: [{ text: "Pagamento único" }, { text: "Acesso imediato após a compra" }],
       guarantee_title: "Garantia de 7 dias", guarantee_text: "Se não gostar, devolvemos o seu dinheiro.",
       cta_label: "Quero me matricular agora",

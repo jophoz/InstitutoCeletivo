@@ -6,7 +6,7 @@ const { normalizeTheme, themeHref, DEFAULT_THEME } = require("./theme");
 const { toHtml, paragraphsHtml, alignOf } = require("./richtext");
 const { assetUrl } = require("../lib/assets"); // ?v= nos CSS/JS: cache longo no navegador
 const { headerAttrs } = require("../lib/site-brand");
-const { effectiveOffer, formatEnd } = require("../lib/offer");
+const { effectiveOffer, specialOffer, savings, formatEnd } = require("../lib/offer");
 
 // Largura em que cada tipo de imagem aparece na tela (atributo sizes; ver venda.css). Com isso e
 // o srcset, o navegador baixa a menor versão que fica nítida naquela tela.
@@ -29,7 +29,9 @@ const IMAGE_SIZES = {
   "banner-img": "(min-width: 1100px) 520px, (min-width: 760px) 46vw, calc(100vw - 4rem)",
 };
 
-const brl = (cents) => (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+// Um formatador só (criar um a cada preço, como faz toLocaleString, custa bem mais).
+const BRL = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const brl = (cents) => BRL.format(cents / 100);
 
 // Textos dos blocos podem ter formatação (negrito, cor, alinhamento: ver richtext.js). Antes de
 // desenhar, cada texto vira HTML seguro já formatado, guardando o original em .raw: assim os
@@ -230,9 +232,10 @@ function createContext(data, { live = false } = {}) {
     // Botão de compra: o link vem SEMPRE do cadastro do produto (fonte única).
     // label: texto do bloco (vazio = usa o fallback); path: o campo, para a edição no editor.
     // icon: ícone antes do texto (ex.: o cadeado do cartão de compra).
-    cta(label, fallback, path, { icon = null } = {}) {
-      if (!data.checkout_url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
-      return html`<a class="btn-cta" href="${data.checkout_url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${ctx.ctaText(label, fallback, path)}<span class="sr-only"> (abre em nova aba)</span></a>`;
+    // url: outro link de compra (ex.: o da Melhor opção); padrão, o do produto.
+    cta(label, fallback, path, { icon = null, url = data.checkout_url } = {}) {
+      if (!url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
+      return html`<a class="btn-cta" href="${url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${ctx.ctaText(label, fallback, path)}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
     ctaText(label, fallback, path) {
       return ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
@@ -248,7 +251,12 @@ function createContext(data, { live = false } = {}) {
     // Preço que vale agora. Com oferta ativa: "de R$ X por R$ Y" e, com prazo, o cronômetro.
     price(label, path) {
       if (data.price_cents === null || data.price_cents === undefined) return null;
-      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${ctx.amount()}</p>${ctx.timer()}`;
+      return html`<p class="price-big">${ctx.show(label) && html`<span class="muted-on-dark"${ctx.field(path, label)}>${label}</span>`} ${ctx.amount()}</p>${ctx.save(data.offer.compare_cents, data.price_cents)}${ctx.timer()}`;
+    },
+    // Quanto custa a menos com o "de/por" (promoção ou Melhor opção): "R$ 62,00 a menos".
+    save(compare, price) {
+      const diff = savings(compare, price);
+      return diff && html`<p class="price-save">${brl(diff)} a menos</p>`;
     },
     amount() {
       const was = data.offer.compare_cents;
@@ -431,7 +439,7 @@ const RENDERERS = {
     const photo = ctx.img(b.photo, "author-photo", { path: "photo" });
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container author${photo ? "" : " no-media"}">
   ${photo}
-  <div><h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}${b.show_cta && html`<p class="author-cta">${ctx.cta(b.cta_label, "Quero começar agora", "cta_label")}</p>`}</div>
+  <div><h2 id="${id}"${ctx.field("name", b.name)}>${b.name}</h2>${ctx.show(b.role) && html`<p class="muted"><strong${ctx.field("role", b.role)}>${b.role}</strong></p>`}${ctx.paras("bio", b.bio)}${authorLinks(b, ctx)}${b.show_cta && html`<p class="author-cta">${ctx.scrollCta(b.cta_label, "Quero começar agora", "cta_label")}</p>`}</div>
 </div></section>`;
   },
 
@@ -491,45 +499,18 @@ const RENDERERS = {
 </div></section>`;
   },
 
-  // Garantia: com o selo (imagem), ele fica à esquerda e o texto à direita; sem selo, tudo centralizado.
+  // Garantia: selo (imagem) à esquerda; à direita, o título e o parágrafo. No editor o espaço da
+  // imagem sempre aparece; na página pública, sem selo, o texto fica centralizado.
   guarantee(b, ctx) {
     const id = ctx.headingId();
-    const hasSeal = !!ctx.product.media.get(b.image);
+    const hasSeal = ctx.live || !!ctx.product.media.get(b.image);
     return html`<section class="${ctx.sectionClass(b)}" aria-labelledby="${id}"${ctx.mark()}><div class="container narrow">
-  <div class="v-card center${hasSeal ? " has-seal" : ""}">${ctx.img(b.image, "seal-img", { path: "image", optional: true })}<div class="guarantee-body"><h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.intro(b)}${ctx.paras("text", b.text)}
-    ${(b.items.length > 0 || ctx.live) && html`<ul class="seals">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
-  </div></div>
+  <div class="v-card center${hasSeal ? " has-seal" : ""}">${ctx.img(b.image, "seal-img", { path: "image" })}<div class="guarantee-body"><h2 id="${id}"${ctx.field("title", b.title)}>${b.title}</h2>${ctx.paras("text", b.text)}</div></div>
 </div></section>`;
   },
 
-  // Oferta final: texto, benefícios e credibilidade à esquerda; cartão de compra à direita.
-  // Os cartões opcionais (credibilidade, garantia) só aparecem preenchidos; no editor, vazios,
-  // levam data-empty (aparecem só com o bloco selecionado, como os textos vazios).
-  offer(b, ctx) {
-    const id = ctx.headingId();
-    const card = (filled, cls, content) => (filled || ctx.live)
-      && html`<div class="${cls}"${!filled ? html` data-empty` : null}>${content}</div>`;
-    const pair = (titlePath, title, textPath, text) => html`<p>${ctx.show(title) && html`<strong${ctx.field(titlePath, title)}>${title}</strong>`}${ctx.show(text) && html`<span${ctx.field(textPath, text)}>${text}</span>`}</p>`;
-    return html`<section class="v-final"${ctx.firstOffer() ? html` id="${OFFER_ANCHOR}"` : null} aria-labelledby="${id}"${ctx.mark()}>
-  <div class="container offer-grid">
-    <div class="offer-main">
-      ${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || ctx.product.title}</h2>
-      ${ctx.paras("text", b.text, "lead")}
-      ${(b.items.length > 0 || ctx.live) && html`<ul class="offer-benefits">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
-      ${card(b.proof_title || b.proof_text, "offer-proof", html`${ctx.icon("proof_icon", b.proof_icon)}${pair("proof_title", b.proof_title, "proof_text", b.proof_text)}`)}
-    </div>
-    <div class="buy-card">
-      ${ctx.img(b.image, "buy-media", { path: "image", optional: true })}
-      ${ctx.price(b.price_label, "price_label")}
-      ${(b.conditions.length > 0 || ctx.live) && html`<ul class="mini buy-conditions">${b.conditions.map((x, i) => html`<li class="yes"${ctx.item("conditions", i)}>${mark(true)}${ctx.text(`conditions.${i}.text`, x.text)}${ctx.remove("conditions", i)}</li>`)}${ctx.addItem("conditions", b.conditions)}</ul>`}
-      ${card(b.guarantee_title || b.guarantee_text, "buy-guarantee", html`${svg("shield")}${pair("guarantee_title", b.guarantee_title, "guarantee_text", b.guarantee_text)}`)}
-      ${ctx.cta(b.cta_label, "Garantir agora", "cta_label", { icon: "lock" })}
-      <p class="buy-note"${ctx.field("note", b.note, { fallback: true })}>${b.note || "Pagamento processado com segurança pela Kiwify."}</p>
-      ${(b.seals.length > 0 || ctx.live) && html`<ul class="buy-seals" aria-label="Compra segura">${b.seals.map((x, i) => html`<li${ctx.item("seals", i)}>${ctx.icon(`seals.${i}.icon`, x.icon, "seal-ico")}${ctx.text(`seals.${i}.text`, x.text)}${ctx.remove("seals", i)}</li>`)}${ctx.addItem("seals", b.seals)}</ul>`}
-    </div>
-  </div>
-</section>`;
-  },
+  // Oferta final: o estilo escolhido (ver OFFER_STYLES).
+  offer: (b, ctx) => OFFER_STYLES[b.style](b, ctx),
 
   // Demonstração: o produto por dentro, no estilo escolhido (ver DEMO_STYLES).
   demo: (b, ctx) => DEMO_STYLES[b.style](b, ctx),
@@ -681,6 +662,83 @@ const DEMO_STYLES = {
   },
 };
 
+// Estilos do bloco Oferta final. A âncora #oferta (destino de todos os botões de compra da página
+// e do menu) fica só no primeiro bloco Oferta final.
+const offerSection = (b, ctx, cls, id, content) => html`<section class="${cls}"${ctx.firstOffer() ? html` id="${OFFER_ANCHOR}"` : null} aria-labelledby="${id}"${ctx.mark()}>
+${content}
+</section>`;
+const offerTitle = (b, ctx, id) => html`${ctx.eyebrow(b)}<h2 id="${id}"${ctx.field("title", b.title, { fallback: true })}>${b.title || ctx.product.title}</h2>
+      ${ctx.paras("text", b.text, "lead")}`;
+const offerNote = (b, ctx) => html`<p class="buy-note"${ctx.field("note", b.note, { fallback: true })}>${b.note || "Pagamento processado com segurança pela Kiwify."}</p>`;
+const offerConditions = (b, ctx) => (b.conditions.length > 0 || ctx.live) && html`<ul class="mini buy-conditions">${b.conditions.map((x, i) => html`<li class="yes"${ctx.item("conditions", i)}>${mark(true)}${ctx.text(`conditions.${i}.text`, x.text)}${ctx.remove("conditions", i)}</li>`)}${ctx.addItem("conditions", b.conditions)}</ul>`;
+
+const OFFER_STYLES = {
+  // Simples: texto, benefícios e credibilidade à esquerda; cartão de compra à direita.
+  // Os cartões opcionais (credibilidade, garantia) só aparecem preenchidos; no editor, vazios,
+  // levam data-empty (aparecem só com o bloco selecionado, como os textos vazios).
+  single(b, ctx) {
+    const id = ctx.headingId();
+    const card = (filled, cls, content) => (filled || ctx.live)
+      && html`<div class="${cls}"${!filled ? html` data-empty` : null}>${content}</div>`;
+    const pair = (titlePath, title, textPath, text) => html`<p>${ctx.show(title) && html`<strong${ctx.field(titlePath, title)}>${title}</strong>`}${ctx.show(text) && html`<span${ctx.field(textPath, text)}>${text}</span>`}</p>`;
+    return offerSection(b, ctx, "v-final", id, html`  <div class="container offer-grid">
+    <div class="offer-main">
+      ${offerTitle(b, ctx, id)}
+      ${(b.items.length > 0 || ctx.live) && html`<ul class="offer-benefits">${b.items.map((x, i) => html`<li${ctx.item("items", i)}>${ctx.icon(`items.${i}.icon`, x.icon)}${ctx.text(`items.${i}.text`, x.text)}${ctx.remove("items", i)}</li>`)}${ctx.addItem("items", b.items)}</ul>`}
+      ${card(b.proof_title || b.proof_text, "offer-proof", html`${ctx.icon("proof_icon", b.proof_icon)}${pair("proof_title", b.proof_title, "proof_text", b.proof_text)}`)}
+    </div>
+    <div class="buy-card">
+      ${ctx.img(b.image, "buy-media", { path: "image", optional: true })}
+      ${ctx.price(b.price_label, "price_label")}
+      ${offerConditions(b, ctx)}
+      ${card(b.guarantee_title || b.guarantee_text, "buy-guarantee", html`${svg("shield")}${pair("guarantee_title", b.guarantee_title, "guarantee_text", b.guarantee_text)}`)}
+      ${ctx.cta(b.cta_label, "Garantir agora", "cta_label", { icon: "lock" })}
+      ${offerNote(b, ctx)}
+      ${(b.seals.length > 0 || ctx.live) && html`<ul class="buy-seals" aria-label="Compra segura">${b.seals.map((x, i) => html`<li${ctx.item("seals", i)}>${ctx.icon(`seals.${i}.icon`, x.icon, "seal-ico")}${ctx.text(`seals.${i}.text`, x.text)}${ctx.remove("seals", i)}</li>`)}${ctx.addItem("seals", b.seals)}</ul>`}
+    </div>
+  </div>`);
+  },
+
+  // Dupla: título no topo e dois cartões — a oferta normal e a Melhor opção
+  // (preço e link do cadastro do produto). Sem Melhor opção cadastrada, a página mostra só o
+  // cartão normal; no editor, o especial aparece com o aviso. No celular, o especial vem primeiro.
+  double(b, ctx) {
+    const id = ctx.headingId();
+    const special = ctx.product.special;
+    const showSpecial = !!special || ctx.live;
+    const specialPrice = special
+      ? html`<p class="price-big">${ctx.show(b.special_price_label) && html`<span class="muted-on-dark"${ctx.field("special_price_label", b.special_price_label)}>${b.special_price_label}</span>`} ${special.compare_cents
+        ? html`<s class="price-was"><span class="sr-only">De </span>${brl(special.compare_cents)}</s> <span class="sr-only">por </span>${brl(special.price_cents)}`
+        : brl(special.price_cents)}</p>${ctx.save(special.compare_cents, special.price_cents)}`
+      : html`<p class="price-big">${html`<span class="muted-on-dark"${ctx.field("special_price_label", b.special_price_label)}>${b.special_price_label}</span>`} R$ —</p>`;
+    const specialCard = showSpecial && html`<div class="buy-card is-special${special ? "" : " is-missing"}">
+      <p class="offer-badge"${ctx.field("special_badge", b.special_badge, { fallback: true })}>${b.special_badge || "Melhor opção"}</p>
+      ${ctx.img(b.special_image, "buy-media", { path: "special_image", optional: true })}
+      ${ctx.show(b.special_title) && html`<h3 class="buy-title"${ctx.field("special_title", b.special_title)}>${b.special_title}</h3>`}
+      ${specialPrice}
+      ${(b.special_items.length > 0 || ctx.live) && html`<ul class="special-items">${b.special_items.map((x, i) => html`<li${ctx.item("special_items", i)}>${ctx.icon(`special_items.${i}.icon`, x.icon)}${ctx.text(`special_items.${i}.text`, x.text)}${ctx.remove("special_items", i)}</li>`)}${ctx.addItem("special_items", b.special_items)}</ul>`}
+      ${ctx.cta(b.special_cta_label, "Quero a melhor opção", "special_cta_label", { icon: "lock", url: special?.checkout_url ?? null })}
+      ${!special && html`<p class="offer-missing" role="note">Ligue a Melhor opção no cadastro do produto (Editar produto › Ofertas). Sem ela, este cartão não aparece na página.</p>`}
+    </div>`;
+    return offerSection(b, ctx, "v-final is-double", id, html`  <div class="container">
+    <div class="offer-head">
+      ${offerTitle(b, ctx, id)}
+    </div>
+    <div class="offer-cards${showSpecial ? "" : " is-alone"}">
+      <div class="buy-card">
+        ${ctx.img(b.image, "buy-media", { path: "image", optional: true })}
+        ${ctx.show(b.card_title) && html`<h3 class="buy-title"${ctx.field("card_title", b.card_title)}>${b.card_title}</h3>`}
+        ${ctx.price(b.price_label, "price_label")}
+        ${offerConditions(b, ctx)}
+        ${ctx.cta(b.cta_label, "Garantir agora", "cta_label", { icon: "lock" })}
+      </div>
+      ${specialCard}
+    </div>
+    ${offerNote(b, ctx)}
+  </div>`);
+  },
+};
+
 // Estilos do bloco Cronômetro. Só existem com oferta ativa no cadastro do produto (a contagem, com
 // prazo): nada de "só hoje" sem prazo de verdade. No editor aparecem sempre, marcados como ocultos.
 const TIMER_STYLES = {
@@ -705,7 +763,7 @@ const TIMER_STYLES = {
   ${ends
     ? html`<div class="v-count" data-count-ends="${ends}" data-now="${new Date(ctx.product.now).toISOString()}"><p class="v-count-date">Oferta válida até ${formatEnd(ends)}</p>${countBoxes(true)}</div>`
     : html`<div class="v-count">${countBoxes(false)}</div>`}
-  ${ctx.cta(b.cta_label, "Quero aproveitar", "cta_label")}
+  ${ctx.scrollCta(b.cta_label, "Quero aproveitar", "cta_label")}
 </div></section>`;
   },
 };
@@ -736,8 +794,10 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   // Preço e link que valem agora: os da oferta (se ativa) ou os normais. Nada da oferta encerrada
   // (nem o link promocional) chega à página.
   const offer = effectiveOffer(product, now);
-  const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, ...rest } = product;
-  const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer, now };
+  const { offer_price_cents: _p, offer_checkout_url: _u, offer_ends_at: _e, offer_compare_cents: _c,
+    special_price_cents: _sp, special_checkout_url: _su, special_compare_cents: _sc, ...rest } = product;
+  const data = { ...rest, price_cents: offer.price_cents, checkout_url: offer.checkout_url, offer,
+    special: specialOffer(product), now };
   const ctx = createContext(data, { live });
   ctx.hasOffer = hasOffer(data.sections);
   // Blocos inválidos são ignorados um a um (no editor, viram um aviso com o motivo, para a pessoa

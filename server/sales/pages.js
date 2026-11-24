@@ -9,6 +9,7 @@
 // "Editar produto") e valem assim que ele é salvo.
 const pool = require("../config/database");
 const storage = require("../lib/storage");
+const { withTransaction } = require("../lib/transaction");
 const { validateSections, validBlocks, mediaIds, sharedIds, hasOffer, MAX_BLOCKS } = require("./blocks");
 
 // Blocos válidos de uma lista gravada (os inválidos são ignorados um a um, ver validBlocks).
@@ -22,9 +23,10 @@ const PAGE_COLUMNS = `id, product_id, sections, theme, published_at, created_at,
 // Dados do produto que a página usa (preço, checkout, título, resumo e marca vêm sempre do cadastro).
 // A marca vem da empresa escolhida no produto (aba Empresas): PRODUCT_FROM junta as duas tabelas.
 // Produto sem empresa usa a empresa padrão (menu, rodapé e ícone da aba; o catálogo não muda).
-// A oferta (offer_*) é resolvida na hora de desenhar (ver lib/offer.js).
+// A oferta (offer_*) e a Melhor opção (special_*) são resolvidas na hora de desenhar (ver lib/offer.js).
 const PRODUCT_COLUMNS = `p.id, p.title, p.slug, p.short_description, p.price_cents, p.checkout_url, p.image_id, p.status,
-  p.offer_price_cents, p.offer_checkout_url, p.offer_ends_at,
+  p.offer_price_cents, p.offer_checkout_url, p.offer_ends_at, p.offer_compare_cents,
+  p.special_price_cents, p.special_checkout_url, p.special_compare_cents,
   b.name AS brand_name, b.logo_id AS brand_logo_id, b.icon_id AS brand_icon_id`;
 const PRODUCT_FROM = "products p LEFT JOIN brands b ON b.id = COALESCE(p.brand_id, (SELECT id FROM brands WHERE is_default))";
 
@@ -66,15 +68,15 @@ async function syncPageMedia(client, pageId) {
   const { rows } = await client.query("SELECT sections, published_sections FROM sales_pages WHERE id = $1", [pageId]);
   // Bloco a bloco: um bloco antigo inválido não pode "esconder" as imagens dos outros (elas
   // ficariam sem registro de uso e poderiam ser excluídas com a página no ar).
-  const ids = new Set(mediaIds(storedBlocks(rows[0].sections)));
-  mediaIds(storedBlocks(rows[0].published_sections)).forEach((id) => ids.add(id));
+  const blocks = [...storedBlocks(rows[0].sections), ...storedBlocks(rows[0].published_sections)];
+  const ids = new Set(mediaIds(blocks));
   await client.query("DELETE FROM sales_page_media WHERE sales_page_id = $1", [pageId]);
   if (ids.size) {
     await client.query("INSERT INTO sales_page_media (sales_page_id, media_id) SELECT $1, unnest($2::uuid[])", [pageId, [...ids]]);
   }
 
   // Blocos salvos usados (rascunho + publicada): o banco recusa excluir um bloco salvo em uso.
-  const shared = new Set([...sharedIds(storedBlocks(rows[0].sections)), ...sharedIds(storedBlocks(rows[0].published_sections))]);
+  const shared = new Set(sharedIds(blocks));
   await client.query("DELETE FROM sales_page_shared_blocks WHERE sales_page_id = $1", [pageId]);
   if (shared.size) {
     await client.query("INSERT INTO sales_page_shared_blocks (sales_page_id, shared_block_id) SELECT $1, unnest($2::uuid[])", [pageId, [...shared]]);
@@ -108,15 +110,9 @@ async function resolveShared(sections, { strict = false } = {}) {
 
 // Executa fn(client) numa transação; traduz "imagem não existe mais" para mensagem do painel.
 async function inTransaction(fn) {
-  const client = await pool.connect();
-  let broken; // ROLLBACK falhou (conexão caiu): o cliente é descartado em vez de voltar ao pool
   try {
-    await client.query("BEGIN");
-    const result = await fn(client);
-    await client.query("COMMIT");
-    return result;
+    return await withTransaction(fn);
   } catch (error) {
-    await client.query("ROLLBACK").catch((rollbackError) => { broken = rollbackError; }); // mantém o erro original
     if (error.code === "23503" && error.constraint === "sales_page_media_media_fkey") {
       throw new PageInputError("Uma das imagens escolhidas não existe mais. Escolha outra.");
     }
@@ -124,8 +120,6 @@ async function inTransaction(fn) {
       throw new PageInputError("Um dos blocos salvos usados na página não existe mais. Escolha outro ou remova o bloco.");
     }
     throw error;
-  } finally {
-    client.release(broken);
   }
 }
 

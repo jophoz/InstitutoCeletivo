@@ -46,22 +46,28 @@ async function fetchCheckout(brandId, kiwifyProductId, linkId, cache) {
 // Resumo curto para guardar como "último erro" (coluna de 300 caracteres).
 const errorText = (error) => (error instanceof KiwifyError ? error.message : "Erro inesperado ao consultar a Kiwify.").slice(0, 300);
 
-// Preço e link do link promocional (oferta). Link desativado ou apagado na Kiwify: a oferta sai do
-// ar (preço/link nulos, o vínculo fica para o painel mostrar) e o aviso vai para o painel.
-// Devolve { price_cents, checkout_url, warning }.
-async function fetchOffer(brandId, kiwifyProductId, offerLinkId, cache) {
+// Preço e link de um link extra: o promocional (oferta) ou o da Melhor opção. Link desativado ou
+// apagado na Kiwify: a oferta sai do ar (preço/link nulos, o vínculo fica para o painel mostrar) e
+// o aviso vai para o painel. Devolve { price_cents, checkout_url, warning }.
+const WHAT = { offer: ["Oferta", "o link promocional"], special: ["Melhor opção", "o link da Melhor opção"] };
+async function fetchOffer(brandId, kiwifyProductId, offerLinkId, cache, kind = "offer") {
   try {
     return { ...(await fetchCheckout(brandId, kiwifyProductId, offerLinkId, cache)), warning: null };
   } catch (error) {
     if (!(error instanceof KiwifyError) || error.status !== 404 && !/desativado/.test(error.message)) throw error;
-    return { price_cents: null, checkout_url: null, warning: `Oferta fora do ar: o link promocional ${error.status === 404 ? "não existe mais" : "está desativado"} na Kiwify.` };
+    const [name, link] = WHAT[kind];
+    return { price_cents: null, checkout_url: null, warning: `${name} fora do ar: ${link} ${error.status === 404 ? "não existe mais" : "está desativado"} na Kiwify.` };
   }
 }
+
+// Avisos de mais de um link num só texto (a coluna do último erro tem 300 caracteres).
+const joinWarnings = (...list) => list.filter(Boolean).join(" ").slice(0, 300) || null;
 
 // Atualiza um produto vinculado. Falhou? Mantém o último preço/link e grava o erro para o painel.
 async function syncProduct(productId, cache = new Map()) {
   const { rows } = await pool.query(
-    "SELECT id, brand_id, kiwify_product_id, kiwify_link_id, offer_kiwify_link_id FROM products WHERE id = $1", [productId]);
+    `SELECT id, brand_id, kiwify_product_id, kiwify_link_id, offer_kiwify_link_id,
+            special_kiwify_product_id, special_kiwify_link_id FROM products WHERE id = $1`, [productId]);
   const row = rows[0];
   if (!row) return { found: false };
   if (!row.kiwify_product_id) throw new KiwifyError("Este produto não está vinculado à Kiwify.", 400);
@@ -69,17 +75,24 @@ async function syncProduct(productId, cache = new Map()) {
     const { price_cents: price, checkout_url: url } = await fetchCheckout(row.brand_id, row.kiwify_product_id, row.kiwify_link_id, cache);
     const offer = row.offer_kiwify_link_id
       ? await fetchOffer(row.brand_id, row.kiwify_product_id, row.offer_kiwify_link_id, cache) : null;
-    // Só grava se o vínculo não mudou enquanto a Kiwify respondia. Sem link promocional, a oferta
-    // (manual) fica como está.
+    const special = row.special_kiwify_link_id
+      ? await fetchOffer(row.brand_id, row.special_kiwify_product_id, row.special_kiwify_link_id, cache, "special") : null;
+    // Só grava se o vínculo não mudou enquanto a Kiwify respondia. Sem link promocional (ou da oferta
+    // especial), a oferta digitada à mão fica como está.
     await pool.query(
       `UPDATE products SET price_cents = $2, checkout_url = $3, kiwify_synced_at = CURRENT_TIMESTAMP,
               kiwify_sync_error = $7,
               offer_price_cents = CASE WHEN $6::text IS NULL THEN offer_price_cents ELSE $8::integer END,
-              offer_checkout_url = CASE WHEN $6::text IS NULL THEN offer_checkout_url ELSE $9::text END
+              offer_checkout_url = CASE WHEN $6::text IS NULL THEN offer_checkout_url ELSE $9::text END,
+              special_price_cents = CASE WHEN $11::text IS NULL THEN special_price_cents ELSE $12::integer END,
+              special_checkout_url = CASE WHEN $11::text IS NULL THEN special_checkout_url ELSE $13::text END
         WHERE id = $1 AND kiwify_product_id = $4 AND kiwify_link_id = $5
-          AND offer_kiwify_link_id IS NOT DISTINCT FROM $6::text`,
+          AND offer_kiwify_link_id IS NOT DISTINCT FROM $6::text
+          AND special_kiwify_product_id IS NOT DISTINCT FROM $10::text
+          AND special_kiwify_link_id IS NOT DISTINCT FROM $11::text`,
       [row.id, price, url, row.kiwify_product_id, row.kiwify_link_id, row.offer_kiwify_link_id,
-        offer?.warning ?? null, offer?.price_cents ?? null, offer?.checkout_url ?? null]);
+        joinWarnings(offer?.warning, special?.warning), offer?.price_cents ?? null, offer?.checkout_url ?? null,
+        row.special_kiwify_product_id, row.special_kiwify_link_id, special?.price_cents ?? null, special?.checkout_url ?? null]);
     return { found: true };
   } catch (error) {
     await pool.query("UPDATE products SET kiwify_sync_error = $2 WHERE id = $1", [row.id, errorText(error)]);
@@ -110,4 +123,4 @@ function startAutoSync() {
   setInterval(run, SYNC_EVERY_MS).unref();
 }
 
-module.exports = { loadAccount, requireAccount, fetchCheckout, fetchOffer, syncProduct, startAutoSync, errorText };
+module.exports = { loadAccount, requireAccount, fetchCheckout, fetchOffer, joinWarnings, syncProduct, startAutoSync, errorText };

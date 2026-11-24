@@ -175,30 +175,82 @@
         </fieldset>
 
         <fieldset>
-          <legend class="legend-info">Oferta <span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre a oferta" aria-describedby="offer-about" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offer-about" class="info-text" role="tooltip">Preço promocional com “de/por” na página de vendas e no catálogo. Com data de fim, aparece um cronômetro; quando o prazo acaba, o site volta sozinho ao preço e ao link normais.</span></span></legend>
-          <div id="offer-kiwify" class="field" hidden>
-            <div class="label-row"><label for="offer_link">Link promocional na Kiwify</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o link promocional" aria-describedby="offer-link-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offer-link-help" class="info-text" role="tooltip">Crie na Kiwify um link de checkout com o preço promocional e escolha-o aqui.</span></span></div>
-            <select id="offer_link" aria-describedby="offer-link-help">
-              <option value="">Sem oferta</option>
-            </select>
-          </div>
-          <div class="grid-2">
-            <div class="field">
-              <label for="offer_price">Preço da oferta (R$)</label>
-              <input id="offer_price" name="offer_price" inputmode="decimal" maxlength="15" placeholder="97,00">
+          <legend class="legend-info">Ofertas <span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre as ofertas" aria-describedby="offers-about" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offers-about" class="info-text" role="tooltip">Opcionais. A promoção com prazo baixa o preço normal por um tempo. A Melhor opção é uma segunda opção de compra, mostrada ao lado da normal na página de vendas. As duas podem estar ligadas juntas.</span></span></legend>
+
+          <div class="offer-option">
+            <div class="field check"><input id="offer_on" type="checkbox" aria-describedby="offer-on-help"><label for="offer_on">Promoção com prazo</label></div>
+            <p id="offer-on-help" class="hint">Preço menor que o normal, com “de/por” na página de vendas e no catálogo e, com data de fim, um cronômetro. Quando o prazo acaba, o site volta sozinho ao preço e ao link normais.</p>
+            <div id="offer-fields" class="offer-fields" hidden>
+              <div class="segmented offer-kind" role="radiogroup" aria-label="Tipo de promoção" aria-describedby="offer-kind-help">
+                <label><input type="radio" name="offer_kind" value="link" checked><span>Com link promocional</span></label>
+                <label><input type="radio" name="offer_kind" value="compare"><span>Só o valor “de” (sem link)</span></label>
+              </div>
+              <p id="offer-kind-help" class="hint"></p>
+              <div id="offer-link-fields">
+              <div id="offer-kiwify" class="field" hidden>
+                <div class="label-row"><label for="offer_link">Link promocional na Kiwify</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o link promocional" aria-describedby="offer-link-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offer-link-help" class="info-text" role="tooltip">Crie na Kiwify, no mesmo produto, um link de checkout com o preço promocional e escolha-o aqui.</span></span></div>
+                <select id="offer_link" aria-describedby="offer-link-help">
+                  <option value="">Escolha o link</option>
+                </select>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="offer_price">Preço promocional (R$)</label>
+                  <input id="offer_price" name="offer_price" inputmode="decimal" maxlength="15" placeholder="97,00">
+                </div>
+                <div class="field">
+                  <label for="offer_checkout_url">Link de checkout promocional</label>
+                  <input id="offer_checkout_url" name="offer_checkout_url" type="url" maxlength="2048" pattern="https://.+"
+                    title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
+                </div>
+              </div>
+              </div>
+              <div id="offer-compare-field" class="field" hidden>
+                <label for="offer_compare">Valor “de” (riscado) (R$)</label>
+                <input id="offer_compare" name="offer_compare" inputmode="decimal" maxlength="15" placeholder="497,00">
+              </div>
+              <div class="field">
+                <div class="label-row"><label for="offer_ends_at">Fim da promoção</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o fim da promoção" aria-describedby="offer-ends-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offer-ends-help" class="info-text" role="tooltip">Horário de Brasília. Deixe vazio para uma promoção sem prazo (sem cronômetro). O fim do prazo só muda o site: o link promocional continua funcionando na Kiwify para quem já o tiver guardado; desative-o lá se quiser bloquear a compra com desconto.</span></span></div>
+                <input id="offer_ends_at" name="offer_ends_at" type="datetime-local" aria-describedby="offer-ends-help">
+              </div>
+              <p id="offer-info" class="msg" role="status" aria-live="polite"></p>
             </div>
-            <div class="field">
-              <label for="offer_checkout_url">Link de checkout da oferta</label>
-              <input id="offer_checkout_url" name="offer_checkout_url" type="url" maxlength="2048" pattern="https://.+"
-                title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
+          </div>
+
+          <div class="offer-option">
+            <div class="field check"><input id="special_on" type="checkbox" aria-describedby="special-on-help"><label for="special_on">Melhor opção (segunda opção de compra)</label></div>
+            <p id="special-on-help" class="hint">Um segundo cartão de compra em destaque, ao lado do normal (ex.: o curso com bônus, ou a formação completa). Preço fixo, sem prazo. Aparece no bloco Oferta final no estilo “Oferta dupla”.</p>
+            <div id="special-fields" class="offer-fields" hidden>
+              <div id="special-kiwify" class="grid-2" hidden>
+                <div class="field">
+                  <div class="label-row"><label for="special_product">Produto na Kiwify</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o produto da Melhor opção" aria-describedby="special-product-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="special-product-help" class="info-text" role="tooltip">O mesmo produto (um link com bônus, por exemplo) ou outro produto da conta (ex.: o curso inteiro).</span></span></div>
+                  <select id="special_product" aria-describedby="special-product-help"></select>
+                </div>
+                <div class="field">
+                  <label for="special_link">Link de checkout na Kiwify</label>
+                  <select id="special_link" disabled></select>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="field">
+                  <label for="special_price">Preço da Melhor opção (R$)</label>
+                  <input id="special_price" name="special_price" inputmode="decimal" maxlength="15" placeholder="297,00">
+                </div>
+                <div class="field">
+                  <label for="special_checkout_url">Link de checkout da Melhor opção</label>
+                  <input id="special_checkout_url" name="special_checkout_url" type="url" maxlength="2048" pattern="https://.+"
+                    title="O link deve começar com https://" placeholder="https://pay.kiwify.com.br/..." spellcheck="false">
+                </div>
+              </div>
+              <div class="field">
+                <div class="label-row"><label for="special_compare">Valor “de” (riscado)</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o valor de" aria-describedby="special-compare-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="special-compare-help" class="info-text" role="tooltip">Opcional. Aparece riscado antes do preço (ex.: a soma do curso e dos bônus comprados separados). Precisa ser maior que o preço da Melhor opção.</span></span></div>
+                <input id="special_compare" name="special_compare" inputmode="decimal" maxlength="15" placeholder="497,00" aria-describedby="special-compare-help">
+              </div>
+              <p id="special-info" class="msg" role="status" aria-live="polite"></p>
             </div>
           </div>
-          <div class="field">
-            <div class="label-row"><label for="offer_ends_at">Fim da oferta</label><span class="info-pop info-sm"><button class="info-btn" type="button" aria-label="Sobre o fim da oferta" aria-describedby="offer-ends-help" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg></button><span id="offer-ends-help" class="info-text" role="tooltip">Horário de Brasília. Deixe vazio para uma oferta sem prazo (sem cronômetro). O fim do prazo só muda o site: o link promocional continua funcionando na Kiwify para quem já o tiver guardado; desative-o lá se quiser bloquear a compra com desconto.</span></span></div>
-            <input id="offer_ends_at" name="offer_ends_at" type="datetime-local" aria-describedby="offer-ends-help">
-          </div>
-          <p id="offer-info" class="msg" role="status" aria-live="polite"></p>
-          <p><button id="offer-clear" class="btn btn-sm btn-outline" type="button">Encerrar oferta</button></p>
+
+          <p id="offers-summary" class="offers-summary" role="status" aria-live="polite"></p>
         </fieldset>
 
         <div class="form-actions">

@@ -76,3 +76,80 @@ test("página: oferta sem prazo mostra 'de/por' sem cronômetro", () => {
   assert.match(html, /price-was/);
   assert.ok(!html.includes("offer-timer"));
 });
+
+/* ---------- Oferta especial (Oferta dupla) ---------- */
+const { specialOffer } = require("../lib/offer");
+const special = { special_price_cents: 29700, special_checkout_url: "https://pay.kiwify.com.br/Combo1", special_compare_cents: 49700 };
+
+test("oferta especial: precisa de preço e link; o 'de' só quando é maior que o preço", () => {
+  assert.deepEqual(specialOffer(special), { price_cents: 29700, checkout_url: "https://pay.kiwify.com.br/Combo1", compare_cents: 49700 });
+  assert.equal(specialOffer({ ...special, special_checkout_url: null }), null);
+  assert.equal(specialOffer({ ...special, special_price_cents: null }), null);
+  assert.equal(specialOffer({ ...special, special_compare_cents: 29700 }).compare_cents, null);
+  assert.equal(specialOffer({ ...special, special_compare_cents: null }).compare_cents, null);
+});
+
+const doubleOffer = (extra = {}) => ({
+  type: "offer", style: "double", title: "Escolha a sua", card_title: "Curso", cta_label: "Quero o curso",
+  special_title: "Curso + bônus", special_items: [{ icon: "gift", text: "Mentoria" }], special_cta_label: "Quero o combo", ...extra,
+});
+const renderDouble = (product, preview = false) => renderSalesPage({
+  title: "P", slug: "p", short_description: "", status: "published", image_id: null, brand_name: null, brand_logo_id: null,
+  theme: null, published_at: null, media: new Map(), sections: [doubleOffer()], ...product,
+}, { baseUrl: "http://localhost", preview, now: NOW });
+
+test("oferta dupla: dois cartões, cada um com o seu link; a especial com selo e 'de' riscado", () => {
+  const page = renderDouble({ ...base, offer_price_cents: null, offer_checkout_url: null, ...special });
+  assert.match(page, /<section class="v-final is-double" id="oferta"/);
+  assert.match(page, /<div class="offer-cards">/);
+  assert.match(page, /<div class="buy-card is-special">\s*<p class="offer-badge">Melhor opção<\/p>/);
+  assert.match(page, /<s class="price-was"><span class="sr-only">De <\/span>R\$\s497,00<\/s> <span class="sr-only">por <\/span>R\$\s297,00/);
+  assert.match(page, /href="https:\/\/pay\.kiwify\.com\.br\/Normal1"[^>]*>.*Quero o curso/);
+  assert.match(page, /href="https:\/\/pay\.kiwify\.com\.br\/Combo1"[^>]*>.*Quero o combo/);
+  assert.match(page, /Mentoria/);
+  // os extras do estilo simples não aparecem
+  assert.ok(!/offer-proof|buy-guarantee|buy-seals|offer-benefits/.test(page));
+});
+
+test("oferta dupla sem oferta especial cadastrada: página pública só com a normal; editor com aviso", () => {
+  const page = renderDouble(base);
+  assert.match(page, /<div class="offer-cards is-alone">/);
+  assert.ok(!page.includes("is-special"));
+  const live = renderDouble(base, "live");
+  assert.match(live, /buy-card is-special is-missing/);
+  assert.match(live, /Ligue a Melhor opção no cadastro do produto/);
+  assert.match(live, /<span class="btn-cta is-disabled"/);
+});
+
+test("oferta simples continua igual para páginas antigas (sem estilo gravado)", () => {
+  const page = renderDouble({ ...base, sections: [{ type: "offer", title: "T", cta_label: "Comprar" }] });
+  assert.match(page, /<section class="v-final" id="oferta"/);
+  assert.match(page, /<div class="container offer-grid">/);
+});
+
+/* ---------- Promoção só com o valor "de" (sem link) e "R$ X a menos" ---------- */
+const { savings } = require("../lib/offer");
+const deOnly = { price_cents: 25900, checkout_url: "https://pay.kiwify.com.br/Normal1", offer_compare_cents: 49700 };
+
+test("promoção sem link: preço e link normais, o 'de' riscado e o mesmo prazo", () => {
+  assert.deepEqual(effectiveOffer(deOnly, NOW), {
+    active: true, price_cents: 25900, checkout_url: "https://pay.kiwify.com.br/Normal1", compare_cents: 49700, ends_at: null,
+  });
+  const regular = { active: false, price_cents: 25900, checkout_url: deOnly.checkout_url, compare_cents: null, ends_at: null };
+  assert.deepEqual(effectiveOffer({ ...deOnly, offer_compare_cents: 25900 }, NOW), regular); // "de" não é maior
+  assert.deepEqual(effectiveOffer({ ...deOnly, offer_ends_at: "2026-10-23T11:00:00Z" }, NOW), regular); // prazo vencido
+  assert.equal(effectiveOffer({ ...deOnly, offer_ends_at: "2026-10-25T23:59:00-03:00" }, NOW).ends_at, "2026-10-26T02:59:00.000Z");
+});
+
+test("'R$ X a menos': só com 'de' maior que o preço", () => {
+  assert.equal(savings(49700, 25900), 23800);
+  assert.equal(savings(25900, 25900), null);
+  assert.equal(savings(null, 25900), null);
+});
+
+test("página de vendas: 'R$ X a menos' na promoção sem link e na Melhor opção", () => {
+  const page = renderDouble({ ...deOnly, ...special });
+  assert.match(page, /<s class="price-was"><span class="sr-only">De <\/span>R\$\s497,00<\/s> <span class="sr-only">por <\/span>R\$\s259,00<\/p><p class="price-save">R\$\s238,00 a menos<\/p>/);
+  assert.match(page, /R\$\s297,00<\/p><p class="price-save">R\$\s200,00 a menos<\/p>/);
+  assert.match(page, /href="https:\/\/pay\.kiwify\.com\.br\/Normal1"/); // o cliente paga o preço normal
+});

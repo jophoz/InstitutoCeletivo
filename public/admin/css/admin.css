@@ -257,6 +257,15 @@ dialog.confirm .buttons .btn{flex:1 1 0;padding-inline:1rem;white-space:nowrap}
 .kiwify-status{margin:0 0 .75rem;color:var(--color-muted)}
 .kiwify-status.ok{color:var(--color-focus);font-weight:600}
 .kiwify-link{margin-bottom:1rem}
+/* Quadro Ofertas (Editar produto): cada oferta é uma parte que se liga por caixa de marcar. */
+.offer-option{margin:0 0 1rem;padding:.85rem 1rem;border:1px solid var(--color-border);border-radius:var(--radius)}
+.offer-option .field.check{margin:0}
+.offer-option .field.check label{font-weight:700}
+.offer-option > .hint{margin:.35rem 0 0}
+.offer-fields{margin-top:1rem;padding-top:1rem;border-top:1px dashed var(--color-border)}
+.offer-fields .msg:empty{display:none}
+.offers-summary{margin:0 0 1rem;font-weight:600}
+.offers-summary:empty{display:none}
 .kiwify-sync{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem;margin:.25rem 0 0}
 .badge-default{color:var(--color-focus);font-size:.75rem;padding:0 .45rem;vertical-align:middle}
 .badge-kiwify{color:var(--color-focus);font-size:.75rem;padding:0 .45rem;margin-left:.35rem;vertical-align:middle}

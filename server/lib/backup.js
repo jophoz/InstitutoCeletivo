@@ -23,10 +23,12 @@ const TABLES = [
   { key: "sharedBlocks", table: "shared_blocks", columns: ["type", "name", "data", "created_at", "updated_at"], json: ["data"] },
   {
     key: "products", table: "products",
-    columns: ["title", "slug", "short_description", "status", "category", "featured", "format", "workload",
+    // format e workload ainda existem na tabela, mas o site não usa mais: ficam fora do arquivo.
+    columns: ["title", "slug", "short_description", "status", "category", "featured",
       "price_cents", "checkout_url", "image_id", "brand_id", "area", "card_badge",
       "kiwify_product_id", "kiwify_link_id", "offer_kiwify_link_id", "offer_price_cents", "offer_checkout_url",
-      "offer_ends_at", "created_at", "updated_at"],
+      "offer_ends_at", "offer_compare_cents", "special_kiwify_product_id", "special_kiwify_link_id", "special_price_cents",
+      "special_checkout_url", "special_compare_cents", "created_at", "updated_at"],
   },
   {
     key: "salesPages", table: "sales_pages",
@@ -40,9 +42,14 @@ const MIGRATIONS_DIR = path.join(__dirname, "..", "migrations");
 
 // Versão do banco = nome da última migration do código (o app não lê a tabela pgmigrations: o
 // usuário do banco do app não tem acesso a ela). O deploy roda as migrations antes do app subir.
+// As migrations vêm com o código e não mudam com o app rodando: a pasta é lida uma vez só.
+let ownSchema;
 function schemaVersion(dir = MIGRATIONS_DIR) {
+  if (dir === MIGRATIONS_DIR && ownSchema !== undefined) return ownSchema;
   const files = fs.readdirSync(dir).filter((f) => /^\d+_.+\.js$/.test(f)).sort();
-  return files.length ? files[files.length - 1].replace(/\.js$/, "") : null;
+  const version = files.length ? files[files.length - 1].replace(/\.js$/, "") : null;
+  if (dir === MIGRATIONS_DIR) ownSchema = version;
+  return version;
 }
 
 class BackupError extends Error {}
