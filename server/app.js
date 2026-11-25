@@ -97,7 +97,7 @@ app.get("/page-theme.css", (req, res) => {
 app.get("/curso-reforma-tributaria.html", (_req, res) => res.redirect(301, "/p/manual-reforma-tributaria"));
 app.get("/curso.html", (req, res) => {
   const id = typeof req.query.id === "string" ? req.query.id : "";
-  res.redirect(301, id ? `/produto.html?id=${encodeURIComponent(id)}` : "/catalogo.html");
+  res.redirect(301, id ? `/produto?id=${encodeURIComponent(id)}` : "/catalogo");
 });
 
 // Páginas de vendas geradas no servidor (cabeçalhos de segurança: os gerais, no início).
@@ -141,8 +141,18 @@ app.use(async (req, res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
   let urlPath;
   try { urlPath = decodeURIComponent(req.path); } catch { return next(); }
+  if (urlPath.includes("\0") || /\/\./.test(urlPath)) return next();
+  const sitePage = !urlPath.startsWith("/admin/");
+  // Site público com endereços sem ".html" (/catalogo). O endereço antigo (/catalogo.html,
+  // /index.html) redireciona com 301, mantendo o ?id=..., para links já divulgados e o Google.
+  if (sitePage && /\.html$/i.test(urlPath) && assets.htmlPage(urlPath) !== null) {
+    const clean = urlPath.replace(/(?:^|\/)index\.html$/i, "/").replace(/\.html$/i, "");
+    const q = req.originalUrl.indexOf("?");
+    return res.redirect(301, clean + (q === -1 ? "" : req.originalUrl.slice(q)));
+  }
   if (urlPath.endsWith("/")) urlPath += "index.html";
-  if (!/\.html$/.test(urlPath) || urlPath.includes("\0") || /\/\./.test(urlPath)) return next();
+  else if (sitePage && !/\.[a-z0-9]+$/i.test(urlPath)) urlPath += ".html";
+  if (!/\.html$/.test(urlPath)) return next();
   let body = assets.htmlPage(urlPath);
   if (body === null) return next();
   // Páginas do site (fora do painel): logo e ícone da aba da empresa padrão (aba Empresas).

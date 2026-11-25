@@ -147,7 +147,7 @@
     }
     list.forEach(function (c) {
       // Página de vendas publicada = destino principal; sem ela, a página de detalhes.
-      var href = c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id));
+      var href = c.pagina || ("/produto?id=" + encodeURIComponent(c.id));
       var body = el("div", { "class": "card-body" }, [
         // A etiqueta "Destaque" fica na capa, que é escondida dos leitores de tela; aqui vai o aviso para eles.
         c.destaque ? el("span", { "class": "sr-only", text: "Em destaque." }) : "",
@@ -279,7 +279,7 @@
       use.setAttribute("href", "#i-book");
       svg.append(use);
       var count = a.count + (a.count === 1 ? " conteúdo" : " conteúdos");
-      list.append(el("li", {}, [el("a", { "class": "area-card", href: "/catalogo.html?area=" + encodeURIComponent(a.name) }, [
+      list.append(el("li", {}, [el("a", { "class": "area-card", href: "/catalogo?area=" + encodeURIComponent(a.name) }, [
         svg, el("span", {}, [el("strong", { text: a.name }), el("span", { text: count })])
       ])]));
     });
@@ -296,7 +296,7 @@
       .concat(withCover.filter(function (c) { return !c.destaque; })).slice(0, 4);
     if (list.length < 2) { box.parentNode.classList.add("no-covers"); return; }
     list.forEach(function (c) {
-      var href = c.pagina || ("/produto.html?id=" + encodeURIComponent(c.id));
+      var href = c.pagina || ("/produto?id=" + encodeURIComponent(c.id));
       var img = cover(c, "hero").querySelector("img");
       img.alt = "";
       img.removeAttribute("loading"); // está no topo da página: carrega logo
@@ -321,7 +321,7 @@
   }
   if (catalog) initCatalog();
 
-  // Página de detalhes (produtos sem página de vendas publicada): /produto.html?id=endereco
+  // Página de detalhes (produtos sem página de vendas publicada): /produto?id=endereco
   var box = document.getElementById("produto");
   async function initDetail() {
     var id = new URLSearchParams(location.search).get("id") || "";
@@ -337,7 +337,7 @@
     if (!c) {
       document.title = "Produto não encontrado — " + S.nome;
       box.append(el("h1", { text: "Produto não encontrado" }),
-        el("p", {}, [el("a", { href: "/catalogo.html", text: "Voltar ao catálogo" })]));
+        el("p", {}, [el("a", { href: "/catalogo", text: "Voltar ao catálogo" })]));
       return;
     }
     // Tem página de vendas publicada? Ela é a página "oficial" do produto.
@@ -346,7 +346,7 @@
     var m = document.querySelector('meta[name="description"]');
     if (m) m.setAttribute("content", c.resumo || "");
     var main = el("div", {}, [
-      el("a", { "class": "crumb", href: "/catalogo.html", text: "← Todos os produtos" }),
+      el("a", { "class": "crumb", href: "/catalogo", text: "← Todos os produtos" }),
       c.empresa ? el("p", { "class": "card-by" }, ["Por ", el("strong", { text: c.empresa })]) : "",
       el("h1", { text: c.titulo }),
       el("p", { "class": "muted", text: c.resumo })

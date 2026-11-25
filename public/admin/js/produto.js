@@ -684,7 +684,7 @@
 
     function link(source) {
       if (!saved || !source) return "";
-      var path = salesPage ? "/p/" + encodeURIComponent(saved.slug) : "/produto.html?id=" + encodeURIComponent(saved.slug);
+      var path = salesPage ? "/p/" + encodeURIComponent(saved.slug) : "/produto?id=" + encodeURIComponent(saved.slug);
       var url = new URL(path, document.baseURI); // o próprio site (em produção, o domínio)
       url.searchParams.set("utm_source", source);
       var c = slugify(campaign.value);

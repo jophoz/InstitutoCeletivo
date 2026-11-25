@@ -187,11 +187,11 @@
     });
   }
   function pageName(path, slugs) {
-    if (path === "/" || path === "/index.html") return "Início";
+    if (path === "/") return "Início";
     var m = /^\/p\/(.+)$/.exec(path);
     if (m) return slugs[m[1]] || m[1];
-    var names = { "/catalogo.html": "Catálogo", "/produto.html": "Detalhes de produto", "/sobre.html": "Sobre",
-      "/contato.html": "Contato", "/duvidas.html": "Dúvidas", "/termos.html": "Termos de uso", "/privacidade.html": "Privacidade" };
+    var names = { "/catalogo": "Catálogo", "/produto": "Detalhes de produto", "/sobre": "Sobre",
+      "/contato": "Contato", "/duvidas": "Dúvidas", "/termos": "Termos de uso", "/privacidade": "Privacidade" };
     return names[path] || path;
   }
 

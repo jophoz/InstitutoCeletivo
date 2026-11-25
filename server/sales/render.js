@@ -890,8 +890,8 @@ ${body}
       <div>${data.brand_name
         ? html`<p><strong>${data.brand_name}</strong> © <span data-year></span></p>`
         : html`<p><strong data-site="nome"></strong> © <span data-year></span></p><p data-site="slogan"></p>`}</div>
-      <nav aria-label="Rodapé: navegação"><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></nav>
-      <nav aria-label="Rodapé: ajuda"><p><strong>Ajuda</strong></p><p><a href="/duvidas.html">Dúvidas frequentes</a></p><p><a href="/termos.html">Termos de uso</a></p><p><a href="/privacidade.html">Política de privacidade</a></p></nav>
+      <nav aria-label="Rodapé: navegação"><p><strong>Navegação</strong></p><p><a href="/catalogo">Catálogo</a></p><p><a href="/sobre">Sobre</a></p><p><a href="/contato">Contato</a></p></nav>
+      <nav aria-label="Rodapé: ajuda"><p><strong>Ajuda</strong></p><p><a href="/duvidas">Dúvidas frequentes</a></p><p><a href="/termos">Termos de uso</a></p><p><a href="/privacidade">Política de privacidade</a></p></nav>
       <div><p><strong>Compra segura</strong></p><p>Pagamentos e acesso aos cursos processados pela Kiwify.</p></div>
     </div>
   </footer>

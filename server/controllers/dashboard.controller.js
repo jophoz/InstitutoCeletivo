@@ -141,7 +141,9 @@ async function byDevice(from, to, brand) {
 
 async function topPages(from, to, brand) {
   const { rows } = await pool.query(
-    `SELECT path, COUNT(*)::int AS views
+    // Visitas antigas gravadas como /catalogo.html (antes dos endereços sem .html) somam com /catalogo.
+    `SELECT CASE WHEN path ~* '^/index\\.html$' THEN '/' ELSE regexp_replace(path, '\\.html$', '', 'i') END AS path,
+            COUNT(*)::int AS views
        FROM site_events WHERE occurred_at >= $1 AND occurred_at < $2 AND type = 'view' AND ${EV_BRAND(3)}
       GROUP BY 1 ORDER BY 2 DESC, 1 LIMIT 10`, [from, to, brand]);
   return rows;

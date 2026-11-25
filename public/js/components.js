@@ -11,14 +11,14 @@
   var HEADER = `<a class="skip" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header">
   <div class="container header-row">
-    <a class="brand" href="/index.html"><img class="brand-mark" src="/assets/favicon/favicon.png" alt="" width="32" height="32"><span data-site="nome">Instituto Celetivo</span></a>
+    <a class="brand" href="/"><img class="brand-mark" src="/assets/favicon/favicon.png" alt="" width="32" height="32"><span data-site="nome">Instituto Celetivo</span></a>
     <div class="header-actions">
       <nav id="nav" class="nav" aria-label="Principal">
         <ul>
-          <li><a href="/index.html">Início</a></li>
-          <li><a href="/catalogo.html">Catálogo</a></li>
-          <li><a href="/sobre.html">Sobre</a></li>
-          <li><a href="/contato.html">Contato</a></li>
+          <li><a href="/">Início</a></li>
+          <li><a href="/catalogo">Catálogo</a></li>
+          <li><a href="/sobre">Sobre</a></li>
+          <li><a href="/contato">Contato</a></li>
         </ul>
       </nav>
       <button id="tema-btn" class="theme-btn" type="button" aria-label="Modo noturno" title="Modo noturno" aria-pressed="false"></button>
@@ -30,8 +30,8 @@
   var FOOTER = `<footer class="site-footer">
   <div class="container foot3 foot4">
     <div><p><strong data-site="nome">Instituto Celetivo</strong> © <span data-year></span></p><p data-site="slogan"></p></div>
-    <nav aria-label="Rodapé: navegação"><p><strong>Navegação</strong></p><p><a href="/catalogo.html">Catálogo</a></p><p><a href="/sobre.html">Sobre</a></p><p><a href="/contato.html">Contato</a></p></nav>
-    <nav aria-label="Rodapé: ajuda"><p><strong>Ajuda</strong></p><p><a href="/duvidas.html">Dúvidas frequentes</a></p><p><a href="/termos.html">Termos de uso</a></p><p><a href="/privacidade.html">Política de privacidade</a></p></nav>
+    <nav aria-label="Rodapé: navegação"><p><strong>Navegação</strong></p><p><a href="/catalogo">Catálogo</a></p><p><a href="/sobre">Sobre</a></p><p><a href="/contato">Contato</a></p></nav>
+    <nav aria-label="Rodapé: ajuda"><p><strong>Ajuda</strong></p><p><a href="/duvidas">Dúvidas frequentes</a></p><p><a href="/termos">Termos de uso</a></p><p><a href="/privacidade">Política de privacidade</a></p></nav>
     <div><p><strong>Compra segura</strong></p><p>Pagamentos e acesso aos cursos processados pela Kiwify.</p></div>
   </div>
 </footer>`;
@@ -112,7 +112,7 @@
   }
 
   // Marca no menu a página atual (acessibilidade + destaque visual)
-  var current = { home: "/index.html", catalogo: "/catalogo.html", produto: "/catalogo.html", sobre: "/sobre.html", contato: "/contato.html" }[document.body.dataset.page];
+  var current = { home: "/", catalogo: "/catalogo", produto: "/catalogo", sobre: "/sobre", contato: "/contato" }[document.body.dataset.page];
   document.querySelectorAll("#nav a").forEach(function (a) {
     if (a.getAttribute("href") === current) a.setAttribute("aria-current", "page");
   });
