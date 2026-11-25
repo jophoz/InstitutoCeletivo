@@ -884,6 +884,10 @@ html[data-editor] .to-top {
 .page-hero .lead {
   margin-bottom: 0;
 }
+/* Botões logo abaixo do texto (páginas de erro 404/500). */
+.page-hero .hero-actions {
+  margin-top: 2rem;
+}
 
 /* Página inicial: "Como funciona a compra". Etapas em ordem, com o número grande em serifa
    e um fio no topo de cada uma (sem cartões: é uma sequência, não uma lista de vantagens). */

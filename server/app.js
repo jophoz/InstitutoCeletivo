@@ -15,6 +15,7 @@ const assets = require("./lib/assets");
 const defaultBrand = require("./lib/default-brand");
 const { injectSiteBrand } = require("./lib/site-brand");
 const { showPublicPage, showPreview } = require("./controllers/page-view.controller");
+const { sendErrorPage } = require("./lib/error-page");
 const requireAdmin = require("./middleware/admin-auth");
 const { findSession } = requireAdmin;
 const { getBlockSchema } = require("./controllers/sales-page.controller");
@@ -180,9 +181,23 @@ app.use((req, res, next) => {
 // Mantém API e frontend na mesma origem no ambiente local, evitando CORS.
 app.use(express.static(assets.PUBLIC_DIR, { cacheControl: false }));
 
+// Quem está navegando (o navegador pede HTML) vê a página de erro do site; chamadas da API, fetch()
+// e imagens continuam recebendo JSON. A API nunca recebe HTML, mesmo que peça.
+const wantsPage = (req) => !req.path.startsWith("/api/") && req.accepts(["json", "html"]) === "html";
+
+// Endereço que não existe (nenhuma rota nem arquivo atendeu).
+app.use((req, res) => {
+  if ((req.method === "GET" || req.method === "HEAD") && wantsPage(req)) return sendErrorPage(res, 404);
+  return res.status(404).json({ error: "Não encontrado." });
+});
+
 // Tratador de erros: o Express 5 encaminha para cá também as exceções de funções async.
 // Detalhes técnicos ficam só no log do servidor; o cliente recebe uma mensagem genérica.
-app.use((error, _req, res, _next) => {
+app.use((error, req, res, _next) => {
+  if (res.headersSent) return res.end(); // a resposta já começou: só dá para encerrá-la
+  const status = error.status >= 400 && error.status < 500 ? error.status : 500;
+  if (status === 500) console.error(error);
+  if ((status === 404 || status === 500) && wantsPage(req)) return sendErrorPage(res, status);
   if (error.type === "entity.parse.failed") return res.status(400).json({ error: "JSON inválido." });
   if (error.type === "entity.too.large") {
     return res.status(413).json({ error: "Arquivo ou requisição grande demais (imagens: até 5 MB)." });
@@ -191,8 +206,6 @@ app.use((error, _req, res, _next) => {
   if (error.status >= 400 && error.status < 500) {
     return res.status(error.status).json({ error: error.status === 404 ? "Não encontrado." : "Requisição inválida." });
   }
-
-  console.error(error);
   return res.status(500).json({ error: "Erro interno do servidor." });
 });
 

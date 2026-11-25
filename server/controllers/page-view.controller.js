@@ -1,21 +1,16 @@
 // Páginas de vendas em HTML pronto (renderizadas no servidor).
-const { html } = require("../lib/html");
 const { loadForRender } = require("../sales/pages");
 const { renderSalesPage } = require("../sales/render");
 const { findSession } = require("../middleware/admin-auth");
 const { baseUrl } = require("../lib/base-url"); // prévias de link: og:url e og:image precisam ser absolutos
-const { assetUrl } = require("../lib/assets");
+const { sendErrorPage } = require("../lib/error-page");
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const { UUID } = require("../lib/ids");
 
-function notFound(res, message = "A página que você procurou não existe ou não está mais disponível.") {
-  res.status(404).type("html").send(html`<!DOCTYPE html>
-<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Página não encontrada</title><meta name="robots" content="noindex">
-<link rel="stylesheet" href="${assetUrl("/css/theme.css")}"><link rel="stylesheet" href="${assetUrl("/css/style.css")}"><script src="${assetUrl("/js/theme.js")}"></script></head>
-<body><main class="container section"><h1>Página não encontrada</h1><p>${message}</p>
-<p><a class="btn" href="/catalogo.html">Ver todos os produtos</a></p></main></body></html>`.toString());
+// Página de erro do site (mesmo visual das demais); sem mensagem, usa o texto padrão do 404.
+function notFound(res, message) {
+  return sendErrorPage(res, 404, message);
 }
 
 async function showPublicPage(req, res) {
