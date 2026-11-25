@@ -250,7 +250,7 @@ test("migration: benefícios e tópicos viram o bloco Apresentação", () => {
 
 /* ---------- Comparativo e Comparativo em tabela viraram estilos da Comparação; Lista ✓ / ✗ saiu (migration) ---------- */
 const compare = require("../migrations/1730002500000_compare-block");
-test("migration: comparativo e tabela viram o bloco Comparação, e a lista ✓ / ✗ sai das páginas", () => {
+test("migration: comparativo e tabela viram o bloco Comparação", () => {
   const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
   const sides = compare.convert({ type: "comparison", title: "C", left_title: "A", left_items: [{ text: "x" }], right_title: "B", right_items: [], background: "soft" });
   assert.deepEqual(sides, { type: "compare", style: "columns", title: "C", left_title: "A", left_items: [{ text: "x" }], right_title: "B", right_items: [], background: "soft" });
@@ -265,10 +265,45 @@ test("migration: comparativo e tabela viram o bloco Comparação, e a lista ✓ 
   assert.deepEqual(compare.convert({ type: "table", shared: ID, background: "auto" }), { type: "compare", shared: ID, background: "auto" });
   assert.equal(compare.convert({ type: "faq", items: [] }), null);
   assert.deepEqual(compare.convert({ type: "comparison", shared: ID }), { type: "compare", shared: ID });
-  const page = compare.convertList([{ type: "faq", items: [] }, { type: "checklist", items: [] }, { type: "checklist", shared: ID }]);
-  assert.deepEqual(page, [{ type: "faq", items: [] }]);
-  assert.equal(compare.convert({ type: "checklist", items: [] }), null);
   assert.equal(compare.convertList([{ type: "faq", items: [] }]), null);
+});
+
+test("migration: a lista ✓ / ✗ vira Comparação em dois lados, sem perder textos (rascunho, publicada e blocos salvos)", () => {
+  const ID = "0b6f7a52-9c1e-4d3a-8f2b-5e6c7d8e9f01";
+  // Lista como era gravada antes da mudança.
+  const old = { type: "checklist", icon: "check", eyebrow: "Para quem é", title: "Este material é para você?", intro: "Veja antes de comprar.",
+    items: [{ text: "Tem exemplos práticos", positive: true }, { text: "Não é um curso ao vivo", positive: false },
+      { text: "Acesso até 2027", positive: true }, { text: "Não tem certificado", positive: false }], background: "soft" };
+  const block = compare.convert(old);
+  assert.deepEqual(block, { type: "compare", style: "columns", title: "Este material é para você?", intro: "Veja antes de comprar.", background: "soft",
+    left_title: "O que não é", left_items: [{ text: "Não é um curso ao vivo" }, { text: "Não tem certificado" }],
+    right_title: "O que é", right_items: [{ text: "Tem exemplos práticos" }, { text: "Acesso até 2027" }] });
+  // Todo texto da lista antiga continua no bloco novo, e ele passa na validação.
+  const { sections, error } = validateSections([block]);
+  assert.equal(error, undefined);
+  const saved = JSON.stringify(sections[0]);
+  for (const text of [old.title, old.intro, ...old.items.map((x) => x.text)]) assert.ok(saved.includes(text), text);
+  // Lista cheia (10 itens, todos do mesmo lado) continua válida.
+  const full = compare.convert({ type: "checklist", title: "T", items: Array.from({ length: 10 }, (_, i) => ({ text: `i${i}`, positive: true })) });
+  assert.equal(validateSections([full]).error, undefined);
+
+  // Página: rascunho e versão publicada convertidos; referência ao bloco salvo mantém o ID.
+  const draft = [{ type: "faq", items: [] }, old, { type: "checklist", shared: ID, background: "auto" }];
+  const converted = compare.convertList(draft);
+  assert.deepEqual(converted, [{ type: "faq", items: [] }, block, { type: "compare", shared: ID, background: "auto" }]);
+  assert.deepEqual(compare.convertList([old]), [block]);
+
+  // Bloco salvo (dados sem o tipo, como na tabela shared_blocks).
+  const { type: _t, background: _b, ...sharedData } = old;
+  const { type, ...data } = compare.convert({ type: "checklist", ...sharedData });
+  assert.equal(type, "compare");
+  const checked = validateSharedData(type, data);
+  assert.equal(checked.error, undefined);
+  for (const x of old.items) assert.ok(JSON.stringify(checked.data).includes(x.text), x.text);
+
+  // Lista vazia ou com itens malformados não quebra.
+  assert.deepEqual(compare.convert({ type: "checklist", items: [null, { positive: true }] }),
+    { type: "compare", style: "columns", left_title: "O que não é", left_items: [], right_title: "O que é", right_items: [{ text: "" }] });
 });
 
 const timer = require("../migrations/1730002600000_timer-block");

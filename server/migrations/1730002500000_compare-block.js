@@ -1,36 +1,49 @@
 /* O "Comparativo" (dois lados) e o "Comparativo em tabela" viraram estilos do bloco "Comparação"
-   (campo style: columns ou table), e o bloco "Lista ✓ / ✗" saiu. Converte o que já está gravado:
-   rascunho e versão publicada das páginas e os blocos salvos (referências a eles na página só
-   trocam o tipo).
+   (campo style: columns ou table), e o bloco "Lista ✓ / ✗" saiu: o conteúdo dele vira uma
+   Comparação em dois lados. Converte o que já está gravado: rascunho e versão publicada das páginas
+   e os blocos salvos (referências a eles na página só trocam o tipo; o registro de uso fica).
      comparison { ...campos } -> compare columns (os nomes dos campos não mudam)
      table      { ...campos } -> compare table
-     checklist                -> removido das páginas; blocos salvos do tipo são apagados
-   Sem volta: as listas apagadas não voltam. */
+     checklist  { icon, eyebrow, title, intro, items: [{ text, positive }], background }
+                -> compare columns { title, intro, background,
+                     left_title: "O que não é",  left_items:  itens ✗ (na ordem em que estavam),
+                     right_title: "O que é",     right_items: itens ✓ }
+   O ícone e o rótulo (eyebrow) da lista saem: a Comparação não tem esses campos. */
 
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const STYLES = { comparison: "columns", table: "table" };
 
+// Lista ✓ / ✗ -> Comparação em dois lados (sem o tipo: serve para bloco na página e para bloco salvo).
+function checklistFields({ icon: _icon, eyebrow: _eyebrow, items, ...rest }) {
+  const list = (Array.isArray(items) ? items : []).filter(isObject);
+  const side = (positive) => list.filter((x) => Boolean(x.positive) === positive).map((x) => ({ text: typeof x.text === "string" ? x.text : "" }));
+  return {
+    style: "columns", ...rest,
+    left_title: "O que não é", left_items: side(false),
+    right_title: "O que é", right_items: side(true),
+  };
+}
+
 // Bloco (ou dados de bloco salvo, com o tipo junto) no formato novo; null se não muda.
 function convert(block) {
-  if (!isObject(block) || !Object.hasOwn(STYLES, block.type)) return null;
+  if (!isObject(block)) return null;
   const { type, ...rest } = block;
-  if (Object.hasOwn(block, "shared")) return { type: "compare", ...rest }; // referência: só o tipo muda
+  const ref = Object.hasOwn(block, "shared"); // referência a bloco salvo: só o tipo muda
+  if (type === "checklist") return ref ? { type: "compare", ...rest } : { type: "compare", ...checklistFields(rest) };
+  if (!Object.hasOwn(STYLES, type)) return null;
+  if (ref) return { type: "compare", ...rest };
   return { type: "compare", style: STYLES[type], ...rest };
 }
 
-const isChecklist = (b) => isObject(b) && b.type === "checklist";
-
-// Lista de blocos no formato novo (sem as listas ✓ / ✗); null se nada muda.
+// Lista de blocos no formato novo; null se nada muda.
 function convertList(sections) {
   if (!Array.isArray(sections)) return null;
   let changed = false;
-  const out = [];
-  for (const b of sections) {
-    if (isChecklist(b)) { changed = true; continue; }
+  const out = sections.map((b) => {
     const next = convert(b);
     if (next) changed = true;
-    out.push(next || b);
-  }
+    return next || b;
+  });
   return changed ? out : null;
 }
 
@@ -46,12 +59,8 @@ exports.up = async (pgm) => {
       [page.id, JSON.stringify(sections || page.sections), pub === null ? null : JSON.stringify(pub)]);
   }
 
-  // Listas salvas: as referências já saíram das páginas acima; o registro de uso vai junto.
-  await pgm.db.query(`DELETE FROM sales_page_shared_blocks
-    WHERE shared_block_id IN (SELECT id FROM shared_blocks WHERE type = 'checklist')`);
-  await pgm.db.query("DELETE FROM shared_blocks WHERE type = 'checklist'");
-
-  const shared = await pgm.db.select("SELECT id, type, data FROM shared_blocks WHERE type IN ('comparison', 'table')");
+  // Blocos salvos: mesmo ID, então as referências nas páginas e o registro de uso continuam valendo.
+  const shared = await pgm.db.select("SELECT id, type, data FROM shared_blocks WHERE type IN ('comparison', 'table', 'checklist')");
   for (const row of shared) {
     const { type, ...data } = convert({ type: row.type, ...row.data });
     await pgm.db.query("UPDATE shared_blocks SET type = $2, data = $3::jsonb WHERE id = $1", [row.id, type, JSON.stringify(data)]);

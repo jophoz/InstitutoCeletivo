@@ -554,8 +554,8 @@ const BLOCKS = {
       left_title: text("Título do lado ✗", 80),
       right_title: text("Título do lado ✓", 80),
       // Cada estilo tem os seus itens; os do outro estilo ficam guardados (trocar e voltar não perde nada).
-      left_items: list("Itens do lado ✗", 8, { text: text("Texto", 160) }, "item", { showIf: { field: "style", in: ["columns"] } }),
-      right_items: list("Itens do lado ✓", 8, { text: text("Texto", 160) }, "item", { showIf: { field: "style", in: ["columns"] } }),
+      left_items: list("Itens do lado ✗", 10, { text: text("Texto", 160) }, "item", { showIf: { field: "style", in: ["columns"] } }),
+      right_items: list("Itens do lado ✓", 10, { text: text("Texto", 160) }, "item", { showIf: { field: "style", in: ["columns"] } }),
       rows: list("Linhas", 8, {
         label: text("Critério", 40, { help: "Ex.: Atendimento, Preço, Suporte." }),
         left: text("Coluna ✗", 160),
