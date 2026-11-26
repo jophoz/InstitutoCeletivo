@@ -4,6 +4,7 @@
 const pool = require("../config/database");
 const { TIME_ZONE } = require("../lib/analytics");
 const { syncAllSales } = require("../lib/kiwify-sales-sync");
+const pageCopies = require("../lib/page-copies");
 
 const PERIODS = new Set([7, 30, 90]);
 // Situações da Kiwify que contam como venda feita (dinheiro entrou ou vai entrar).
@@ -182,15 +183,16 @@ async function getDashboard(req, res) {
   const brand = req.query.brand || null;
   if (brand && !UUID.test(brand)) return res.status(400).json({ error: "Empresa inválida." });
   const b = await bounds(days);
-  const [current, previous, series, products, sources, devices, pages, kiwify, alerts, any] = await runLimited([
+  const [current, previous, series, products, sources, devices, pages, kiwify, alerts, any, copies] = await runLimited([
     () => totals(b.start, b.end, brand), () => totals(b.prev_start, b.start, brand), () => daily(b.start, b.end, brand),
     () => byProduct(b.start, b.end, brand), () => bySource(b.start, b.end, brand), () => byDevice(b.start, b.end, brand),
     () => topPages(b.start, b.end, brand), () => kiwifyByBrand(b.start, b.end, brand), () => warnings(brand),
     async () => (await pool.query("SELECT EXISTS (SELECT 1 FROM site_events) AS any")).rows[0].any,
+    () => pageCopies.listCopies(), // de todas as empresas e de qualquer data (são poucas)
   ]);
   return res.json({ data: {
     days, brand, start: b.start, end: b.end, has_events: any,
-    totals: current, previous, daily: series, products, sources, devices, pages, kiwify, warnings: alerts,
+    totals: current, previous, daily: series, products, sources, devices, pages, kiwify, warnings: alerts, copies,
   } });
 }
 
@@ -212,4 +214,13 @@ async function listCampaigns(_req, res) {
   return res.json({ data: rows.map((r) => r.campaign) });
 }
 
-module.exports = { getDashboard, refreshSales, listCampaigns };
+// Tira um domínio da lista de cópias (ex.: já foi derrubado, ou não era cópia). Se a cópia
+// continuar no ar e for aberta de novo, volta para a lista.
+async function removeCopy(req, res) {
+  const host = String(req.params.host || "").toLowerCase();
+  if (!pageCopies.HOST.test(host)) return res.status(400).json({ error: "Domínio inválido." });
+  if (!(await pageCopies.removeCopy(host))) return res.status(404).json({ error: "Este domínio não está na lista." });
+  return res.status(204).end();
+}
+
+module.exports = { getDashboard, refreshSales, listCampaigns, removeCopy };

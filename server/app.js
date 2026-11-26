@@ -15,6 +15,7 @@ const assets = require("./lib/assets");
 const defaultBrand = require("./lib/default-brand");
 const { injectSiteBrand } = require("./lib/site-brand");
 const { showPublicPage, showPreview } = require("./controllers/page-view.controller");
+const { goToCheckout } = require("./controllers/checkout.controller");
 const { sendErrorPage } = require("./lib/error-page");
 const requireAdmin = require("./middleware/admin-auth");
 const { findSession } = requireAdmin;
@@ -104,6 +105,8 @@ app.get("/curso.html", (req, res) => {
 // Páginas de vendas geradas no servidor (cabeçalhos de segurança: os gerais, no início).
 app.get("/p/:slug", showPublicPage);
 app.get("/admin/preview/:id", showPreview); // cabeçalhos do /admin (no-store, CSP, noindex) já se aplicam
+// Botão "comprar": segue para o checkout da Kiwify (o link não fica no HTML, ver o controller).
+app.get("/comprar/:slug", goToCheckout);
 
 // Páginas do painel: confere a sessão antes de entregar o HTML. Sem isso, o navegador mostrava o
 // painel vazio por um instante até o JavaScript descobrir que não havia login ("pisca").

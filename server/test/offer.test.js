@@ -1,7 +1,7 @@
 // Oferta do produto (preço "de/por" e prazo): lib/offer.js e o desenho na página de vendas.
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const { effectiveOffer, formatEnd } = require("../lib/offer");
+const { effectiveOffer, checkoutLink, formatEnd } = require("../lib/offer");
 const { renderSalesPage } = require("../sales/render");
 
 const NOW = Date.parse("2026-10-23T12:00:00Z");
@@ -56,7 +56,10 @@ test("página: oferta ativa usa o link promocional, mostra 'de/por' e o cronôme
   // que é o único lugar com o checkout.
   assert.match(html, /<p class="v-hero-cta"><a class="btn-cta" href="#oferta">/);
   assert.match(html, /<div class="v-strip-action"><a class="btn-cta" href="#oferta">/);
-  assert.equal(html.match(/href="https:\/\/pay\.kiwify\.com\.br\/Promo01"/g).length, 1);
+  // O botão leva à rota de compra; o link (promocional, agora) é escolhido na hora do clique.
+  assert.equal(html.match(/href="\/comprar\/manual"/g).length, 1);
+  assert.ok(!html.includes("Promo01"), "o link de checkout não fica no HTML");
+  assert.equal(checkoutLink(base, { now: NOW }), "https://pay.kiwify.com.br/Promo01");
   assert.equal(html.match(/<s class="price-was"><span class="sr-only">De <\/span>R\$\s197,00<\/s>/g).length, 1);
   assert.equal(html.match(/class="offer-timer" data-ends-at="2026-10-26T02:59:00\.000Z" data-now="2026-10-23T12:00:00\.000Z"/g).length, 1);
   assert.match(html, /Oferta válida até 25\/10 às 23:59/);
@@ -67,7 +70,8 @@ test("página: oferta encerrada volta ao link e preço normais e não vaza o lin
   assert.ok(!html.includes("Promo01"));
   assert.ok(!html.includes("price-was"));
   assert.ok(!html.includes("offer-timer"));
-  assert.match(html, /href="https:\/\/pay\.kiwify\.com\.br\/Normal1"/);
+  assert.match(html, /href="\/comprar\/manual"/);
+  assert.equal(checkoutLink(base, { now: Date.parse("2026-10-26T03:00:00Z") }), "https://pay.kiwify.com.br/Normal1");
   assert.match(html, /R\$\s197,00/);
 });
 
@@ -104,8 +108,11 @@ test("oferta dupla: dois cartões, cada um com o seu link; a especial com selo e
   assert.match(page, /<div class="offer-cards">/);
   assert.match(page, /<div class="buy-card is-special">\s*<p class="offer-badge">Melhor opção<\/p>/);
   assert.match(page, /<s class="price-was"><span class="sr-only">De <\/span>R\$\s497,00<\/s> <span class="sr-only">por <\/span>R\$\s297,00/);
-  assert.match(page, /href="https:\/\/pay\.kiwify\.com\.br\/Normal1"[^>]*>.*Quero o curso/);
-  assert.match(page, /href="https:\/\/pay\.kiwify\.com\.br\/Combo1"[^>]*>.*Quero o combo/);
+  assert.match(page, /href="\/comprar\/p"[^>]*>.*Quero o curso/);
+  assert.match(page, /href="\/comprar\/p\?opcao=melhor"[^>]*>.*Quero o combo/);
+  const product = { ...base, offer_price_cents: null, offer_checkout_url: null, ...special };
+  assert.equal(checkoutLink(product, { now: NOW }), "https://pay.kiwify.com.br/Normal1");
+  assert.equal(checkoutLink(product, { option: "melhor", now: NOW }), "https://pay.kiwify.com.br/Combo1");
   assert.match(page, /Mentoria/);
   // os extras do estilo simples não aparecem
   assert.ok(!/offer-proof|buy-guarantee|buy-seals|offer-benefits/.test(page));
@@ -151,5 +158,22 @@ test("página de vendas: 'R$ X a menos' na promoção sem link e na Melhor opç�
   const page = renderDouble({ ...deOnly, ...special });
   assert.match(page, /<s class="price-was"><span class="sr-only">De <\/span>R\$\s497,00<\/s> <span class="sr-only">por <\/span>R\$\s259,00<\/p><p class="price-save">R\$\s238,00 a menos<\/p>/);
   assert.match(page, /R\$\s297,00<\/p><p class="price-save">R\$\s200,00 a menos<\/p>/);
-  assert.match(page, /href="https:\/\/pay\.kiwify\.com\.br\/Normal1"/); // o cliente paga o preço normal
+  assert.match(page, /href="\/comprar\/p"/);
+  assert.equal(checkoutLink(deOnly, { now: NOW }), "https://pay.kiwify.com.br/Normal1"); // o cliente paga o preço normal
+});
+
+test("rota de compra: repassa utm_*, src e sck à Kiwify sem trocar os que o link já tem", () => {
+  const query = { utm_source: "instagram", utm_campaign: "lancamento", src: "bio", outro: "x", utm_medium: ["a", "b"] };
+  const url = new URL(checkoutLink({ ...base, offer_checkout_url: "https://pay.kiwify.com.br/Promo01?utm_campaign=fixa" }, { query, now: NOW }));
+  assert.equal(url.origin + url.pathname, "https://pay.kiwify.com.br/Promo01");
+  assert.equal(url.searchParams.get("utm_source"), "instagram");
+  assert.equal(url.searchParams.get("utm_campaign"), "fixa", "o do link cadastrado vale");
+  assert.equal(url.searchParams.get("src"), "bio");
+  assert.ok(!url.searchParams.has("outro"), "só os parâmetros de origem passam");
+  assert.ok(!url.searchParams.has("utm_medium"), "valor repetido é ignorado");
+});
+
+test("rota de compra: sem link (ou Melhor opção sem cadastro) devolve null", () => {
+  assert.equal(checkoutLink({ price_cents: 100, checkout_url: null }), null);
+  assert.equal(checkoutLink(base, { option: "melhor", now: NOW }), null);
 });

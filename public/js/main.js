@@ -114,7 +114,8 @@
   }
   function buyButton(c) {
     if (isUrl(c.checkoutUrl))
-      return el("a", { "class": "btn-cta", href: c.checkoutUrl, target: "_blank", rel: "noopener noreferrer", text: "Comprar na Kiwify (abre em nova aba)" });
+      // /comprar/... segue para a Kiwify (o link do checkout não fica na página).
+      return el("a", { "class": "btn-cta", href: "/comprar/" + encodeURIComponent(c.id), target: "_blank", rel: "noopener noreferrer", text: "Comprar na Kiwify (abre em nova aba)" });
     return el("span", { "class": "btn btn-disabled", "aria-disabled": "true", text: "Compra em breve" });
   }
 
