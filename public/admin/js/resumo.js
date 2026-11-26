@@ -233,12 +233,45 @@
         nf.format(k.waiting), nf.format(k.refused), nf.format(k.refunds), synced];
     }), "");
 
+    renderCopies(d.copies || []);
+
     var warn = $("warnings");
     warn.textContent = "";
     d.warnings.forEach(function (w) {
       warn.append(el("li", {}, [el("a", { href: "produto.html?id=" + encodeURIComponent(w.product_id), text: w.title }), ": " + w.message]));
     });
     warn.hidden = !d.warnings.length;
+  }
+
+  /* ---------- Cópias da página em outros sites ---------- */
+  function renderCopies(list) {
+    var when = function (iso) { return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }); };
+    fillTable("copies", list.map(function (c) {
+      // Endereço só como texto (pode ser um site malicioso: nada de link clicável no painel).
+      var site = el("span", {}, [el("strong", { text: c.host }), c.path ? el("span", { "class": "muted small", text: " " + c.path }) : null]);
+      var page = c.product_id ? el("a", { href: "produto.html?id=" + encodeURIComponent(c.product_id), text: c.product_title })
+        : el("span", { "class": "muted", text: c.product_slug || "—" });
+      var remove = el("button", { type: "button", "class": "btn btn-outline btn-sm", text: "Tirar da lista" });
+      remove.addEventListener("click", function () { removeCopy(c.host, remove); });
+      return [site, page, nf.format(c.hits), when(c.first_seen), when(c.last_seen), remove];
+    }), "Nenhuma cópia encontrada até agora.");
+  }
+
+  async function removeCopy(host, btn) {
+    var ok = await Admin.confirm({ title: "Tirar " + host + " da lista?",
+      text: "Faça isso quando a cópia já tiver sido removida ou se não for uma cópia. Se ela continuar no ar e alguém abrir, volta para a lista.",
+      action: "Tirar da lista", cancel: "Manter" });
+    if (!ok) return;
+    btn.disabled = true;
+    try {
+      await Admin.api("/dashboard/copies/" + encodeURIComponent(host), { method: "DELETE" });
+      data.copies = data.copies.filter(function (c) { return c.host !== host; });
+      renderCopies(data.copies);
+      Admin.showMessage(msg, host + " saiu da lista.", "success");
+    } catch (err) {
+      btn.disabled = false;
+      Admin.showMessage(msg, err.message, "error");
+    }
   }
 
   function days() { var c = document.querySelector('input[name="days"]:checked'); return c ? c.value : "30"; }

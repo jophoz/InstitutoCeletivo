@@ -229,13 +229,16 @@ function createContext(data, { live = false } = {}) {
       const button = html`<button type="button" class="item-add-btn" data-item-add="${list}">+ Adicionar ${field.noun}</button>`;
       return tag === "li" ? html`<li class="item-add">${button}</li>` : html`<div class="item-add">${button}</div>`;
     },
-    // Botão de compra: o link vem SEMPRE do cadastro do produto (fonte única).
+    // Botão de compra: o link vem SEMPRE do cadastro do produto (fonte única), mas não aparece no
+    // HTML: o botão leva a /comprar/<endereço>, que segue para a Kiwify (ver checkout.controller.js).
     // label: texto do bloco (vazio = usa o fallback); path: o campo, para a edição no editor.
     // icon: ícone antes do texto (ex.: o cadeado do cartão de compra).
-    // url: outro link de compra (ex.: o da Melhor opção); padrão, o do produto.
-    cta(label, fallback, path, { icon = null, url = data.checkout_url } = {}) {
+    // url: outro link de compra (ex.: o da Melhor opção); padrão, o do produto. Só decide se o
+    // botão existe; option: qual link a rota escolhe ("melhor" = Melhor opção).
+    cta(label, fallback, path, { icon = null, url = data.checkout_url, option = null } = {}) {
       if (!url) return html`<span class="btn-cta is-disabled" aria-disabled="true">Em breve</span>`;
-      return html`<a class="btn-cta" href="${url}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${ctx.ctaText(label, fallback, path)}<span class="sr-only"> (abre em nova aba)</span></a>`;
+      const href = `/comprar/${data.slug}${option ? `?opcao=${option}` : ""}`;
+      return html`<a class="btn-cta" href="${href}" target="_blank" rel="noopener noreferrer">${icon && svg(icon, "cta-ico")}${ctx.ctaText(label, fallback, path)}<span class="sr-only"> (abre em nova aba)</span></a>`;
     },
     ctaText(label, fallback, path) {
       return ctx.live ? html`<span${ctx.field(path, label, { fallback: true })}>${label || fallback}</span>` : inline(label) || fallback;
@@ -717,7 +720,7 @@ const OFFER_STYLES = {
       ${ctx.show(b.special_title) && html`<h3 class="buy-title"${ctx.field("special_title", b.special_title)}>${b.special_title}</h3>`}
       ${specialPrice}
       ${(b.special_items.length > 0 || ctx.live) && html`<ul class="special-items">${b.special_items.map((x, i) => html`<li${ctx.item("special_items", i)}>${ctx.icon(`special_items.${i}.icon`, x.icon)}${ctx.text(`special_items.${i}.text`, x.text)}${ctx.remove("special_items", i)}</li>`)}${ctx.addItem("special_items", b.special_items)}</ul>`}
-      ${ctx.cta(b.special_cta_label, "Quero a melhor opção", "special_cta_label", { icon: "lock", url: special?.checkout_url ?? null })}
+      ${ctx.cta(b.special_cta_label, "Quero a melhor opção", "special_cta_label", { icon: "lock", url: special?.checkout_url ?? null, option: "melhor" })}
       ${!special && html`<p class="offer-missing" role="note">Ligue a Melhor opção no cadastro do produto (Editar produto › Ofertas). Sem ela, este cartão não aparece na página.</p>`}
     </div>`;
     return offerSection(b, ctx, "v-final is-double", id, html`  <div class="container">
@@ -785,6 +788,11 @@ function themeLink(stored) {
   if (theme.preset === DEFAULT_THEME) return null;
   return html`<link rel="stylesheet" href="${themeHref(theme)}">`;
 }
+
+// Endereço desta página, embaralhado (base64 de trás para frente), para o venda.js reconhecer uma
+// cópia em outro site e devolver os botões de compra para cá. Embaralhado só para não aparecer
+// numa busca por "seusite.com.br" quem troca os links da página copiada.
+const pageRef = (url) => Buffer.from(url).toString("base64").split("").reverse().join("");
 
 // data: resultado de loadForRender. options:
 //   preview: false (público) | true (pré-visualização salva, com faixa) | "live" (dentro do editor, sem faixa)
@@ -882,7 +890,7 @@ function renderSalesPage(product, { baseUrl, preview = false, now = Date.now() }
   ${SPRITE}
   ${topBar}
   <div id="site-header"${brandAttrs(data)}></div>
-  <main id="conteudo" class="venda">
+  <main id="conteudo" class="venda"${preview ? null : html` data-ref="${pageRef(url)}"`}>
 ${body}
   </main>
   <footer class="site-footer v-footer">

@@ -2,7 +2,8 @@
    terceiros: manda só a página, o produto, a origem (utm_* do link ou o site de onde veio) e o
    servidor deduz o tipo de aparelho. A origem fica no sessionStorage (só esta aba, apagada ao
    fechá-la) para os cliques feitos depois de navegar pelo site também saberem de onde a pessoa veio.
-   No clique em "comprar", os utm_* seguem no link da Kiwify: a venda chega lá com a origem. */
+   No clique em "comprar", os utm_* seguem no link (/comprar/... repassa à Kiwify): a venda chega
+   lá com a origem. */
 (function () {
   "use strict";
   if (document.documentElement.hasAttribute("data-editor")) return; // prévia do editor do painel
@@ -64,7 +65,9 @@
     send("checkout_click", product);
     try {
       var url = new URL(a.href);
-      if (url.hostname === "pay.kiwify.com.br" && !url.searchParams.has("utm_source")) {
+      // /comprar/... (botões das páginas de vendas e do catálogo) repassa os utm_* à Kiwify.
+      var buy = url.hostname === "pay.kiwify.com.br" || /^\/comprar\/[^/]+$/.test(url.pathname);
+      if (buy && !url.searchParams.has("utm_source")) {
         TAGS.forEach(function (t) { if (origin.utm[t]) url.searchParams.set("utm_" + t, origin.utm[t]); });
         if (!origin.utm.source && origin.ref) url.searchParams.set("utm_source", origin.ref);
         a.href = url.toString();

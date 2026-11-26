@@ -179,7 +179,7 @@ test("chamada intermediária: só título e botão, que leva à oferta final (se
   const strip = page.slice(page.indexOf('class="v-strip"'), page.indexOf("</section>", page.indexOf('class="v-strip"')));
   assert.ok(!/v-eyebrow|v-strip-price|offer-timer/.test(strip), "sem rótulo, preço nem cronômetro");
   const alone = render([{ type: "cta", title: "T", cta_label: "Quero" }], false);
-  assert.match(alone, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/x" target="_blank"/);
+  assert.match(alone, /<a class="btn-cta" href="\/comprar\/produto-teste" target="_blank"/);
 });
 
 test("editor: <html data-editor> desliga as animações; fonte Inter pré-carregada do próprio site", () => {
@@ -376,7 +376,7 @@ test("oferta: texto à esquerda, cartão de compra com preço, garantia, cadeado
   assert.match(page, /<ul class="offer-benefits"><li><svg class="ico" aria-hidden="true"><use href="#i-bolt"\/><\/svg>Rápido<\/li><\/ul>/);
   assert.match(page, /<div class="offer-proof">.*<strong>Especialista<\/strong><span>10 anos<\/span>/);
   assert.match(page, /<div class="buy-card">[\s\S]*R\$\s49,90[\s\S]*Pagamento único[\s\S]*<div class="buy-guarantee"><svg class="ico" aria-hidden="true"><use href="#i-shield"\/><\/svg><p><strong>Garantia de 7 dias<\/strong>/);
-  assert.match(page, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/x" target="_blank" rel="noopener noreferrer"><svg class="cta-ico" aria-hidden="true"><use href="#i-lock"\/><\/svg>Quero me matricular agora/);
+  assert.match(page, /<a class="btn-cta" href="\/comprar\/produto-teste" target="_blank" rel="noopener noreferrer"><svg class="cta-ico" aria-hidden="true"><use href="#i-lock"\/><\/svg>Quero me matricular agora/);
   assert.match(page, /<p class="buy-note">Pagamento processado com segurança pela Kiwify\.<\/p>/);
 });
 
@@ -529,7 +529,7 @@ test("abertura: botão leva à seção de compra (#oferta); sem ela, ao checkout
   assert.equal((page.match(/id="oferta"/g) || []).length, 1, "a âncora fica só na primeira oferta");
   assert.match(page, /<section class="v-final" id="oferta" aria-labelledby=/);
   const alone = render([{ type: "hero", title: "T", cta_label: "Quero" }], false);
-  assert.match(alone, /<p class="v-hero-cta"><a class="btn-cta" href="https:\/\/pay\.example\.com\/x" target="_blank"/);
+  assert.match(alone, /<p class="v-hero-cta"><a class="btn-cta" href="\/comprar\/produto-teste" target="_blank"/);
   const live = render([{ type: "hero", title: "T" }, { type: "offer", title: "O" }], "live");
   assert.match(live, /<a class="btn-cta" href="#oferta"><span data-field="cta_label" data-fallback>Comprar agora<\/span><\/a>/);
 });
@@ -687,7 +687,7 @@ test("cronômetro, contagem regressiva: usa o prazo da oferta; sem prazo não ap
   assert.match(page, /<div class="v-count" data-count-ends="2026-11-12T02:59:00\.000Z" data-now="2026-11-10T12:00:00\.000Z"><p class="v-count-date">Oferta válida até 11\/11 às 23:59<\/p>/);
   assert.equal((page.match(/class="v-count-box"/g) || []).length, 4);
   assert.match(page, /data-count-boxes aria-hidden="true" hidden>/, "as caixas só aparecem com JavaScript");
-  assert.match(page, /<a class="btn-cta" href="https:\/\/pay\.example\.com\/promo"/, "o botão leva ao link da oferta");
+  assert.match(page, /<a class="btn-cta" href="\/comprar\/produto-teste"/, "o botão leva à rota de compra (que escolhe o link da oferta)");
   const live = render(sections, "live");
   assert.match(live, /<section class="v-countdown"[^>]* data-block="0" data-hidden>/);
   assert.match(live, /data-count-boxes aria-hidden="true">/, "no editor as caixas aparecem zeradas");
@@ -736,7 +736,7 @@ test("abertura: lista de pontos com ícone, aviso abaixo do botão e disposiçã
 
 test("autor: botão de compra opcional, com o link do produto", () => {
   const on = render([{ type: "author", name: "Instituto", show_cta: true, cta_label: "Quero conhecer" }], false);
-  assert.match(on, /<p class="author-cta"><a class="btn-cta" href="https:\/\/pay\.example\.com\/x"[^>]*>Quero conhecer/);
+  assert.match(on, /<p class="author-cta"><a class="btn-cta" href="\/comprar\/produto-teste"[^>]*>Quero conhecer/);
   assert.ok(!render([{ type: "author", name: "Instituto" }], false).includes("author-cta"));
 });
 
@@ -820,5 +820,22 @@ test("todo botão de compra fora da Oferta final leva à seção de compra (#ofe
   assert.match(page, /<a class="btn-cta" href="#oferta">Autor<\/a>/);
   assert.match(page, /<a class="btn-cta" href="#oferta">Contagem<\/a>/);
   // o botão do próprio cartão de compra continua indo ao checkout
-  assert.match(page, /id="oferta"[\s\S]*<a class="btn-cta" href="https:\/\/pay\.example\.com[^"]*"/);
+  assert.match(page, /id="oferta"[\s\S]*<a class="btn-cta" href="\/comprar\/produto-teste"/);
+});
+
+test("botões de compra: o link da Kiwify não aparece no HTML; a página pública leva o endereço embaralhado", () => {
+  const pub = render(sample(), false);
+  assert.ok(!pub.includes("pay.example.com"), "nenhum link de checkout na página");
+  const ref = /<main id="conteudo" class="venda" data-ref="([^"]+)">/.exec(pub);
+  assert.ok(ref, "data-ref na página pública");
+  assert.equal(Buffer.from(ref[1].split("").reverse().join(""), "base64").toString(), "http://localhost/p/produto-teste");
+  assert.match(render(sample(), true), /<main id="conteudo" class="venda">/, "pré-visualização sem data-ref");
+  assert.match(render(sample(), "live"), /<main id="conteudo" class="venda">/, "editor sem data-ref");
+});
+
+test("Melhor opção: o botão leva a /comprar/<endereço>?opcao=melhor", () => {
+  const page = renderSalesPage({ ...product([{ type: "offer", style: "double", title: "Escolha" }]),
+    special_price_cents: 29700, special_checkout_url: "https://pay.example.com/melhor" }, { baseUrl: "http://localhost" });
+  assert.match(page, /<a class="btn-cta" href="\/comprar\/produto-teste\?opcao=melhor"/);
+  assert.ok(!page.includes("pay.example.com"));
 });

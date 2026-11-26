@@ -41,6 +41,26 @@ function specialOffer(p) {
   return { price_cents: price, checkout_url: p.special_checkout_url, compare_cents: compare > price ? compare : null };
 }
 
+// Parâmetros do endereço que seguem até a Kiwify (origem da venda no relatório de lá).
+const FORWARDED = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "src", "sck"];
+
+// Para onde vai o botão "comprar" (rota /comprar/:slug): o link que vale AGORA, decidido na hora do
+// clique. option "melhor" = a Melhor opção; senão, a oferta ativa ou o link normal. query: os
+// parâmetros do endereço (utm_*...), repassados ao checkout sem sobrescrever os que o link já tem.
+// Devolve o endereço completo, ou null se não houver link de compra.
+function checkoutLink(p, { option = null, query = {}, now = Date.now() } = {}) {
+  const raw = option === "melhor" ? specialOffer(p)?.checkout_url : effectiveOffer(p, now).checkout_url;
+  if (!raw) return null;
+  let url;
+  try { url = new URL(raw); } catch { return null; }
+  for (const key of FORWARDED) {
+    const value = query[key];
+    if (typeof value !== "string" || !value || url.searchParams.has(key)) continue;
+    url.searchParams.set(key, value.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 100));
+  }
+  return url.toString();
+}
+
 // Data de fim por extenso no horário de Brasília ("25/10 às 23:59").
 function formatEnd(iso) {
   const d = new Date(iso);
@@ -49,4 +69,4 @@ function formatEnd(iso) {
   return `${date} às ${time}`;
 }
 
-module.exports = { effectiveOffer, specialOffer, savings, formatEnd };
+module.exports = { effectiveOffer, specialOffer, checkoutLink, savings, formatEnd };

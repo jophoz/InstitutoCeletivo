@@ -348,3 +348,49 @@
   tick();
   interval = setInterval(tick, 1000);
 })();
+
+// Página copiada em outro site. Quem clona a página costuma salvar o HTML e trocar o link de
+// compra pelo seu. Aqui, se a página está aberta fora do endereço original (data-ref, posto pelo
+// servidor), os botões de compra voltam a levar para o checkout deste site e o servidor recebe um
+// aviso com o domínio da cópia (aba Resumo do painel). Fica neste arquivo de propósito: é o mesmo
+// que faz o carrossel, as abas, as perguntas e o cronômetro funcionarem.
+(function () {
+  "use strict";
+  if (document.documentElement.hasAttribute("data-editor")) return;
+  var main = document.getElementById("conteudo");
+  var ref = main && main.getAttribute("data-ref");
+  if (!ref) return;
+  var home;
+  try { home = new URL(atob(ref.split("").reverse().join(""))); } catch (e) { return; }
+  var bare = function (h) { return String(h).toLowerCase().replace(/^www\./, ""); };
+  // No próprio site, ou no computador de quem mantém o site (localhost), nada muda.
+  if (bare(location.hostname) === bare(home.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  var slug = home.pathname.split("/")[2] || "";
+  var buy = home.origin + "/comprar/" + slug;
+
+  // Botão que já leva a /comprar/... (de qualquer domínio) mantém a opção (?opcao=melhor);
+  // qualquer outro link de compra (o que a cópia colocou) vira o checkout normal deste site.
+  function fix(a) {
+    var href = a.getAttribute("href") || "";
+    if (!href || href.charAt(0) === "#") return;
+    var url;
+    try { url = new URL(href, location.href); } catch (e) { url = null; }
+    var target = url && /^\/comprar\/[^/]+$/.test(url.pathname) ? home.origin + url.pathname + url.search : buy;
+    if (a.href !== target) a.href = target;
+  }
+  function fixAll() { [].forEach.call(document.querySelectorAll("a.btn-cta"), fix); }
+  fixAll();
+  // No clique também (botões criados ou trocados depois de a página carregar).
+  document.addEventListener("click", function (event) {
+    var a = event.target.closest && event.target.closest("a.btn-cta");
+    if (a) fix(a);
+  }, true);
+
+  try {
+    var body = JSON.stringify({ product: slug, path: location.pathname });
+    if (!(navigator.sendBeacon && navigator.sendBeacon(home.origin + "/api/track/copia", body))) {
+      fetch(home.origin + "/api/track/copia", { method: "POST", mode: "no-cors", keepalive: true, body: body,
+        headers: { "Content-Type": "text/plain" } }).catch(function () {});
+    }
+  } catch (e) { /* o aviso nunca atrapalha a página */ }
+})();
